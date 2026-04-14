@@ -83,28 +83,28 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
   return (
     <div className="flex flex-col h-full">
       {/* Month header — rosa heldekkende stripe */}
-      <div className="bg-month-stripe">
-        <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/30 transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      <div className="bg-month-stripe shadow-md">
+        <div className="flex items-center justify-between px-5 py-5">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/20 active:scale-90 transition-all">
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           <button onClick={() => setShowYear(true)} className="text-center">
-            <h2 className="text-xl font-bold capitalize text-white drop-shadow-sm">
+            <h2 className="text-2xl font-extrabold capitalize text-white tracking-wide drop-shadow-md">
               {format(currentDate, 'MMMM yyyy', { locale: nb })}
             </h2>
           </button>
-          <button onClick={() => navigate(1)} className="p-2 rounded-full hover:bg-white/30 transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <button onClick={() => navigate(1)} className="p-2 rounded-full hover:bg-white/20 active:scale-90 transition-all">
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         </div>
       </div>
 
-      {/* Weekday headers — blå accent bakgrunn */}
+      {/* Weekday headers */}
       <div className="bg-calendar-accent">
-        <div className="grid grid-cols-7 px-3 py-2">
+        <div className="grid grid-cols-7 px-3 py-3">
           {WEEKDAYS.map((d, i) => (
-            <div key={d} className={`text-center text-xs font-semibold uppercase ${
-              i >= 5 ? 'text-primary/60' : 'text-muted-foreground'
+            <div key={d} className={`text-center text-[11px] font-bold uppercase tracking-wider ${
+              i >= 5 ? 'text-primary/70' : 'text-foreground/60'
             }`}>
               {d}
             </div>
