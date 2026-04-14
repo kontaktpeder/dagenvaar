@@ -63,29 +63,31 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
         onDragEnd={handleSwipe}
         className="flex flex-col h-full"
       >
-        {/* Date header */}
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between">
-            <button onClick={() => setSelectedDate((d) => subDays(d, 1))} className="p-2 rounded-full hover:bg-muted">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-            <div className="text-center">
-              <h2 className="text-xl font-bold capitalize">
-                {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
-              </p>
+        {/* Date header — lavendel accent */}
+        <div className="bg-list-accent">
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between">
+              <button onClick={() => setSelectedDate((d) => subDays(d, 1))} className="p-2 rounded-full hover:bg-white/40 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <div className="text-center">
+                <h2 className="text-xl font-bold capitalize">
+                  {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
+                </p>
+              </div>
+              <button onClick={() => setSelectedDate((d) => addDays(d, 1))} className="p-2 rounded-full hover:bg-white/40 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
             </div>
-            <button onClick={() => setSelectedDate((d) => addDays(d, 1))} className="p-2 rounded-full hover:bg-muted">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
           </div>
         </div>
 
         {/* Day events */}
         {events.length > 0 && (
-          <div className="px-5 mb-4 space-y-2">
+          <div className="px-5 mt-4 mb-4 space-y-2">
             {events.map((event) => {
               const member = getMemberForEvent(event);
               const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
