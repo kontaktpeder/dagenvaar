@@ -125,7 +125,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
-          className="grid grid-cols-7 gap-y-1 px-3 flex-1 pt-1"
+          className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch"
         >
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
@@ -138,7 +138,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
               <button
                 key={dateStr}
                 onClick={() => handleDayTap(day)}
-                className={`relative flex flex-col items-center py-2 rounded-2xl transition-all min-h-[3.5rem] ${
+                className={`relative flex flex-col items-center justify-center rounded-2xl transition-all ${
                   !inMonth ? 'opacity-25' : ''
                 } ${
                   today ? '' : 'hover:bg-muted'
