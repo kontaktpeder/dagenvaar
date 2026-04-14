@@ -53,8 +53,11 @@ export default {
         },
         today: "hsl(var(--today))",
         weekend: "hsl(var(--weekend))",
-        "month-divider": "hsl(var(--month-divider))",
+        "month-stripe": "hsl(var(--month-stripe))",
+        "month-divider": "hsl(var(--month-stripe))",
         "nav-bg": "hsl(var(--nav-bg))",
+        "calendar-accent": "hsl(var(--calendar-accent))",
+        "list-accent": "hsl(var(--list-accent))",
         member: {
           blue: "hsl(var(--member-blue))",
           peach: "hsl(var(--member-peach))",
@@ -90,9 +93,9 @@ export default {
         "3xl": "calc(var(--radius) + 16px)",
       },
       boxShadow: {
-        soft: "0 2px 12px -2px hsl(220 20% 80% / 0.4)",
-        "soft-lg": "0 4px 24px -4px hsl(220 20% 80% / 0.5)",
-        nav: "0 -4px 20px -4px hsl(220 20% 80% / 0.3)",
+        soft: "0 2px 12px -2px hsl(340 30% 85% / 0.4)",
+        "soft-lg": "0 4px 24px -4px hsl(340 30% 85% / 0.5)",
+        nav: "0 -4px 20px -4px hsl(340 30% 85% / 0.3)",
       },
       keyframes: {
         "accordion-down": {

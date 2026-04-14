@@ -7,56 +7,60 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 220 20% 10%;
+    --foreground: 330 10% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 330 10% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 330 10% 15%;
 
-    --primary: 152 35% 65%;
-    --primary-foreground: 220 20% 10%;
+    --primary: 340 55% 68%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 30% 95%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary: 270 30% 95%;
+    --secondary-foreground: 330 10% 15%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 330 15% 96%;
+    --muted-foreground: 330 10% 45%;
 
-    --accent: 20 80% 85%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 20 70% 88%;
+    --accent-foreground: 330 10% 15%;
 
     --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 92%;
-    --input: 210 20% 92%;
-    --ring: 152 35% 65%;
+    --border: 330 15% 90%;
+    --input: 330 15% 90%;
+    --ring: 340 55% 68%;
 
     --radius: 1rem;
 
     /* Custom tokens */
-    --today: 152 40% 80%;
-    --weekend: 45 60% 92%;
-    --month-divider: 210 50% 85%;
+    --today: 340 50% 82%;
+    --weekend: 330 20% 96%;
+    --month-stripe: 340 60% 78%;
     --nav-bg: 0 0% 100%;
-    --nav-shadow: 220 20% 80%;
+    --nav-shadow: 340 30% 85%;
+
+    /* Section accents */
+    --calendar-accent: 220 50% 92%;
+    --list-accent: 270 40% 92%;
 
     /* Member colors */
-    --member-blue: 210 40% 78%;
-    --member-peach: 20 70% 85%;
-    --member-lavender: 270 40% 85%;
-    --member-mint: 160 35% 78%;
-    --member-rose: 340 50% 85%;
-    --member-yellow: 45 60% 80%;
+    --member-blue: 210 45% 78%;
+    --member-peach: 20 75% 85%;
+    --member-lavender: 270 45% 85%;
+    --member-mint: 160 40% 78%;
+    --member-rose: 340 55% 85%;
+    --member-yellow: 45 65% 82%;
 
     /* Day parts */
     --morning: 40 60% 88%;
     --late-morning: 35 50% 85%;
     --afternoon: 25 55% 85%;
-    --evening: 260 30% 85%;
-    --night: 230 30% 80%;
+    --evening: 280 35% 87%;
+    --night: 250 30% 82%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
