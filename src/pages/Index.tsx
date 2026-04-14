@@ -82,7 +82,7 @@ const Index = () => {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden pb-24">
         <AnimatePresence mode="wait">
           {activeTab === 'calendar' && (
             <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
