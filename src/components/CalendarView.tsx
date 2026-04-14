@@ -82,28 +82,34 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
 
   return (
     <div className="flex flex-col h-full">
-      {/* Month header */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-muted transition-colors">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        <button onClick={() => setShowYear(true)} className="text-center">
-          <h2 className="text-xl font-bold capitalize">
-            {format(currentDate, 'MMMM yyyy', { locale: nb })}
-          </h2>
-        </button>
-        <button onClick={() => navigate(1)} className="p-2 rounded-full hover:bg-muted transition-colors">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
+      {/* Month header — rosa heldekkende stripe */}
+      <div className="bg-month-stripe">
+        <div className="flex items-center justify-between px-5 py-4">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/30 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          <button onClick={() => setShowYear(true)} className="text-center">
+            <h2 className="text-xl font-bold capitalize text-white drop-shadow-sm">
+              {format(currentDate, 'MMMM yyyy', { locale: nb })}
+            </h2>
+          </button>
+          <button onClick={() => navigate(1)} className="p-2 rounded-full hover:bg-white/30 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </div>
       </div>
 
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 px-3 mb-1">
-        {WEEKDAYS.map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1 uppercase">
-            {d}
-          </div>
-        ))}
+      {/* Weekday headers — blå accent bakgrunn */}
+      <div className="bg-calendar-accent">
+        <div className="grid grid-cols-7 px-3 py-2">
+          {WEEKDAYS.map((d, i) => (
+            <div key={d} className={`text-center text-xs font-semibold uppercase ${
+              i >= 5 ? 'text-primary/60' : 'text-muted-foreground'
+            }`}>
+              {d}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Days grid */}
@@ -119,7 +125,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
-          className="grid grid-cols-7 gap-y-1 px-3 flex-1"
+          className="grid grid-cols-7 gap-y-1 px-3 flex-1 pt-1"
         >
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
@@ -133,14 +139,18 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                 key={dateStr}
                 onClick={() => handleDayTap(day)}
                 className={`relative flex flex-col items-center py-2 rounded-2xl transition-all min-h-[3.5rem] ${
-                  !inMonth ? 'opacity-30' : ''
-                } ${weekend && inMonth ? 'bg-weekend' : ''} ${
+                  !inMonth ? 'opacity-25' : ''
+                } ${
                   today ? '' : 'hover:bg-muted'
                 }`}
               >
                 <span
-                  className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-semibold ${
-                    today ? 'ring-2 ring-today bg-today/30' : ''
+                  className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                    today
+                      ? 'ring-2 ring-primary bg-primary/20 text-primary'
+                      : weekend && inMonth
+                        ? 'text-primary/50'
+                        : ''
                   }`}
                 >
                   {format(day, 'd')}
@@ -177,15 +187,17 @@ const YearView = ({ year, onSelectMonth, onBack }: { year: number; onSelectMonth
       transition={{ duration: 0.3 }}
       className="flex flex-col h-full"
     >
-      <div className="flex items-center justify-between px-5 py-4">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-muted transition-colors">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        <h2 className="text-xl font-bold">{year}</h2>
-        <div className="w-9" />
+      <div className="bg-month-stripe">
+        <div className="flex items-center justify-between px-5 py-4">
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-white/30 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          <h2 className="text-xl font-bold text-white">{year}</h2>
+          <div className="w-9" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 px-5 flex-1 content-start">
+      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start">
         {months.map((m) => {
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === m;
           return (
@@ -193,7 +205,7 @@ const YearView = ({ year, onSelectMonth, onBack }: { year: number; onSelectMonth
               key={m}
               onClick={() => onSelectMonth(m)}
               className={`rounded-2xl py-4 text-center transition-all hover:bg-muted ${
-                isCurrentMonth ? 'bg-today/30 ring-1 ring-today' : ''
+                isCurrentMonth ? 'bg-primary/20 ring-2 ring-primary' : ''
               }`}
             >
               <span className="text-sm font-semibold capitalize">
