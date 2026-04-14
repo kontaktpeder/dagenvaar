@@ -39,13 +39,13 @@
     /* Custom tokens */
     --today: 340 50% 82%;
     --weekend: 330 20% 96%;
-    --month-stripe: 340 55% 75%;
+    --month-stripe: 340 50% 78%;
     --nav-bg: 0 0% 100%;
     --nav-shadow: 340 30% 85%;
 
     /* Section accents */
     --calendar-accent: 220 55% 85%;
-    --list-accent: 270 40% 92%;
+    --list-accent: 270 35% 88%;
 
     /* Member colors */
     --member-blue: 210 45% 78%;
