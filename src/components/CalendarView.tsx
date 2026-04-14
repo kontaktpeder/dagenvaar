@@ -99,12 +99,12 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
         </div>
       </div>
 
-      {/* Weekday headers */}
-      <div className="bg-calendar-accent">
+      {/* Weekday headers - transparent */}
+      <div className="bg-transparent">
         <div className="grid grid-cols-7 px-3 py-3">
           {WEEKDAYS.map((d, i) => (
-            <div key={d} className={`text-center text-[11px] font-bold uppercase tracking-wider ${
-              i >= 5 ? 'text-primary/70' : 'text-foreground/60'
+            <div key={d} className={`text-center text-[13px] font-bold uppercase tracking-wider ${
+              i >= 5 ? 'text-primary/60' : 'text-foreground/50'
             }`}>
               {d}
             </div>
@@ -145,23 +145,26 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                 }`}
               >
                 <span
-                  className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                  className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] font-semibold transition-all ${
                     today
-                      ? 'ring-2 ring-primary bg-primary/20 text-primary'
+                      ? 'ring-2 ring-primary bg-primary/15 text-primary'
                       : weekend && inMonth
-                        ? 'text-primary/50'
+                        ? 'text-primary/40'
                         : ''
                   }`}
                 >
                   {format(day, 'd')}
                 </span>
                 {dayEvents.length > 0 && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {dayEvents.slice(0, 3).map((ev) => {
+                  <div className="flex flex-col gap-0.5 mt-1 w-full px-1">
+                    {dayEvents.slice(0, 2).map((ev) => {
                       const member = getMemberForEvent(ev);
                       const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+                      const firstWord = ev.title.split(' ')[0] || ev.title;
                       return (
-                        <div key={ev.id} className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
+                        <div key={ev.id} className={`${color.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight`}>
+                          {firstWord}
+                        </div>
                       );
                     })}
                   </div>
