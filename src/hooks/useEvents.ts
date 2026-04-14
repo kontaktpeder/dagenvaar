@@ -49,9 +49,9 @@ export function useCreateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (event: TablesInsert<'events'>) => {
-      const { data, error } = await supabase.from('events').insert(event).select().single();
+      const { error } = await supabase.from('events').insert(event);
       if (error) throw error;
-      return data;
+      return event;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
