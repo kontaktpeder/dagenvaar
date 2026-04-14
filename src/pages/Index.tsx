@@ -66,7 +66,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto relative">
+    <div className="h-screen bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <h1 className="text-lg font-bold">{household.name}</h1>
