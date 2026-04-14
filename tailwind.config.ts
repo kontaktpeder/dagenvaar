@@ -7,12 +7,16 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1rem",
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
+      fontFamily: {
+        display: ["Nunito", "system-ui", "sans-serif"],
+        body: ["DM Sans", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +51,25 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        today: "hsl(var(--today))",
+        weekend: "hsl(var(--weekend))",
+        "month-divider": "hsl(var(--month-divider))",
+        "nav-bg": "hsl(var(--nav-bg))",
+        member: {
+          blue: "hsl(var(--member-blue))",
+          peach: "hsl(var(--member-peach))",
+          lavender: "hsl(var(--member-lavender))",
+          mint: "hsl(var(--member-mint))",
+          rose: "hsl(var(--member-rose))",
+          yellow: "hsl(var(--member-yellow))",
+        },
+        daypart: {
+          morning: "hsl(var(--morning))",
+          "late-morning": "hsl(var(--late-morning))",
+          afternoon: "hsl(var(--afternoon))",
+          evening: "hsl(var(--evening))",
+          night: "hsl(var(--night))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -60,30 +83,35 @@ export default {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+        "3xl": "calc(var(--radius) + 16px)",
+      },
+      boxShadow: {
+        soft: "0 2px 12px -2px hsl(220 20% 80% / 0.4)",
+        "soft-lg": "0 4px 24px -4px hsl(220 20% 80% / 0.5)",
+        nav: "0 -4px 20px -4px hsl(220 20% 80% / 0.3)",
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "slide-up": {
+          from: { transform: "translateY(100%)", opacity: "0" },
+          to: { transform: "translateY(0)", opacity: "1" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "slide-up": "slide-up 0.3s ease-out",
       },
     },
   },

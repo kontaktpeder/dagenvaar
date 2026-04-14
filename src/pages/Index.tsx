@@ -1,16 +1,177 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold, useMembers, useCurrentMember } from '@/hooks/useHousehold';
+import AuthPage from '@/pages/Auth';
+import CalendarView from '@/components/CalendarView';
+import ListView from '@/components/ListView';
+import NewEventFlow from '@/components/NewEventFlow';
+import ProfileSheet from '@/components/ProfileSheet';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type Tab = 'calendar' | 'list';
+
+const Index = () => {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { data: household, isLoading: householdLoading } = useHousehold();
+  const { data: members = [] } = useMembers(household?.id);
+  const { data: currentMember } = useCurrentMember(household?.id);
+  const [activeTab, setActiveTab] = useState<Tab>('calendar');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [showNewEvent, setShowNewEvent] = useState(false);
+  const [newEventDate, setNewEventDate] = useState<Date | undefined>();
+  const [showProfile, setShowProfile] = useState(false);
+
+  if (authLoading || (user && householdLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Laster...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) return <AuthPage />;
+
+  if (!household || !currentMember) {
+    // Need onboarding — show auth page which handles it
+    return <AuthPage />;
+  }
+
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+    setActiveTab('list');
+  };
+
+  const handleCreateEvent = (date: Date) => {
+    setNewEventDate(date);
+    setShowNewEvent(true);
+  };
+
+  const handleNewFromNav = () => {
+    setNewEventDate(undefined);
+    setShowNewEvent(true);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto relative">
+      {/* Header */}
+      <header className="flex items-center justify-between px-5 pt-4 pb-2">
+        <h1 className="text-lg font-bold">{household.name}</h1>
+        <button
+          onClick={() => setShowProfile(true)}
+          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+            currentMember ? `bg-member-${currentMember.color_token.replace('pastel-', '')}` : 'bg-muted'
+          }`}
+          style={{
+            backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))`,
+          }}
+        >
+          {currentMember.display_name.charAt(0)}
+        </button>
+      </header>
+
+      {/* Content */}
+      <main className="flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {activeTab === 'calendar' && (
+            <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <CalendarView
+                householdId={household.id}
+                members={members}
+                onSelectDate={handleSelectDate}
+                onCreateEvent={handleCreateEvent}
+              />
+            </motion.div>
+          )}
+          {activeTab === 'list' && (
+            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <ListView
+                householdId={household.id}
+                members={members}
+                currentMemberId={currentMember.id}
+                initialDate={selectedDate}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Floating navbar */}
+      <nav className="fixed bottom-0 left-0 right-0 flex justify-center pb-6 px-6 z-40 pointer-events-none">
+        <div className="bg-nav-bg rounded-3xl shadow-nav px-2 py-2 flex items-center gap-1 pointer-events-auto border border-border/50">
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`flex flex-col items-center px-6 py-2 rounded-2xl transition-all ${
+              activeTab === 'calendar' ? 'bg-primary/20 text-foreground' : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span className="text-xs font-medium mt-0.5">Kalender</span>
+          </button>
+
+          <button
+            onClick={handleNewFromNav}
+            className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-soft -my-3 mx-1 transition-all hover:scale-105 active:scale-95"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => { setSelectedDate(undefined); setActiveTab('list'); }}
+            className={`flex flex-col items-center px-6 py-2 rounded-2xl transition-all ${
+              activeTab === 'list' ? 'bg-primary/20 text-foreground' : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            <span className="text-xs font-medium mt-0.5">Liste</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* New event overlay */}
+      <AnimatePresence>
+        {showNewEvent && (
+          <NewEventFlow
+            householdId={household.id}
+            members={members}
+            currentMemberId={currentMember.id}
+            initialDate={newEventDate}
+            onClose={() => setShowNewEvent(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Profile sheet */}
+      <AnimatePresence>
+        {showProfile && (
+          <ProfileSheet
+            household={household}
+            members={members}
+            currentMember={currentMember}
+            onClose={() => setShowProfile(false)}
+            onSignOut={signOut}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
