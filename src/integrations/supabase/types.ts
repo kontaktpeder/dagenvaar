@@ -347,6 +347,14 @@ export type Database = {
         }
       }
       current_member_ids: { Args: never; Returns: string[] }
+      is_household_member: {
+        Args: { p_household_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_household_owner: {
+        Args: { p_household_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
