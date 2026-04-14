@@ -7,6 +7,7 @@ import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteLis
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import EventDetailSheet from '@/components/EventDetailSheet';
+import ViewHeader from '@/components/ViewHeader';
 
 interface ListViewProps {
   householdId: string;
@@ -63,27 +64,15 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
         onDragEnd={handleSwipe}
         className="flex flex-col h-full"
       >
-        {/* Date header — lavendel accent */}
-        <div className="bg-list-accent">
-          <div className="px-5 py-4">
-            <div className="flex items-center justify-between">
-              <button onClick={() => setSelectedDate((d) => subDays(d, 1))} className="p-2 rounded-full hover:bg-white/40 transition-colors">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-              <div className="text-center">
-                <h2 className="text-xl font-bold capitalize">
-                  {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
-                </p>
-              </div>
-              <button onClick={() => setSelectedDate((d) => addDays(d, 1))} className="p-2 rounded-full hover:bg-white/40 transition-colors">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Date header */}
+        <ViewHeader
+          variant="list"
+          onPrev={() => setSelectedDate((d) => subDays(d, 1))}
+          onNext={() => setSelectedDate((d) => addDays(d, 1))}
+          subtitle={format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
+        >
+          {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
+        </ViewHeader>
 
         {/* Day events */}
         {events.length > 0 && (

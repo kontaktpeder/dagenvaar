@@ -5,6 +5,7 @@ import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import ViewHeader from '@/components/ViewHeader';
 
 interface CalendarViewProps {
   householdId: string;
@@ -82,22 +83,15 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
 
   return (
     <div className="flex flex-col h-full">
-      {/* Month header — rosa heldekkende stripe */}
-      <div className="bg-month-stripe shadow-md">
-        <div className="flex items-center justify-between px-5 py-5">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/20 active:scale-90 transition-all">
-            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <button onClick={() => setShowYear(true)} className="text-center">
-            <h2 className="text-2xl font-extrabold capitalize text-white tracking-wide drop-shadow-md">
-              {format(currentDate, 'MMMM yyyy', { locale: nb })}
-            </h2>
-          </button>
-          <button onClick={() => navigate(1)} className="p-2 rounded-full hover:bg-white/20 active:scale-90 transition-all">
-            <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-        </div>
-      </div>
+      {/* Month header */}
+      <ViewHeader
+        variant="calendar"
+        onPrev={() => navigate(-1)}
+        onNext={() => navigate(1)}
+        onTitleClick={() => setShowYear(true)}
+      >
+        {format(currentDate, 'MMMM yyyy', { locale: nb })}
+      </ViewHeader>
 
       {/* Weekday headers - transparent */}
       <div className="bg-transparent">
