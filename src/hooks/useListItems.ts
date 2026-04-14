@@ -26,9 +26,9 @@ export function useCreateListItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (item: TablesInsert<'list_items'>) => {
-      const { data, error } = await supabase.from('list_items').insert(item).select().single();
+      const { error } = await supabase.from('list_items').insert(item);
       if (error) throw error;
-      return data;
+      return item;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listItems'] });
