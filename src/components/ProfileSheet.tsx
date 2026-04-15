@@ -19,6 +19,30 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteExpiry, setInviteExpiry] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState('');
+
+  const joinHousehold = useMutation({
+    mutationFn: async () => {
+      const code = joinCode.trim().toUpperCase();
+      if (!code) throw new Error('Skriv inn invitasjonskoden');
+      const { error } = await supabase.rpc('join_household_by_code', {
+        p_invite_code: code,
+        p_display_name: currentMember.display_name || 'Meg',
+        p_color_token: currentMember.color_token || 'pastel-blue',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setJoinError('');
+      setJoinCode('');
+      onClose();
+      window.location.reload();
+    },
+    onError: (err: any) => {
+      setJoinError(err?.message ?? 'Kunne ikke bli med via kode');
+    },
+  });
 
   const createInvite = useMutation({
     mutationFn: async () => {
