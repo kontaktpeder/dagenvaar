@@ -16,7 +16,7 @@ const MONTH_COLORS = [
   "#F0D8B8", // Jul – soft peach sommer
   "#F0E0A8", // Aug – butter yellow sensommer
   "#C8DCC8", // Sep – mint cream høst
-  "#E0C0B0", // Oct – soft peach høstløv
+  "#F0C8A0", // Oct – soft peach/oransje høstløv
   "#B8CDE8", // Nov – sky blue sen høst
   "#C8C0D8", // Dec – lavendel vinter
 ];
