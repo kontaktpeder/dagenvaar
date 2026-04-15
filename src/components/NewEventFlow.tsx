@@ -37,8 +37,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const canProceed = step === 2 ? title.trim().length > 0 : true;
 
-  const dayPartStart = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[0]] : null;
-  const dayPartEnd = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[1]] : null;
+  const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
+  const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
   const dayPartCompat = dayPartStart || 'afternoon';
 
   const handleDayPartClick = (idx: number) => {
