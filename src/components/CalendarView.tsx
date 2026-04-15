@@ -91,6 +91,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
           setShowYear(false);
         }}
         onBack={() => setShowYear(false)}
+        onChangeYear={(y) => setCurrentDate(new Date(y, month, 1))}
       />
     );
   }
