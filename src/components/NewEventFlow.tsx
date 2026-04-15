@@ -42,16 +42,17 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const dayPartCompat = dayPartStart || 'afternoon';
 
   const handleDayPartClick = (idx: number) => {
-    if (!selectedDayParts) {
+    if (dayPartClickCount === 1) {
+      // Second click: create range from current single to this one
+      const prev = selectedDayParts[0];
+      if (prev === idx) return; // same spot, no change
+      setSelectedDayParts([Math.min(prev, idx), Math.max(prev, idx)]);
+      setDayPartClickCount(2);
+    } else {
+      // Third click (or first after reset): select only this one
       setSelectedDayParts([idx, idx]);
-      return;
+      setDayPartClickCount(1);
     }
-    const [a, b] = selectedDayParts;
-    if (a === b && a === idx) {
-      setSelectedDayParts(null);
-      return;
-    }
-    setSelectedDayParts([Math.min(a, idx), Math.max(a, idx)]);
   };
 
   const isDayPartSelected = (idx: number) => {
