@@ -91,6 +91,7 @@ export type Database = {
       }
       events: {
         Row: {
+          category: string | null
           created_at: string
           day_part: string
           end_time: string | null
@@ -100,12 +101,14 @@ export type Database = {
           location: string | null
           notes: string | null
           owner_member_id: string
+          priority: string
           start_time: string | null
           title: string
           updated_at: string
           visibility_type: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           day_part: string
           end_time?: string | null
@@ -115,12 +118,14 @@ export type Database = {
           location?: string | null
           notes?: string | null
           owner_member_id: string
+          priority?: string
           start_time?: string | null
           title: string
           updated_at?: string
           visibility_type?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           day_part?: string
           end_time?: string | null
@@ -130,6 +135,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           owner_member_id?: string
+          priority?: string
           start_time?: string | null
           title?: string
           updated_at?: string
