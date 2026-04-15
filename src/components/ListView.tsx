@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { format, addDays, subDays, isToday } from 'date-fns';
+import { getMonthTheme } from '@/lib/monthTheme';
 import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
@@ -66,10 +67,11 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
       >
         {/* Date header */}
         <ViewHeader
-          variant="list"
+          variant="calendar"
           onPrev={() => setSelectedDate((d) => subDays(d, 1))}
           onNext={() => setSelectedDate((d) => addDays(d, 1))}
           subtitle={format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
+          calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
         >
           {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
         </ViewHeader>
