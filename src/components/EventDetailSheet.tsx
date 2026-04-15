@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta, isHighPriority } from '@/lib/eventCategories';
+import { getEventCategoryMeta } from '@/lib/eventCategories';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface EventDetailSheetProps {
@@ -85,7 +85,6 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDet
                 <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium ${catMeta.chipBg}`}>
                   <Icon size={12} />
                   {catMeta.label}
-                  {isHighPriority(event.priority) && ' ⭐'}
                 </div>
               );
             })()}

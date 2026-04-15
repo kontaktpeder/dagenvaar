@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
-import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory, type EventPriority } from '@/lib/eventCategories';
+import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface NewEventFlowProps {
@@ -26,7 +26,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [endTime, setEndTime] = useState('');
   const [showTimeFields, setShowTimeFields] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>(null);
-  const [priority, setPriority] = useState<EventPriority>('normal');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -47,7 +46,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       location: location || null,
       notes: notes || null,
       category: category || null,
-      priority,
     });
     onClose();
   };
@@ -200,24 +198,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-3 block">Prioritet</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {([['normal', 'Normal'], ['high', 'Viktig ⭐']] as const).map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => setPriority(val)}
-                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-                        priority === val
-                          ? 'bg-primary text-primary-foreground ring-2 ring-primary'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </motion.div>
           )}
 
@@ -261,7 +241,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 {category && (
                   <p className="text-sm text-muted-foreground mt-1">
                     {EVENT_CATEGORY_META[category].label}
-                    {priority === 'high' && ' · ⭐ Viktig'}
                   </p>
                 )}
               </div>
