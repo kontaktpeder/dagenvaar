@@ -238,7 +238,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
-          className="w-full rounded-2xl bg-primary py-4 font-semibold text-primary-foreground disabled:opacity-40 transition-all text-lg"
+          className="w-full rounded-2xl bg-green-200 text-green-900 py-4 font-semibold disabled:opacity-40 transition-all text-lg hover:bg-green-300 active:scale-95"
         >
           {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse ✨'}
         </button>
