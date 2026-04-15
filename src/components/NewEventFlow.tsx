@@ -56,7 +56,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   const isDayPartSelected = (idx: number) => {
-    if (!selectedDayParts) return false;
     return idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
   };
 
