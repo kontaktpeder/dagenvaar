@@ -142,7 +142,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       onClick={() => setDayPart(key)}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
                         dayPart === key
-                          ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
