@@ -66,7 +66,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         </button>
         <div className="flex gap-1.5">
           {Array.from({ length: STEPS }).map((_, i) => (
-            <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-primary' : 'bg-border'}`} />
+            <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
         <button onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
