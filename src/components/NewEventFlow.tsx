@@ -132,7 +132,14 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   return (
                     <button
                       key={key}
-                      onClick={() => setCategory(selected ? null : key)}
+                      onClick={() => {
+                        if (selected) {
+                          setCategory(null);
+                        } else {
+                          setCategory(key);
+                          setTimeout(() => setStep(2), 200);
+                        }
+                      }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
                         selected
                           ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
