@@ -10,7 +10,7 @@ const MONTH_COLORS = [
   "#C8DCF0", // Jan – kald vinterblå
   "#D8C8E8", // Feb – dempet lilla, vinter
   "#C8E8D0", // Mar – tidlig vårgrønn
-  "#F0E0A0", // Apr – varm gulgrønn, påske
+  "#F0C0C0", // Apr – lys pastell rød, påske
   "#F0C0A0", // May – varm fersken-rosa, vår
   "#F0E0A0", // Jun – varm sommerul
   "#F0C8A0", // Jul – varm aprikossommer
