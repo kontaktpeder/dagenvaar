@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -9,6 +10,16 @@ const QUERY_KEY = ['current-household-context'] as const;
 
 export function useCurrentHouseholdContext() {
   const queryClient = useQueryClient();
+
+  // Invalidate context query whenever auth state changes (sign in/out)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, _session) => {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   const query = useQuery({
     queryKey: QUERY_KEY,
