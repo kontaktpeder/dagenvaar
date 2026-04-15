@@ -1,36 +1,21 @@
-import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Household = Tables<'households'>;
 type HouseholdMember = Tables<'household_members'>;
 
-const QUERY_KEY = ['current-household-context'] as const;
+const QUERY_KEY_BASE = 'current-household-context';
 
 export function useCurrentHouseholdContext() {
   const queryClient = useQueryClient();
-
-  // Invalidate context query whenever auth state changes (sign in/out)
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, _session) => {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      }
-    );
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
+  const { user: authUser, loading: authLoading } = useAuth();
 
   const query = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: [QUERY_KEY_BASE, authUser?.id ?? null],
     queryFn: async () => {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError) throw authError;
-      if (!user) return { user: null, household: null as Household | null, currentMember: null as HouseholdMember | null };
+      if (!authUser) return { user: null, household: null as Household | null, currentMember: null as HouseholdMember | null };
 
       const { data, error } = await supabase
         .from('household_members')
@@ -38,7 +23,7 @@ export function useCurrentHouseholdContext() {
           *,
           household:households (*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .eq('is_active', true)
         .order('created_at', { ascending: true })
         .limit(1)
@@ -49,20 +34,21 @@ export function useCurrentHouseholdContext() {
       const membership = data as (HouseholdMember & { household: Household | null }) | null;
 
       return {
-        user,
+        user: authUser,
         household: membership?.household ?? null,
         currentMember: membership ? { ...membership, household: undefined } as unknown as HouseholdMember : null,
       };
     },
+    enabled: !authLoading,
   });
 
   return {
     user: query.data?.user ?? null,
     household: query.data?.household ?? null,
     currentMember: query.data?.currentMember ?? null,
-    loading: query.isLoading,
+    loading: authLoading || query.isLoading,
     error: query.error,
     refetch: query.refetch,
-    invalidate: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    invalidate: () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY_BASE] }),
   };
 }
