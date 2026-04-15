@@ -4,6 +4,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
+import { getMonthTheme } from '@/lib/monthTheme';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import ViewHeader from '@/components/ViewHeader';
 
@@ -24,6 +25,8 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const { data: events = [] } = useEventsForMonth(householdId, year, month);
+
+  const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, Event[]> = {};
@@ -83,17 +86,18 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
 
   return (
     <div className="flex flex-col h-full">
-      {/* Month header */}
+      {/* Month header with dynamic theme */}
       <ViewHeader
         variant="calendar"
         onPrev={() => navigate(-1)}
         onNext={() => navigate(1)}
         onTitleClick={() => setShowYear(true)}
+        calendarStyle={{ background: monthTheme.gradient }}
       >
         {format(currentDate, 'MMMM yyyy', { locale: nb })}
       </ViewHeader>
 
-      {/* Weekday headers - transparent */}
+      {/* Weekday headers */}
       <div className="bg-transparent">
         <div className="grid grid-cols-7 px-3 py-3">
           {WEEKDAYS.map((d, i) => (
@@ -132,20 +136,38 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
               <button
                 key={dateStr}
                 onClick={() => handleDayTap(day)}
-                className={`relative flex flex-col items-center justify-center rounded-2xl transition-all ${
+                className={`relative flex flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                   !inMonth ? 'opacity-25' : ''
-                } ${
-                  today ? '' : 'hover:bg-muted'
                 }`}
+                style={
+                  !today && inMonth
+                    ? { '--hover-bg': monthTheme.light } as React.CSSProperties
+                    : undefined
+                }
+                onMouseEnter={(e) => {
+                  if (!today && inMonth) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = monthTheme.light;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!today && inMonth) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '';
+                  }
+                }}
               >
                 <span
-                  className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] font-semibold transition-all ${
-                    today
-                      ? 'ring-2 ring-primary bg-primary/15 text-primary'
-                      : weekend && inMonth
-                        ? 'text-primary/40'
-                        : ''
+                  className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] font-semibold transition-all duration-200 ${
+                    weekend && inMonth && !today ? 'opacity-60' : ''
                   }`}
+                  style={
+                    today
+                      ? {
+                          backgroundColor: monthTheme.dark,
+                          color: monthTheme.textOnStrong,
+                          boxShadow: `0 2px 8px -2px ${monthTheme.dark}66`,
+                        }
+                      : undefined
+                  }
                 >
                   {format(day, 'd')}
                 </span>
@@ -196,16 +218,21 @@ const YearView = ({ year, onSelectMonth, onBack }: { year: number; onSelectMonth
 
       <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start">
         {months.map((m) => {
+          const theme = getMonthTheme(new Date(year, m, 1));
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === m;
           return (
             <button
               key={m}
               onClick={() => onSelectMonth(m)}
-              className={`rounded-2xl py-4 text-center transition-all hover:bg-muted ${
-                isCurrentMonth ? 'bg-primary/20 ring-2 ring-primary' : ''
+              className={`rounded-2xl py-4 text-center transition-all duration-200 hover:scale-105 ${
+                isCurrentMonth ? 'ring-2 ring-offset-2' : ''
               }`}
+              style={{
+                backgroundColor: theme.light,
+                ...(isCurrentMonth ? { ringColor: theme.dark, borderColor: theme.dark } : {}),
+              }}
             >
-              <span className="text-sm font-semibold capitalize">
+              <span className="text-sm font-semibold capitalize" style={{ color: theme.dark }}>
                 {format(new Date(year, m, 1), 'MMM', { locale: nb })}
               </span>
             </button>
