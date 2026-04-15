@@ -70,10 +70,11 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
           variant="calendar"
           onPrev={() => setSelectedDate((d) => subDays(d, 1))}
           onNext={() => setSelectedDate((d) => addDays(d, 1))}
-          subtitle={format(selectedDate, 'd. MMMM yyyy', { locale: nb })}
           calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
         >
-          {isToday(selectedDate) ? 'I dag' : format(selectedDate, 'EEEE', { locale: nb })}
+          {isToday(selectedDate)
+            ? `I dag · ${format(selectedDate, 'd. MMM', { locale: nb })}`
+            : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
         </ViewHeader>
 
         {/* Day events */}
