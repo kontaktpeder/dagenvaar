@@ -15,6 +15,7 @@ type CategoryMeta = {
   Icon: LucideIcon;
   chipBg: string;
   chipText: string;
+  iconColor: string;
 };
 
 export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
@@ -23,30 +24,35 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     Icon: Heart,
     chipBg: 'bg-primary/20',
     chipText: 'text-foreground',
+    iconColor: 'text-primary',
   },
   work: {
     label: 'Jobb',
     Icon: BriefcaseBusiness,
     chipBg: 'bg-calendar-accent/60',
     chipText: 'text-foreground',
+    iconColor: 'text-calendar-accent',
   },
   social: {
     label: 'Sosialt',
     Icon: Users,
     chipBg: 'bg-list-accent/70',
     chipText: 'text-foreground',
+    iconColor: 'text-list-accent',
   },
   celebration: {
     label: 'Fest',
     Icon: PartyPopper,
     chipBg: 'bg-member-yellow/60',
     chipText: 'text-foreground',
+    iconColor: 'text-member-yellow',
   },
   important: {
     label: 'Viktig',
     Icon: AlertTriangle,
     chipBg: 'bg-member-peach/65',
     chipText: 'text-foreground',
+    iconColor: 'text-member-peach',
   },
 };
 
