@@ -226,9 +226,10 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
   );
 };
 
-const YearView = ({ year, onSelectMonth, onBack }: { year: number; onSelectMonth: (m: number) => void; onBack: () => void }) => {
+const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number; onSelectMonth: (m: number) => void; onBack: () => void; onChangeYear: (y: number) => void }) => {
   const months = Array.from({ length: 12 }, (_, i) => i);
   const now = new Date();
+  const theme = getMonthTheme(new Date(year, 0, 1));
 
   return (
     <motion.div
@@ -238,15 +239,15 @@ const YearView = ({ year, onSelectMonth, onBack }: { year: number; onSelectMonth
       transition={{ duration: 0.3 }}
       className="flex flex-col h-full"
     >
-      <div className="bg-month-stripe">
-        <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={onBack} className="p-2 rounded-full hover:bg-white/30 transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <h2 className="text-xl font-bold text-white">{year}</h2>
-          <div className="w-9" />
-        </div>
-      </div>
+      <ViewHeader
+        variant="calendar"
+        onPrev={() => onChangeYear(year - 1)}
+        onNext={() => onChangeYear(year + 1)}
+        onTitleClick={onBack}
+        calendarStyle={{ background: theme.gradient }}
+      >
+        {year}
+      </ViewHeader>
 
       <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start">
         {months.map((m) => {
