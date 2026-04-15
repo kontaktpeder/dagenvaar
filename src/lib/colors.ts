@@ -22,6 +22,7 @@ export const DAY_PART_LABELS: Record<string, string> = {
   afternoon: 'Ettermiddag',
   evening: 'Kveld',
   night: 'Natt',
+  all_day: 'Hele dagen',
 };
 
 export const DAY_PART_COLORS: Record<string, string> = {

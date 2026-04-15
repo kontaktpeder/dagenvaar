@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
@@ -17,11 +17,14 @@ interface NewEventFlowProps {
 
 const STEPS = 4;
 
+const DAY_PART_ORDER = ['morning', 'late_morning', 'afternoon', 'evening', 'night', 'all_day'] as const;
+
 const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose }: NewEventFlowProps) => {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(initialDate || new Date());
-  const [dayPart, setDayPart] = useState('afternoon');
+  const [startDate, setStartDate] = useState(initialDate || new Date());
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [selectedDayParts, setSelectedDayParts] = useState<[number, number] | null>([2, 2]); // default afternoon
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [showTimeFields, setShowTimeFields] = useState(false);
@@ -33,24 +36,65 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const canProceed = step === 2 ? title.trim().length > 0 : true;
 
+  const dayPartStart = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[0]] : null;
+  const dayPartEnd = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[1]] : null;
+  const dayPartCompat = dayPartStart || 'afternoon';
+
+  const handleDayPartClick = (idx: number) => {
+    if (!selectedDayParts) {
+      setSelectedDayParts([idx, idx]);
+      return;
+    }
+    const [a, b] = selectedDayParts;
+    if (a === b && a === idx) {
+      setSelectedDayParts(null);
+      return;
+    }
+    setSelectedDayParts([Math.min(a, idx), Math.max(a, idx)]);
+  };
+
+  const isDayPartSelected = (idx: number) => {
+    if (!selectedDayParts) return false;
+    return idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
+  };
+
+  const handleAddDay = () => {
+    if (!endDate) {
+      setEndDate(addDays(startDate, 1));
+    } else {
+      setEndDate(addDays(endDate, 1));
+    }
+  };
+
   const handleSubmit = async () => {
+    const eventEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd');
     await createEvent.mutateAsync({
       household_id: householdId,
       owner_member_id: currentMemberId,
       title: title.trim(),
-      event_date: format(date, 'yyyy-MM-dd'),
-      day_part: dayPart,
+      event_date: format(startDate, 'yyyy-MM-dd'),
+      end_date: eventEndDate,
+      day_part: dayPartCompat,
+      day_part_start: dayPartStart || null,
+      day_part_end: dayPartEnd || null,
       start_time: startTime || null,
       end_time: endTime || null,
       visibility_type: visibility,
       location: location || null,
       notes: notes || null,
       category: category || null,
-    });
+    } as any);
     onClose();
   };
 
-  const dayParts = Object.entries(DAY_PART_LABELS);
+  const getDayPartRangeLabel = () => {
+    if (!selectedDayParts) return 'Ikke valgt';
+    const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
+    const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
+    if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
+    if (selectedDayParts[0] === selectedDayParts[1]) return startLabel;
+    return `${startLabel} – ${endLabel}`;
+  };
 
   return (
     <motion.div
@@ -123,32 +167,73 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
             <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
 
+              {/* Start date + add day button */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Dato</label>
-                <input
-                  type="date"
-                  value={format(date, 'yyyy-MM-dd')}
-                  onChange={(e) => setDate(new Date(e.target.value + 'T12:00:00'))}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={format(startDate, 'yyyy-MM-dd')}
+                    onChange={(e) => {
+                      const newDate = new Date(e.target.value + 'T12:00:00');
+                      setStartDate(newDate);
+                      if (endDate && endDate <= newDate) setEndDate(null);
+                    }}
+                    className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    onClick={handleAddDay}
+                    className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all"
+                  >
+                    +1 dag
+                  </button>
+                </div>
               </div>
 
+              {/* End date (if multi-day) */}
+              {endDate && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Sluttdato</label>
+                      <input
+                        type="date"
+                        value={format(endDate, 'yyyy-MM-dd')}
+                        onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))}
+                        min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
+                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setEndDate(null)}
+                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Day part interval selection */}
               <div>
                 <label className="text-sm font-medium mb-3 block">Del av dagen</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {dayParts.map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => setDayPart(key)}
-                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-                        dayPart === key
-                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  {DAY_PART_ORDER.map((key, idx) => {
+                    const selected = isDayPartSelected(idx);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => handleDayPartClick(idx)}
+                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
+                          selected
+                            ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                            : 'bg-muted hover:bg-muted/80'
+                        } ${key === 'all_day' ? 'col-span-2' : ''}`}
+                      >
+                        {DAY_PART_LABELS[key]}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -218,7 +303,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 <p className="text-sm text-muted-foreground mb-1">Oppsummering</p>
                 <p className="font-semibold">{title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(date, 'd. MMMM yyyy', { locale: nb })} · {DAY_PART_LABELS[dayPart]}
+                  {format(startDate, 'd. MMMM yyyy', { locale: nb })}
+                  {endDate && ` → ${format(endDate, 'd. MMMM yyyy', { locale: nb })}`}
+                  {' · '}
+                  {getDayPartRangeLabel()}
                   {startTime && ` · ${startTime}`}
                   {endTime && `–${endTime}`}
                 </p>
