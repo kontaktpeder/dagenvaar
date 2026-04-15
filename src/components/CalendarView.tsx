@@ -186,9 +186,8 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                         if (catMeta) {
                           const Icon = catMeta.Icon;
                           return (
-                            <div key={ev.id} className={`${catMeta.chipBg} rounded-full px-1.5 py-0.5 text-[10px] font-medium text-center truncate leading-tight flex items-center gap-0.5 justify-center`}>
-                              <Icon size={9} />
-                              {ev.title.split(' ')[0]}
+                            <div key={ev.id} className="flex items-center justify-center">
+                              <Icon size={13} strokeWidth={2.5} className={catMeta.iconColor} />
                             </div>
                           );
                         }
