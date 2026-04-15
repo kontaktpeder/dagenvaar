@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { useHousehold, useMembers, useCurrentMember } from '@/hooks/useHousehold';
+import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
+import { useMembers } from '@/hooks/useHousehold';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
@@ -12,17 +13,16 @@ import ProfileSheet from '@/components/ProfileSheet';
 type Tab = 'calendar' | 'list';
 
 const Index = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { data: household, isLoading: householdLoading } = useHousehold();
+  const { loading: authLoading, signOut } = useAuth();
+  const { user, household, currentMember, loading: ctxLoading, invalidate } = useCurrentHouseholdContext();
   const { data: members = [] } = useMembers(household?.id);
-  const { data: currentMember } = useCurrentMember(household?.id);
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
 
-  if (authLoading) {
+  if (authLoading || ctxLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
@@ -35,19 +35,8 @@ const Index = () => {
 
   if (!user) return <AuthPage />;
 
-  if (householdLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Laster hjemmet ditt...</p>
-        </motion.div>
-      </div>
-    );
-  }
-
   if (!household || !currentMember) {
-    return <OnboardingPage onComplete={() => window.location.reload()} />;
+    return <OnboardingPage onComplete={invalidate} />;
   }
 
   const handleSelectDate = (date: Date) => {
