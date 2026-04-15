@@ -152,6 +152,47 @@ export type Database = {
           },
         ]
       }
+      household_invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          household_id: string
+          id: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          household_id: string
+          id?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          household_id?: string
+          id?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_invites_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_members: {
         Row: {
           avatar_url: string | null
@@ -330,6 +371,15 @@ export type Database = {
         Args: { p_list_item_id: string }
         Returns: boolean
       }
+      create_household_invite: {
+        Args: never
+        Returns: {
+          code: string
+          expires_at: string
+          household_id: string
+          invite_id: string
+        }[]
+      }
       create_household_with_owner: {
         Args: { p_color_token?: string; p_display_name: string; p_name: string }
         Returns: {
@@ -354,6 +404,14 @@ export type Database = {
       is_household_owner: {
         Args: { p_household_id: string; p_user_id: string }
         Returns: boolean
+      }
+      join_household_by_code: {
+        Args: {
+          p_color_token?: string
+          p_display_name: string
+          p_invite_code: string
+        }
+        Returns: string
       }
     }
     Enums: {
