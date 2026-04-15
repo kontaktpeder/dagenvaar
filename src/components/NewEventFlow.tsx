@@ -135,7 +135,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       onClick={() => setCategory(selected ? null : key)}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
                         selected
-                          ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
