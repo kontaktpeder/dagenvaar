@@ -4,7 +4,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta, isHighPriority } from '@/lib/eventCategories';
+import { getEventCategoryMeta } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import ViewHeader from '@/components/ViewHeader';
@@ -176,9 +176,9 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                   <div className="flex flex-col gap-0.5 mt-1 w-full px-1">
                     {dayEvents
                       .sort((a, b) => {
-                        const aHigh = isHighPriority(a.priority) ? 0 : 1;
-                        const bHigh = isHighPriority(b.priority) ? 0 : 1;
-                        return aHigh - bHigh;
+                        const aCat = a.category === 'important' ? 0 : 1;
+                        const bCat = b.category === 'important' ? 0 : 1;
+                        return aCat - bCat;
                       })
                       .slice(0, 2)
                       .map((ev) => {
