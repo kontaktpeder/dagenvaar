@@ -172,6 +172,27 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
           )}
 
+          {/* Join by code */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">Jeg har kode</h3>
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="F.eks. AB12-CD34"
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              onClick={() => { setJoinError(''); joinHousehold.mutate(); }}
+              disabled={joinHousehold.isPending}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50"
+            >
+              {joinHousehold.isPending ? 'Kobler til...' : 'Bli med med kode'}
+            </button>
+            {joinError && (
+              <p className="text-destructive text-sm text-center">{joinError}</p>
+            )}
+          </div>
+
           {/* Sign out */}
           <div className="space-y-2">
             <button
