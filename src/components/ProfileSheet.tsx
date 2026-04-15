@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
@@ -7,10 +8,25 @@ interface ProfileSheetProps {
   members: HouseholdMember[];
   currentMember: HouseholdMember;
   onClose: () => void;
-  onSignOut: () => void;
+  onSignOut: () => Promise<void>;
 }
 
 const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
+
+  const handleSignOutClick = async () => {
+    setSignOutError('');
+    setIsSigningOut(true);
+    try {
+      await onSignOut();
+    } catch (err: any) {
+      setSignOutError(err?.message ?? 'Kunne ikke logge ut');
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -65,12 +81,18 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           </div>
 
           {/* Sign out */}
-          <button
-            onClick={onSignOut}
-            className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
-          >
-            Logg ut
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={handleSignOutClick}
+              disabled={isSigningOut}
+              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSigningOut ? 'Logger ut...' : 'Logg ut'}
+            </button>
+            {signOutError && (
+              <p className="text-destructive text-sm text-center">{signOutError}</p>
+            )}
+          </div>
         </div>
       </motion.div>
     </motion.div>
