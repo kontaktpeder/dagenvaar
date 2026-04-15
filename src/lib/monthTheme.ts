@@ -7,18 +7,18 @@ export type MonthTheme = {
 };
 
 const MONTH_COLORS = [
-  "#C8DCF0", // Jan – kald vinterblå (sky blue)
-  "#D8C8E8", // Feb – lavendel
-  "#C8E8D0", // Mar – mint cream grønn
-  "#F0C8D0", // Apr – blush pink
-  "#F2D0D8", // May – lyserød/rosa
-  "#F5E8B0", // Jun – butter yellow sommer
-  "#F0D8B8", // Jul – soft peach sommer
-  "#F0E0A8", // Aug – butter yellow sensommer
-  "#C8DCC8", // Sep – mint cream høst
-  "#F0C8A0", // Oct – soft peach/oransje høstløv
-  "#B8CDE8", // Nov – sky blue sen høst
-  "#C8C0D8", // Dec – lavendel vinter
+  "#B8D8F0", // Jan – frisk isblå
+  "#D0B8E8", // Feb – klar lavendel
+  "#A8E0B8", // Mar – frisk mintgrønn
+  "#F5B8C8", // Apr – klar blush pink
+  "#F0A8B8", // May – frisk rosa
+  "#F5E098", // Jun – klar smørgul
+  "#F5C090", // Jul – frisk fersken
+  "#E8C878", // Aug – varm honninggul
+  "#90D0B8", // Sep – frisk jadegrønn
+  "#F0B888", // Oct – klar oransje pastell
+  "#88B8E8", // Nov – frisk himmelblå
+  "#C0A8D8", // Dec – klar ametyst
 ];
 
 function clamp(v: number, min = 0, max = 255) {
