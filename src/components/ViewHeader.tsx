@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, CSSProperties } from 'react';
 
 interface ViewHeaderProps {
   variant: 'calendar' | 'list';
@@ -7,27 +7,22 @@ interface ViewHeaderProps {
   onTitleClick?: () => void;
   children: ReactNode;
   subtitle?: string;
+  calendarStyle?: CSSProperties;
 }
 
-const ViewHeader = ({ variant, onPrev, onNext, onTitleClick, children, subtitle }: ViewHeaderProps) => {
-  const bg = variant === 'calendar'
-    ? 'bg-month-stripe/80'
-    : 'bg-list-accent';
+const ViewHeader = ({ variant, onPrev, onNext, onTitleClick, children, subtitle, calendarStyle }: ViewHeaderProps) => {
+  const isCalendar = variant === 'calendar';
 
-  const textColor = variant === 'calendar'
-    ? 'text-white'
-    : 'text-foreground';
-
-  const arrowColor = variant === 'calendar'
-    ? 'stroke-white'
-    : 'stroke-current';
-
-  const hoverBg = variant === 'calendar'
-    ? 'hover:bg-white/15'
-    : 'hover:bg-white/40';
+  const bg = isCalendar ? '' : 'bg-list-accent';
+  const textColor = isCalendar ? 'text-white' : 'text-foreground';
+  const arrowColor = isCalendar ? 'stroke-white' : 'stroke-current';
+  const hoverBg = isCalendar ? 'hover:bg-white/15' : 'hover:bg-white/40';
 
   return (
-    <div className={`${bg} rounded-b-3xl`}>
+    <div
+      className={`${bg} rounded-b-3xl transition-all duration-300 ease-in-out`}
+      style={isCalendar ? calendarStyle : undefined}
+    >
       <div className="flex items-center justify-between px-5 py-4">
         <button onClick={onPrev} className={`p-2 rounded-full ${hoverBg} active:scale-90 transition-all`}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -39,7 +34,7 @@ const ViewHeader = ({ variant, onPrev, onNext, onTitleClick, children, subtitle 
             {children}
           </h2>
           {subtitle && (
-            <p className={`text-sm mt-0.5 ${variant === 'calendar' ? 'text-white/70' : 'text-muted-foreground'}`}>
+            <p className={`text-sm mt-0.5 ${isCalendar ? 'text-white/70' : 'text-muted-foreground'}`}>
               {subtitle}
             </p>
           )}
