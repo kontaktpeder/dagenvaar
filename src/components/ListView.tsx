@@ -97,7 +97,13 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
                     <div>
                       <p className="font-semibold">{event.title}</p>
                       <p className="text-sm text-muted-foreground">
-                        {member?.display_name} · {DAY_PART_LABELS[event.day_part] || event.day_part}
+                        {member?.display_name} · {(() => {
+                          const dps = (event as any).day_part_start;
+                          const dpe = (event as any).day_part_end;
+                          if (dps && dpe && dps !== dpe) return `${DAY_PART_LABELS[dps] || dps} – ${DAY_PART_LABELS[dpe] || dpe}`;
+                          if (dps === 'all_day') return 'Hele dagen';
+                          return DAY_PART_LABELS[event.day_part] || event.day_part;
+                        })()}
                         {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
                         {event.end_time && `–${event.end_time.slice(0, 5)}`}
                       </p>

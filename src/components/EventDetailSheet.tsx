@@ -69,9 +69,20 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDet
             <h2 className="text-xl font-bold mb-1">{event.title}</h2>
             <p className="text-sm text-muted-foreground">
               {owner?.display_name} · {format(new Date(event.event_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: nb })}
+              {(event as any).end_date && (event as any).end_date !== event.event_date && (
+                <> → {format(new Date((event as any).end_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: nb })}</>
+              )}
             </p>
             <p className="text-sm text-muted-foreground">
-              {DAY_PART_LABELS[event.day_part] || event.day_part}
+              {(() => {
+                const dps = (event as any).day_part_start;
+                const dpe = (event as any).day_part_end;
+                if (dps && dpe && dps !== dpe) {
+                  return `${DAY_PART_LABELS[dps] || dps} – ${DAY_PART_LABELS[dpe] || dpe}`;
+                }
+                if (dps === 'all_day') return 'Hele dagen';
+                return DAY_PART_LABELS[event.day_part] || event.day_part;
+              })()}
               {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
               {event.end_time && `–${event.end_time.slice(0, 5)}`}
             </p>

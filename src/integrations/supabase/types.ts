@@ -94,6 +94,9 @@ export type Database = {
           category: string | null
           created_at: string
           day_part: string
+          day_part_end: string | null
+          day_part_start: string | null
+          end_date: string | null
           end_time: string | null
           event_date: string
           household_id: string
@@ -111,6 +114,9 @@ export type Database = {
           category?: string | null
           created_at?: string
           day_part: string
+          day_part_end?: string | null
+          day_part_start?: string | null
+          end_date?: string | null
           end_time?: string | null
           event_date: string
           household_id: string
@@ -128,6 +134,9 @@ export type Database = {
           category?: string | null
           created_at?: string
           day_part?: string
+          day_part_end?: string | null
+          day_part_start?: string | null
+          end_date?: string | null
           end_time?: string | null
           event_date?: string
           household_id?: string
