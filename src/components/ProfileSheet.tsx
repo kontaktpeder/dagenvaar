@@ -19,6 +19,30 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteExpiry, setInviteExpiry] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState('');
+
+  const joinHousehold = useMutation({
+    mutationFn: async () => {
+      const code = joinCode.trim().toUpperCase();
+      if (!code) throw new Error('Skriv inn invitasjonskoden');
+      const { error } = await supabase.rpc('join_household_by_code', {
+        p_invite_code: code,
+        p_display_name: currentMember.display_name || 'Meg',
+        p_color_token: currentMember.color_token || 'pastel-blue',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setJoinError('');
+      setJoinCode('');
+      onClose();
+      window.location.reload();
+    },
+    onError: (err: any) => {
+      setJoinError(err?.message ?? 'Kunne ikke bli med via kode');
+    },
+  });
 
   const createInvite = useMutation({
     mutationFn: async () => {
@@ -147,6 +171,27 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               )}
             </div>
           )}
+
+          {/* Join by code */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">Jeg har kode</h3>
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="F.eks. AB12-CD34"
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              onClick={() => { setJoinError(''); joinHousehold.mutate(); }}
+              disabled={joinHousehold.isPending}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50"
+            >
+              {joinHousehold.isPending ? 'Kobler til...' : 'Bli med med kode'}
+            </button>
+            {joinError && (
+              <p className="text-destructive text-sm text-center">{joinError}</p>
+            )}
+          </div>
 
           {/* Sign out */}
           <div className="space-y-2">
