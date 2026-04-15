@@ -32,8 +32,18 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
   const eventsByDate = useMemo(() => {
     const map: Record<string, Event[]> = {};
     events.forEach((e) => {
-      if (!map[e.event_date]) map[e.event_date] = [];
-      map[e.event_date].push(e);
+      // For multi-day events, add to each day in range
+      const start = e.event_date;
+      const end = (e as any).end_date || e.event_date;
+      let current = start;
+      while (current <= end) {
+        if (!map[current]) map[current] = [];
+        map[current].push(e);
+        // Increment date string
+        const d = new Date(current + 'T12:00:00');
+        d.setDate(d.getDate() + 1);
+        current = d.toISOString().slice(0, 10);
+      }
     });
     return map;
   }, [events]);

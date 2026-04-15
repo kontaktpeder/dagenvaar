@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 
@@ -14,6 +16,34 @@ interface ProfileSheetProps {
 const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteExpiry, setInviteExpiry] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const createInvite = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('create_household_invite');
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        setInviteCode(data.code);
+        setInviteExpiry(data.expires_at);
+      }
+    },
+  });
+
+  const handleCopyCode = async () => {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
 
   const handleSignOutClick = async () => {
     setSignOutError('');
@@ -26,6 +56,8 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
       setIsSigningOut(false);
     }
   };
+
+  const isOwner = currentMember.role === 'owner';
 
   return (
     <motion.div
@@ -40,7 +72,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="relative mt-auto bg-background rounded-t-3xl max-h-[70vh]"
+        className="relative mt-auto bg-background rounded-t-3xl max-h-[70vh] overflow-y-auto"
       >
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-border" />
@@ -79,6 +111,42 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               })}
             </div>
           </div>
+
+          {/* Invite */}
+          {isOwner && (
+            <div className="space-y-2">
+              {!inviteCode ? (
+                <button
+                  onClick={() => createInvite.mutate()}
+                  disabled={createInvite.isPending}
+                  className="w-full rounded-xl bg-calendar-accent/60 py-3 text-sm font-medium transition-colors hover:bg-calendar-accent/80 disabled:opacity-50"
+                >
+                  {createInvite.isPending ? 'Oppretter...' : 'Inviter medlem'}
+                </button>
+              ) : (
+                <div className="rounded-xl bg-muted p-4 space-y-3">
+                  <p className="text-sm font-medium text-center">Invitasjonskode</p>
+                  <p className="text-2xl font-bold text-center tracking-widest">{inviteCode}</p>
+                  {inviteExpiry && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Utløper {new Date(inviteExpiry).toLocaleDateString('nb-NO')}
+                    </p>
+                  )}
+                  <button
+                    onClick={handleCopyCode}
+                    className="w-full rounded-xl bg-calendar-accent/60 py-2.5 text-sm font-medium transition-colors hover:bg-calendar-accent/80"
+                  >
+                    {copied ? '✓ Kopiert!' : 'Kopier kode'}
+                  </button>
+                </div>
+              )}
+              {createInvite.isError && (
+                <p className="text-destructive text-sm text-center">
+                  {(createInvite.error as any)?.message || 'Kunne ikke opprette invitasjon'}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Sign out */}
           <div className="space-y-2">
