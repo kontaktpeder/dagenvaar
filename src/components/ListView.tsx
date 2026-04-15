@@ -6,6 +6,7 @@ import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
+import { getEventCategoryMeta } from '@/lib/eventCategories';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import ViewHeader from '@/components/ViewHeader';
