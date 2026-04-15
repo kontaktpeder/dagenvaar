@@ -59,9 +59,7 @@ export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
   const light = mix(base, "#FFFFFF", 0.35);
   const dark = mix(base, "#000000", 0.25);
-  const headerDark = mix(base, "#000000", 0.25);
-  const headerLight = mix(base, "#000000", 0.08);
   const textOnStrong = "#FFFFFF";
-  const gradient = `linear-gradient(135deg, ${headerDark} 0%, ${headerLight} 100%)`;
+  const gradient = base;
   return { base, light, dark, textOnStrong, gradient };
 }
