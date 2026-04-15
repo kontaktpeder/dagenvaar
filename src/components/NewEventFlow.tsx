@@ -31,7 +31,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [notes, setNotes] = useState('');
   const createEvent = useCreateEvent();
 
-  const canProceed = step === 1 ? title.trim().length > 0 : true;
+  const canProceed = step === 2 ? title.trim().length > 0 : true;
 
   const handleSubmit = async () => {
     await createEvent.mutateAsync({
@@ -79,10 +79,37 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Steg 1 av 3</p>
-                <h2 className="text-2xl font-bold">Hva skal skje?</h2>
+              <h2 className="text-2xl font-bold">Type hendelse</h2>
+              <div className="flex flex-col gap-2">
+                {CATEGORY_OPTIONS.map((key) => {
+                  const meta = EVENT_CATEGORY_META[key];
+                  const Icon = meta.Icon;
+                  const selected = category === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setCategory(selected ? null : key)}
+                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
+                        selected
+                          ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon size={16} />
+                        {meta.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+              <p className="text-xs text-muted-foreground text-center">Valgfritt — du kan hoppe over</p>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+              <h2 className="text-2xl font-bold">Hva skal skje?</h2>
               <input
                 type="text"
                 value={title}
@@ -94,12 +121,9 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
             </motion.div>
           )}
 
-          {step === 2 && (
-            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Steg 2 av 3</p>
-                <h2 className="text-2xl font-bold">Når?</h2>
-              </div>
+          {step === 3 && (
+            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+              <h2 className="text-2xl font-bold">Når?</h2>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Dato</label>
@@ -166,49 +190,9 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
             </motion.div>
           )}
 
-          {step === 3 && (
-            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Steg 3 av 4</p>
-                <h2 className="text-2xl font-bold">Type hendelse</h2>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-3 block">Kategori (valgfritt)</label>
-                <div className="flex flex-col gap-2">
-                  {CATEGORY_OPTIONS.map((key) => {
-                    const meta = EVENT_CATEGORY_META[key];
-                    const Icon = meta.Icon;
-                    const selected = category === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setCategory(selected ? null : key)}
-                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-                          selected
-                            ? 'bg-primary text-primary-foreground ring-2 ring-primary'
-                            : 'bg-muted hover:bg-muted/80'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Icon size={16} />
-                          {meta.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-            </motion.div>
-          )}
-
           {step === 4 && (
             <motion.div key="step4" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Steg 4 av 4</p>
-                <h2 className="text-2xl font-bold">Hvem kan se?</h2>
-              </div>
+              <h2 className="text-2xl font-bold">Hvem kan se?</h2>
 
               <div className="space-y-3">
                 {[
