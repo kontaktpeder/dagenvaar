@@ -173,9 +173,9 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                   style={
                     today
                       ? {
-                          backgroundColor: monthTheme.dark,
-                          color: monthTheme.textOnStrong,
-                          boxShadow: `0 2px 8px -2px ${monthTheme.dark}66`,
+                          backgroundColor: 'hsl(340, 55%, 68%)',
+                          color: '#FFFFFF',
+                          boxShadow: '0 2px 8px -2px hsl(340 55% 68% / 0.4)',
                         }
                       : undefined
                   }
