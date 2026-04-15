@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
@@ -9,6 +10,7 @@ import CalendarView from '@/components/CalendarView';
 import ListView from '@/components/ListView';
 import NewEventFlow from '@/components/NewEventFlow';
 import ProfileSheet from '@/components/ProfileSheet';
+import { useToast } from '@/hooks/use-toast';
 
 type Tab = 'calendar' | 'list';
 
@@ -16,6 +18,8 @@ const Index = () => {
   const { loading: authLoading, signOut } = useAuth();
   const { user, household, currentMember, loading: ctxLoading, invalidate } = useCurrentHouseholdContext();
   const { data: members = [] } = useMembers(household?.id);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showNewEvent, setShowNewEvent] = useState(false);
@@ -52,6 +56,21 @@ const Index = () => {
   const handleNewFromNav = () => {
     setNewEventDate(undefined);
     setShowNewEvent(true);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setShowProfile(false);
+      queryClient.clear();
+    } catch (err: any) {
+      console.error('Sign out error:', err);
+      toast({
+        title: 'Feil ved utlogging',
+        description: err?.message ?? 'Kunne ikke logge ut. Prøv igjen.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -125,7 +144,7 @@ const Index = () => {
       <AnimatePresence>
         {showProfile && (
           <ProfileSheet household={household} members={members} currentMember={currentMember}
-            onClose={() => setShowProfile(false)} onSignOut={signOut} />
+            onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />
         )}
       </AnimatePresence>
     </div>
