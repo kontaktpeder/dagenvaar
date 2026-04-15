@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
+import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory, type EventPriority } from '@/lib/eventCategories';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface NewEventFlowProps {
@@ -14,7 +15,7 @@ interface NewEventFlowProps {
   onClose: () => void;
 }
 
-const STEPS = 3;
+const STEPS = 4;
 
 const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose }: NewEventFlowProps) => {
   const [step, setStep] = useState(1);
@@ -24,6 +25,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [showTimeFields, setShowTimeFields] = useState(false);
+  const [category, setCategory] = useState<EventCategory | null>(null);
+  const [priority, setPriority] = useState<EventPriority>('normal');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -43,6 +46,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       visibility_type: visibility,
       location: location || null,
       notes: notes || null,
+      category: category || null,
+      priority,
     });
     onClose();
   };
@@ -166,7 +171,60 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
           {step === 3 && (
             <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Steg 3 av 3</p>
+                <p className="text-sm text-muted-foreground mb-2">Steg 3 av 4</p>
+                <h2 className="text-2xl font-bold">Type hendelse</h2>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-3 block">Kategori (valgfritt)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {CATEGORY_OPTIONS.map((key) => {
+                    const meta = EVENT_CATEGORY_META[key];
+                    const Icon = meta.Icon;
+                    const selected = category === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setCategory(selected ? null : key)}
+                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center gap-2 ${
+                          selected
+                            ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                            : 'bg-muted hover:bg-muted/80'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-3 block">Prioritet</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([['normal', 'Normal'], ['high', 'Viktig ⭐']] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setPriority(val)}
+                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
+                        priority === val
+                          ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div key="step4" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Steg 4 av 4</p>
                 <h2 className="text-2xl font-bold">Hvem kan se?</h2>
               </div>
 
@@ -200,6 +258,12 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   {startTime && ` · ${startTime}`}
                   {endTime && `–${endTime}`}
                 </p>
+                {category && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {EVENT_CATEGORY_META[category].label}
+                    {priority === 'high' && ' · ⭐ Viktig'}
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
