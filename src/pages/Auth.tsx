@@ -69,7 +69,7 @@ const AuthPage = () => {
 
           {error && <p className="text-destructive text-sm text-center">{error}</p>}
 
-          <button type="submit" className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700">
+          <button type="submit" className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300">
             {mode === 'login' ? 'Logg inn' : 'Opprett konto'}
           </button>
         </form>
