@@ -117,7 +117,7 @@ const Index = () => {
           </button>
 
           <button onClick={handleNewFromNav}
-            className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-soft-lg -my-4 mx-3 transition-all hover:scale-105 active:scale-95 ring-4 ring-background">
+            className="w-14 h-14 rounded-full bg-green-200 flex items-center justify-center text-green-900 shadow-soft-lg -my-4 mx-3 transition-all hover:scale-105 hover:bg-green-300 active:scale-95 ring-4 ring-background">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
