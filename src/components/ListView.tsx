@@ -82,13 +82,15 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
           <div className="px-5 mt-4 mb-4 space-y-2">
             {events.map((event) => {
               const member = getMemberForEvent(event);
-              const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+              const catMeta = getEventCategoryMeta(event.category);
+              const bgColor = catMeta ? catMeta.chipBg : 'bg-muted';
+              
               return (
                 <motion.button
                   key={event.id}
                   onClick={() => setSelectedEvent(event)}
                   whileTap={{ scale: 0.98 }}
-                  className={`w-full text-left rounded-2xl p-4 ${color.bg} transition-all`}
+                  className={`w-full text-left rounded-2xl p-4 ${bgColor} transition-all`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
