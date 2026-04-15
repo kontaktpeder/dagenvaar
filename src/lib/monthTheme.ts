@@ -58,10 +58,10 @@ function mix(hexA: string, hexB: string, amount: number) {
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
   const light = mix(base, "#FFFFFF", 0.35);
-  const dark = mix(base, "#000000", 0.45);
-  const headerDark = mix(base, "#000000", 0.38);
-  const headerMid = mix(base, "#000000", 0.18);
+  const dark = mix(base, "#000000", 0.25);
+  const headerDark = mix(base, "#000000", 0.25);
+  const headerLight = mix(base, "#000000", 0.08);
   const textOnStrong = "#FFFFFF";
-  const gradient = `linear-gradient(135deg, ${headerDark} 0%, ${headerMid} 100%)`;
+  const gradient = `linear-gradient(135deg, ${headerDark} 0%, ${headerLight} 100%)`;
   return { base, light, dark, textOnStrong, gradient };
 }
