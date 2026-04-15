@@ -24,7 +24,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate || new Date());
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedDayParts, setSelectedDayParts] = useState<[number, number] | null>([2, 2]); // default afternoon
+  const [selectedDayParts, setSelectedDayParts] = useState<[number, number]>([2, 2]); // default afternoon
+  const [dayPartClickCount, setDayPartClickCount] = useState(1);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [showTimeFields, setShowTimeFields] = useState(false);
@@ -36,25 +37,25 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const canProceed = step === 2 ? title.trim().length > 0 : true;
 
-  const dayPartStart = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[0]] : null;
-  const dayPartEnd = selectedDayParts ? DAY_PART_ORDER[selectedDayParts[1]] : null;
+  const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
+  const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
   const dayPartCompat = dayPartStart || 'afternoon';
 
   const handleDayPartClick = (idx: number) => {
-    if (!selectedDayParts) {
+    if (dayPartClickCount === 1) {
+      // Second click: create range from current single to this one
+      const prev = selectedDayParts[0];
+      if (prev === idx) return; // same spot, no change
+      setSelectedDayParts([Math.min(prev, idx), Math.max(prev, idx)]);
+      setDayPartClickCount(2);
+    } else {
+      // Third click (or first after reset): select only this one
       setSelectedDayParts([idx, idx]);
-      return;
+      setDayPartClickCount(1);
     }
-    const [a, b] = selectedDayParts;
-    if (a === b && a === idx) {
-      setSelectedDayParts(null);
-      return;
-    }
-    setSelectedDayParts([Math.min(a, idx), Math.max(a, idx)]);
   };
 
   const isDayPartSelected = (idx: number) => {
-    if (!selectedDayParts) return false;
     return idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
   };
 
@@ -88,7 +89,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   const getDayPartRangeLabel = () => {
-    if (!selectedDayParts) return 'Ikke valgt';
     const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
     const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
     if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
@@ -217,7 +217,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
               {/* Day part interval selection */}
               <div>
                 <label className="text-sm font-medium mb-3 block">Del av dagen</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {DAY_PART_ORDER.map((key, idx) => {
                     const selected = isDayPartSelected(idx);
                     return (
@@ -228,7 +228,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                           selected
                             ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
                             : 'bg-muted hover:bg-muted/80'
-                        } ${key === 'all_day' ? 'col-span-2' : ''}`}
+                        }`}
                       >
                         {DAY_PART_LABELS[key]}
                       </button>
