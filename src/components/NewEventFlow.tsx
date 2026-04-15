@@ -89,7 +89,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   const getDayPartRangeLabel = () => {
-    if (!selectedDayParts) return 'Ikke valgt';
     const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
     const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
     if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
@@ -218,7 +217,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
               {/* Day part interval selection */}
               <div>
                 <label className="text-sm font-medium mb-3 block">Del av dagen</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {DAY_PART_ORDER.map((key, idx) => {
                     const selected = isDayPartSelected(idx);
                     return (
@@ -229,7 +228,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                           selected
                             ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
                             : 'bg-muted hover:bg-muted/80'
-                        } ${key === 'all_day' ? 'col-span-2' : ''}`}
+                        }`}
                       >
                         {DAY_PART_LABELS[key]}
                       </button>
