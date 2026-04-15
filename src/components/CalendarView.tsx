@@ -4,6 +4,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
+import { getEventCategoryMeta, isHighPriority } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import ViewHeader from '@/components/ViewHeader';
@@ -173,16 +174,38 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                 </span>
                 {dayEvents.length > 0 && (
                   <div className="flex flex-col gap-0.5 mt-1 w-full px-1">
-                    {dayEvents.slice(0, 2).map((ev) => {
-                      const member = getMemberForEvent(ev);
-                      const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
-                      const firstWord = ev.title.split(' ')[0] || ev.title;
-                      return (
-                        <div key={ev.id} className={`${color.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight`}>
-                          {firstWord}
-                        </div>
-                      );
-                    })}
+                    {dayEvents
+                      .sort((a, b) => {
+                        const aHigh = isHighPriority(a.priority) ? 0 : 1;
+                        const bHigh = isHighPriority(b.priority) ? 0 : 1;
+                        return aHigh - bHigh;
+                      })
+                      .slice(0, 2)
+                      .map((ev) => {
+                        const catMeta = getEventCategoryMeta(ev.category);
+                        if (catMeta) {
+                          const Icon = catMeta.Icon;
+                          return (
+                            <div key={ev.id} className={`${catMeta.chipBg} rounded-full px-1.5 py-0.5 text-[10px] font-medium text-center truncate leading-tight flex items-center gap-0.5 justify-center`}>
+                              <Icon size={9} />
+                              {ev.title.split(' ')[0]}
+                            </div>
+                          );
+                        }
+                        const member = getMemberForEvent(ev);
+                        const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+                        const firstWord = ev.title.split(' ')[0] || ev.title;
+                        return (
+                          <div key={ev.id} className={`${color.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight`}>
+                            {firstWord}
+                          </div>
+                        );
+                      })}
+                    {dayEvents.length > 2 && (
+                      <div className="text-[9px] text-muted-foreground text-center font-medium">
+                        +{dayEvents.length - 2}
+                      </div>
+                    )}
                   </div>
                 )}
               </button>
