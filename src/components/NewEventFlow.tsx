@@ -175,7 +175,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
               <div>
                 <label className="text-sm font-medium mb-3 block">Kategori (valgfritt)</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
                   {CATEGORY_OPTIONS.map((key) => {
                     const meta = EVENT_CATEGORY_META[key];
                     const Icon = meta.Icon;
@@ -184,14 +184,16 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       <button
                         key={key}
                         onClick={() => setCategory(selected ? null : key)}
-                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center gap-2 ${
+                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
                           selected
                             ? 'bg-primary text-primary-foreground ring-2 ring-primary'
                             : 'bg-muted hover:bg-muted/80'
                         }`}
                       >
-                        <Icon size={16} />
-                        {meta.label}
+                        <span className="flex items-center gap-2">
+                          <Icon size={16} />
+                          {meta.label}
+                        </span>
                       </button>
                     );
                   })}
