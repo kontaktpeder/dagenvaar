@@ -312,6 +312,16 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           </div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {cropImageSrc && (
+          <AvatarCropModal
+            imageSrc={cropImageSrc}
+            onCropDone={handleCropDone}
+            onCancel={() => setCropImageSrc(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
