@@ -62,9 +62,23 @@ export function useCreateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (event: TablesInsert<'events'>) => {
-      const { error } = await supabase.from('events').insert(event);
+      const { data, error } = await supabase.from('events').insert(event).select().single();
       if (error) throw error;
-      return event;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useUpdateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<'events'> }) => {
+      const { data, error } = await supabase.from('events').update(patch).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
