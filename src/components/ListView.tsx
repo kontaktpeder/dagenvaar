@@ -16,9 +16,10 @@ interface ListViewProps {
   members: HouseholdMember[];
   currentMemberId: string;
   initialDate?: Date;
+  onDateChange?: (date: Date) => void;
 }
 
-const ListView = ({ householdId, members, currentMemberId, initialDate }: ListViewProps) => {
+const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -34,6 +35,10 @@ const ListView = ({ householdId, members, currentMemberId, initialDate }: ListVi
   useEffect(() => {
     if (initialDate) setSelectedDate(initialDate);
   }, [initialDate]);
+
+  useEffect(() => {
+    onDateChange?.(selectedDate);
+  }, [selectedDate, onDateChange]);
 
   const handleSwipe = (_: any, info: PanInfo) => {
     if (Math.abs(info.offset.x) > 50) {
