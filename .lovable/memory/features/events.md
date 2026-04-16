@@ -1,6 +1,6 @@
 ---
 name: Event model and features
-description: Multi-day events, day-part intervals, invite members from app
+description: Multi-day events, day-part intervals, two-way time sync, invite members
 type: feature
 ---
 ## Event date model
@@ -10,11 +10,29 @@ type: feature
 - Constraint: end_date >= event_date
 - Validation trigger for day_part values
 
-## Day-part interval selection (NewEventFlow step 3)
+## Shared time mapping (src/lib/dayParts.ts)
+Single source of truth for day-part ↔ time conversions:
+- morning: 06:00–09:00
+- late_morning: 09:00–12:00
+- afternoon: 12:00–18:00
+- evening: 18:00–24:00
+- night: 00:00–06:00
+- all_day: 00:00–24:00
+
+## Two-way sync in NewEventFlow
+- Selecting day-part auto-sets startTime/endTime from mapping
+- Changing time manually auto-updates selected day-part range
+- "Last action wins" conflict resolution
+
+## Timeline (ListView)
+- Segment labels show short format: 06–09, 09–12, etc.
+- Event bars show title only (no clock text)
+- Segments use proportional widths based on hour spans
+
+## Day-part interval selection (NewEventFlow step 1)
 - Click one: select only that
 - Click another: select range between
 - Click active single: deselect all
-- "Hele dagen" (all_day) spans full col-span-2
 
 ## Multi-day UI
 - Default: only start date shown
