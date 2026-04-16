@@ -23,7 +23,7 @@ interface NewEventFlowProps {
 
 const STEPS = 4;
 
-const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose }: NewEventFlowProps) => {
+const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose, onCreated }: NewEventFlowProps) => {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate || new Date());
@@ -103,11 +103,12 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const handleSubmit = async () => {
     const eventEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd');
-    await createEvent.mutateAsync({
+    const dateStr = format(startDate, 'yyyy-MM-dd');
+    const result = await createEvent.mutateAsync({
       household_id: householdId,
       owner_member_id: currentMemberId,
       title: title.trim(),
-      event_date: format(startDate, 'yyyy-MM-dd'),
+      event_date: dateStr,
       end_date: eventEndDate,
       day_part: dayPartCompat,
       day_part_start: dayPartStart || null,
@@ -119,6 +120,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       notes: notes || null,
       category: category || null,
     } as any);
+    onCreated?.(result.id, dateStr);
     onClose();
   };
 
