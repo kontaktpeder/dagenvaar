@@ -39,7 +39,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
-  const dayPartCompat = dayPartStart || 'afternoon';
+  const dayPartCompat = (!dayPartStart || dayPartStart === 'all_day') ? 'morning' : dayPartStart;
 
   const handleDayPartClick = (idx: number) => {
     if (dayPartClickCount === 1) {
