@@ -175,17 +175,22 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
         {/* Timeline panel */}
         <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
-          {/* Day-part labels */}
-          <div className="flex justify-between px-1 mb-2">
-            {['Morgen', 'Formiddag', 'Etterm.', 'Kveld', 'Natt'].map((label) => (
-              <span key={label} className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60">
+          {/* Day-part labels with subtle separators */}
+          <div className="flex px-1 mb-2">
+            {['Morgen', 'Formiddag', 'Etterm.', 'Kveld', 'Natt'].map((label, i) => (
+              <span key={label} className={`flex-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60 text-center ${i > 0 ? 'border-l border-border/30' : ''}`}>
                 {label}
               </span>
             ))}
           </div>
 
-          {/* Event lanes — no scroll, no grid lines, just space */}
-          <div className="space-y-2">
+          {/* Event lanes */}
+          <div className="relative space-y-2">
+            {/* Subtle day-part dividers */}
+            {[20, 40, 60, 80].map((pct) => (
+              <div key={pct} className="absolute top-0 bottom-0 w-px bg-border/20" style={{ left: `${pct}%` }} />
+            ))}
+
             {timelineEvents.length === 0 ? (
               <div className="py-3 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
@@ -196,6 +201,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
                 const member = getMemberForEvent(t.event);
                 const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
                 const barBg = catMeta?.chipBg ?? fallback;
+                const isShort = t.widthPct < 15;
 
                 return (
                   <div key={t.event.id} className="relative h-7">
@@ -203,12 +209,12 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
                       type="button"
                       onClick={() => setSelectedEvent(t.event)}
                       aria-label={`${t.event.title}, ${t.startLabel} til ${t.endLabel}`}
-                      className={`absolute top-0 h-7 min-w-[56px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
+                      className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2 ${barBg} text-foreground flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
                       style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
                     >
                       <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.startLabel}</span>
                       <span className="truncate text-[11px] font-semibold flex-1">{t.event.title}</span>
-                      <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.endLabel}</span>
+                      {!isShort && <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.endLabel}</span>}
                     </button>
                   </div>
                 );
