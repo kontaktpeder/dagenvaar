@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import { Camera } from 'lucide-react';
+import AvatarCropModal from '@/components/AvatarCropModal';
 
 interface ProfileSheetProps {
   household: Household;
