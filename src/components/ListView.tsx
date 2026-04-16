@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { getMonthTheme } from '@/lib/monthTheme';
 import { nb } from 'date-fns/locale';
@@ -13,8 +13,10 @@ import {
   parseTimeToAxisHour,
 } from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import type { Highlight } from '@/pages/Index';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import ViewHeader from '@/components/ViewHeader';
+import { useLongPress } from '@/hooks/useLongPress';
 
 interface ListViewProps {
   householdId: string;
@@ -22,6 +24,8 @@ interface ListViewProps {
   currentMemberId: string;
   initialDate?: Date;
   onDateChange?: (date: Date) => void;
+  onEditEvent?: (event: Event) => void;
+  highlight?: Highlight;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -47,7 +51,7 @@ type TimelineEvent = {
   widthPct: number;
 };
 
-const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange }: ListViewProps) => {
+const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, highlight }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -121,7 +125,6 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
   const getMemberForEvent = (event: Event) => members.find((m) => m.id === event.owner_member_id);
 
-  // Compute segment divider positions (cumulative widths based on hour spans)
   const segmentPositions = useMemo(() => {
     return TIMELINE_SEGMENTS.map((seg) => {
       const [s, e] = DAY_PART_AXIS_RANGES[seg.key];
@@ -153,30 +156,17 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
         {/* Timeline panel */}
         <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
-          {/* Segment short labels */}
           <div className="flex px-0 mb-2">
-            {segmentPositions.map((seg, i) => (
-              <div
-                key={seg.key}
-                className="text-center"
-                style={{ width: `${seg.widthPct}%` }}
-              >
-                <span className={`text-[9px] font-medium tracking-wider text-muted-foreground/60`}>
-                  {seg.label}
-                </span>
+            {segmentPositions.map((seg) => (
+              <div key={seg.key} className="text-center" style={{ width: `${seg.widthPct}%` }}>
+                <span className="text-[9px] font-medium tracking-wider text-muted-foreground/60">{seg.label}</span>
               </div>
             ))}
           </div>
 
-          {/* Event lanes */}
           <div className="relative space-y-2">
-            {/* Subtle segment dividers */}
             {segmentPositions.slice(1).map((seg) => (
-              <div
-                key={seg.key}
-                className="absolute top-0 bottom-0 w-px bg-border/15"
-                style={{ left: `${seg.leftPct}%` }}
-              />
+              <div key={seg.key} className="absolute top-0 bottom-0 w-px bg-border/15" style={{ left: `${seg.leftPct}%` }} />
             ))}
 
             {timelineEvents.length === 0 ? (
@@ -184,26 +174,18 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
                 <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
               </div>
             ) : (
-              timelineEvents.map((t) => {
-                const catMeta = getEventCategoryMeta(t.event.category);
-                const member = getMemberForEvent(t.event);
-                const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
-                const barBg = catMeta?.chipBg ?? fallback;
-
-                return (
-                  <div key={t.event.id} className="relative h-7">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEvent(t.event)}
-                      aria-label={t.event.title}
-                      className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
-                      style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
-                    >
-                      <span className="truncate text-[11px] font-semibold">{t.event.title}</span>
-                    </button>
-                  </div>
-                );
-              })
+              timelineEvents.map((t) => (
+                <TimelineBar
+                  key={t.event.id}
+                  t={t}
+                  members={members}
+                  currentMemberId={currentMemberId}
+                  highlight={highlight}
+                  onTap={(ev) => setSelectedEvent(ev)}
+                  onLongPress={(ev) => onEditEvent?.(ev)}
+                  getMemberForEvent={getMemberForEvent}
+                />
+              ))
             )}
           </div>
         </div>
@@ -280,15 +262,66 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         </div>
       </motion.div>
 
-      {selectedEvent && (
-        <EventDetailSheet
-          event={selectedEvent}
-          members={members}
-          currentMemberId={currentMemberId}
-          onClose={() => setSelectedEvent(null)}
-        />
-      )}
+      <AnimatePresence>
+        {selectedEvent && (
+          <EventDetailSheet
+            event={selectedEvent}
+            members={members}
+            currentMemberId={currentMemberId}
+            onClose={() => setSelectedEvent(null)}
+            onEdit={onEditEvent ? (ev) => { setSelectedEvent(null); onEditEvent(ev); } : undefined}
+          />
+        )}
+      </AnimatePresence>
     </>
+  );
+};
+
+/* ---------- TimelineBar with long-press ---------- */
+
+interface TimelineBarProps {
+  t: TimelineEvent;
+  members: HouseholdMember[];
+  currentMemberId: string;
+  highlight: Highlight;
+  onTap: (event: Event) => void;
+  onLongPress: (event: Event) => void;
+  getMemberForEvent: (event: Event) => HouseholdMember | undefined;
+}
+
+const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPress, getMemberForEvent }: TimelineBarProps) => {
+  const { longPressHandlers, didFire } = useLongPress({
+    onLongPress: () => {
+      if (t.event.owner_member_id === currentMemberId) {
+        onLongPress(t.event);
+      }
+    },
+  });
+
+  const handleClick = () => {
+    if (didFire()) return;
+    onTap(t.event);
+  };
+
+  const catMeta = getEventCategoryMeta(t.event.category);
+  const member = getMemberForEvent(t.event);
+  const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
+  const barBg = catMeta?.chipBg ?? fallback;
+  const isHighlighted = highlight && highlight.eventId === t.event.id;
+
+  return (
+    <div className="relative h-7">
+      <button
+        type="button"
+        {...longPressHandlers}
+        onClick={handleClick}
+        aria-label={t.event.title}
+        className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
+      >
+        <span className="truncate text-[11px] font-semibold">{t.event.title}</span>
+      </button>
+    </div>
   );
 };
 
