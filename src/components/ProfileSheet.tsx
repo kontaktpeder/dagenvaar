@@ -46,6 +46,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
