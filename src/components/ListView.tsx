@@ -173,44 +173,42 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
         </ViewHeader>
 
-        {/* Sticky timeline panel */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border px-5 pt-2 pb-2">
-          <div className="grid grid-cols-5 gap-1">
+        {/* Timeline panel */}
+        <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
+          {/* Day-part labels */}
+          <div className="flex justify-between px-1 mb-2">
             {['Morgen', 'Formiddag', 'Etterm.', 'Kveld', 'Natt'].map((label) => (
-              <span key={label} className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center">
+              <span key={label} className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60">
                 {label}
               </span>
             ))}
           </div>
 
-          <div className="mt-2 space-y-1.5 max-h-28 overflow-y-auto pr-1">
+          {/* Event lanes — no scroll, no grid lines, just space */}
+          <div className="space-y-2">
             {timelineEvents.length === 0 ? (
-              <div className="h-8 rounded-md bg-muted/25 flex items-center justify-center">
-                <span className="text-[11px] text-muted-foreground">Ingen hendelser i dag</span>
+              <div className="py-3 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
               </div>
             ) : (
               timelineEvents.map((t) => {
-                const member = getMemberForEvent(t.event);
                 const catMeta = getEventCategoryMeta(t.event.category);
-                const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted';
+                const member = getMemberForEvent(t.event);
+                const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
                 const barBg = catMeta?.chipBg ?? fallback;
 
                 return (
-                  <div key={t.event.id} className="relative h-6 rounded-md bg-muted/35">
-                    {[20, 40, 60, 80].map((pct) => (
-                      <div key={pct} className="absolute top-0 bottom-0 w-px bg-border/50" style={{ left: `${pct}%` }} />
-                    ))}
-
+                  <div key={t.event.id} className="relative h-7">
                     <button
                       type="button"
                       onClick={() => setSelectedEvent(t.event)}
                       aria-label={`${t.event.title}, ${t.startLabel} til ${t.endLabel}`}
-                      className={`absolute top-0 h-6 min-w-[52px] rounded-md px-1.5 shadow-sm ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-primary ${barBg} text-foreground flex items-center justify-between gap-1 cursor-pointer`}
-                      style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 2)}%` }}
+                      className={`absolute top-0 h-7 min-w-[56px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
+                      style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
                     >
-                      <span className="text-[10px] tabular-nums opacity-80 shrink-0">{t.startLabel}</span>
-                      <span className="truncate text-[10px] font-medium">{t.event.title}</span>
-                      <span className="text-[10px] tabular-nums opacity-80 shrink-0">{t.endLabel}</span>
+                      <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.startLabel}</span>
+                      <span className="truncate text-[11px] font-semibold flex-1">{t.event.title}</span>
+                      <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.endLabel}</span>
                     </button>
                   </div>
                 );
