@@ -148,9 +148,9 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
               <button
                 key={dateStr}
                 onClick={() => handleDayTap(day)}
-                className={`relative flex flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
-                  !inMonth ? 'opacity-25' : ''
-                }`}
+              className={`relative flex flex-col items-center justify-start pt-1 rounded-2xl transition-all duration-200 min-h-[60px] ${
+                !inMonth ? 'opacity-25' : ''
+              }`}
                 style={
                   !today && inMonth
                     ? { '--hover-bg': monthTheme.light } as React.CSSProperties
