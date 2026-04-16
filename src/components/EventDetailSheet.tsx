@@ -12,6 +12,7 @@ interface EventDetailSheetProps {
   members: HouseholdMember[];
   currentMemberId: string;
   onClose: () => void;
+  onEdit?: (event: Event) => void;
 }
 
 const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDetailSheetProps) => {
