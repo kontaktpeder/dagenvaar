@@ -152,6 +152,16 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: 
             </button>
           </div>
 
+          {/* Edit */}
+          {onEdit && event.owner_member_id === currentMemberId && (
+            <button
+              onClick={() => onEdit(event)}
+              className="w-full rounded-xl border border-primary/30 py-3 text-sm text-primary font-medium hover:bg-primary/10 transition-colors mb-2"
+            >
+              Endre hendelse
+            </button>
+          )}
+
           {/* Delete */}
           {event.owner_member_id === currentMemberId && (
             <button
