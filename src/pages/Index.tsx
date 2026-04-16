@@ -22,6 +22,7 @@ const Index = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [listDate, setListDate] = useState<Date | undefined>();
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
@@ -45,6 +46,7 @@ const Index = () => {
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
+    setListDate(date);
     setActiveTab('list');
   };
 
@@ -54,7 +56,7 @@ const Index = () => {
   };
 
   const handleNewFromNav = () => {
-    setNewEventDate(undefined);
+    setNewEventDate(listDate ?? selectedDate ?? new Date());
     setShowNewEvent(true);
   };
 
@@ -105,7 +107,7 @@ const Index = () => {
           )}
           {activeTab === 'list' && (
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <ListView householdId={household.id} members={members} currentMemberId={currentMember.id} initialDate={selectedDate} />
+              <ListView householdId={household.id} members={members} currentMemberId={currentMember.id} initialDate={listDate ?? selectedDate} onDateChange={setListDate} />
             </motion.div>
           )}
         </AnimatePresence>
