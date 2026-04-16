@@ -12,9 +12,10 @@ interface EventDetailSheetProps {
   members: HouseholdMember[];
   currentMemberId: string;
   onClose: () => void;
+  onEdit?: (event: Event) => void;
 }
 
-const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDetailSheetProps) => {
+const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: EventDetailSheetProps) => {
   const [comment, setComment] = useState('');
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
@@ -150,6 +151,16 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDet
               Send
             </button>
           </div>
+
+          {/* Edit */}
+          {onEdit && event.owner_member_id === currentMemberId && (
+            <button
+              onClick={() => onEdit(event)}
+              className="w-full rounded-xl border border-primary/30 py-3 text-sm text-primary font-medium hover:bg-primary/10 transition-colors mb-2"
+            >
+              Endre hendelse
+            </button>
+          )}
 
           {/* Delete */}
           {event.owner_member_id === currentMemberId && (
