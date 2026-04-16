@@ -5,8 +5,13 @@ import { getMonthTheme } from '@/lib/monthTheme';
 import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
-import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
+import { getMemberColor } from '@/lib/colors';
 import { getEventCategoryMeta } from '@/lib/eventCategories';
+import {
+  AXIS_START, AXIS_END, AXIS_SPAN,
+  DAY_PART_AXIS_RANGES, TIMELINE_SEGMENTS,
+  parseTimeToAxisHour,
+} from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import ViewHeader from '@/components/ViewHeader';
@@ -19,33 +24,6 @@ interface ListViewProps {
   onDateChange?: (date: Date) => void;
 }
 
-const AXIS_START = 6;
-const AXIS_END = 26;
-const AXIS_SPAN = AXIS_END - AXIS_START;
-
-const DAY_PART_RANGES: Record<string, [number, number]> = {
-  morning: [6, 10],
-  late_morning: [10, 14],
-  afternoon: [14, 18],
-  evening: [18, 22],
-  night: [22, 26],
-  all_day: [6, 26],
-};
-
-const formatHourLabel = (h: number) => {
-  const normalized = h >= 24 ? h - 24 : h;
-  return `${String(Math.floor(normalized)).padStart(2, '0')}:00`;
-};
-
-const parseTimeToHour = (value: string | null) => {
-  if (!value) return null;
-  const [hh, mm] = value.split(':').map(Number);
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-  let hour = hh + mm / 60;
-  if (hour < AXIS_START) hour += 24;
-  return hour;
-};
-
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 const getFallbackRange = (event: Event): [number, number] => {
@@ -53,12 +31,12 @@ const getFallbackRange = (event: Event): [number, number] => {
   const dpe = (event as any).day_part_end as string | null;
   const single = event.day_part as string | null;
 
-  if (dps && dpe && DAY_PART_RANGES[dps] && DAY_PART_RANGES[dpe]) {
-    return [DAY_PART_RANGES[dps][0], DAY_PART_RANGES[dpe][1]];
+  if (dps && dpe && DAY_PART_AXIS_RANGES[dps] && DAY_PART_AXIS_RANGES[dpe]) {
+    return [DAY_PART_AXIS_RANGES[dps][0], DAY_PART_AXIS_RANGES[dpe][1]];
   }
-  if (dps && DAY_PART_RANGES[dps]) return DAY_PART_RANGES[dps];
-  if (single && DAY_PART_RANGES[single]) return DAY_PART_RANGES[single];
-  return DAY_PART_RANGES.afternoon;
+  if (dps && DAY_PART_AXIS_RANGES[dps]) return DAY_PART_AXIS_RANGES[dps];
+  if (single && DAY_PART_AXIS_RANGES[single]) return DAY_PART_AXIS_RANGES[single];
+  return DAY_PART_AXIS_RANGES.afternoon;
 };
 
 type TimelineEvent = {
@@ -67,8 +45,6 @@ type TimelineEvent = {
   end: number;
   leftPct: number;
   widthPct: number;
-  startLabel: string;
-  endLabel: string;
 };
 
 const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange }: ListViewProps) => {
@@ -95,8 +71,8 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
   const timelineEvents = useMemo<TimelineEvent[]>(() => {
     return events
       .map((event) => {
-        const explicitStart = parseTimeToHour(event.start_time);
-        const explicitEnd = parseTimeToHour(event.end_time);
+        const explicitStart = parseTimeToAxisHour(event.start_time);
+        const explicitEnd = parseTimeToAxisHour(event.end_time);
 
         let start: number;
         let end: number;
@@ -117,15 +93,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         const leftPct = ((start - AXIS_START) / AXIS_SPAN) * 100;
         const widthPct = ((end - start) / AXIS_SPAN) * 100;
 
-        return {
-          event,
-          start,
-          end,
-          leftPct,
-          widthPct,
-          startLabel: event.start_time?.slice(0, 5) ?? formatHourLabel(start),
-          endLabel: event.end_time?.slice(0, 5) ?? formatHourLabel(end),
-        };
+        return { event, start, end, leftPct, widthPct };
       })
       .sort((a, b) => {
         if (a.start !== b.start) return a.start - b.start;
@@ -153,6 +121,16 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
   const getMemberForEvent = (event: Event) => members.find((m) => m.id === event.owner_member_id);
 
+  // Compute segment divider positions (cumulative widths based on hour spans)
+  const segmentPositions = useMemo(() => {
+    return TIMELINE_SEGMENTS.map((seg) => {
+      const [s, e] = DAY_PART_AXIS_RANGES[seg.key];
+      const leftPct = ((s - AXIS_START) / AXIS_SPAN) * 100;
+      const widthPct = ((e - s) / AXIS_SPAN) * 100;
+      return { ...seg, leftPct, widthPct };
+    });
+  }, []);
+
   return (
     <>
       <motion.div
@@ -175,20 +153,30 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
         {/* Timeline panel */}
         <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
-          {/* Day-part labels with subtle separators */}
-          <div className="flex px-1 mb-2">
-            {['Morgen', 'Formiddag', 'Etterm.', 'Kveld', 'Natt'].map((label, i) => (
-              <span key={label} className={`flex-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60 text-center ${i > 0 ? 'border-l border-border/30' : ''}`}>
-                {label}
-              </span>
+          {/* Segment short labels */}
+          <div className="flex px-0 mb-2">
+            {segmentPositions.map((seg, i) => (
+              <div
+                key={seg.key}
+                className="text-center"
+                style={{ width: `${seg.widthPct}%` }}
+              >
+                <span className={`text-[9px] font-medium tracking-wider text-muted-foreground/60`}>
+                  {seg.label}
+                </span>
+              </div>
             ))}
           </div>
 
           {/* Event lanes */}
           <div className="relative space-y-2">
-            {/* Subtle day-part dividers */}
-            {[20, 40, 60, 80].map((pct) => (
-              <div key={pct} className="absolute top-0 bottom-0 w-px bg-border/20" style={{ left: `${pct}%` }} />
+            {/* Subtle segment dividers */}
+            {segmentPositions.slice(1).map((seg) => (
+              <div
+                key={seg.key}
+                className="absolute top-0 bottom-0 w-px bg-border/15"
+                style={{ left: `${seg.leftPct}%` }}
+              />
             ))}
 
             {timelineEvents.length === 0 ? (
@@ -201,20 +189,17 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
                 const member = getMemberForEvent(t.event);
                 const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
                 const barBg = catMeta?.chipBg ?? fallback;
-                const isShort = t.widthPct < 15;
 
                 return (
                   <div key={t.event.id} className="relative h-7">
                     <button
                       type="button"
                       onClick={() => setSelectedEvent(t.event)}
-                      aria-label={`${t.event.title}, ${t.startLabel} til ${t.endLabel}`}
-                      className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2 ${barBg} text-foreground flex items-center gap-1.5 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
+                      aria-label={t.event.title}
+                      className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary`}
                       style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
                     >
-                      <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.startLabel}</span>
-                      <span className="truncate text-[11px] font-semibold flex-1">{t.event.title}</span>
-                      {!isShort && <span className="text-[10px] tabular-nums opacity-60 shrink-0">{t.endLabel}</span>}
+                      <span className="truncate text-[11px] font-semibold">{t.event.title}</span>
                     </button>
                   </div>
                 );

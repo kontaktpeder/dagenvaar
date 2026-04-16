@@ -5,6 +5,11 @@ import { nb } from 'date-fns/locale';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import {
+  DAY_PART_ORDER,
+  DAY_PART_TIME_RANGES,
+  timeRangeToDayParts,
+} from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface NewEventFlowProps {
@@ -17,8 +22,6 @@ interface NewEventFlowProps {
 
 const STEPS = 4;
 
-const DAY_PART_ORDER = ['morning', 'late_morning', 'afternoon', 'evening', 'night', 'all_day'] as const;
-
 const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose }: NewEventFlowProps) => {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -26,8 +29,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [selectedDayParts, setSelectedDayParts] = useState<[number, number]>([2, 2]); // default afternoon
   const [dayPartClickCount, setDayPartClickCount] = useState(1);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startTime, setStartTime] = useState('12:00');
+  const [endTime, setEndTime] = useState('18:00');
   const [showTimeFields, setShowTimeFields] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>(null);
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
@@ -41,17 +44,47 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
   const dayPartCompat = (!dayPartStart || dayPartStart === 'all_day') ? 'morning' : dayPartStart;
 
+  // --- Two-way sync helpers ---
+
+  const syncTimesFromDayPart = (startIdx: number, endIdx: number) => {
+    const startPart = DAY_PART_ORDER[startIdx];
+    const endPart = DAY_PART_ORDER[endIdx];
+    const range = DAY_PART_TIME_RANGES[startPart];
+    const rangeEnd = DAY_PART_TIME_RANGES[endPart];
+    setStartTime(range.start === '24:00' ? '00:00' : range.start);
+    setEndTime(rangeEnd.end === '24:00' ? '00:00' : rangeEnd.end);
+  };
+
   const handleDayPartClick = (idx: number) => {
+    let newRange: [number, number];
     if (dayPartClickCount === 1) {
-      // Second click: create range from current single to this one
       const prev = selectedDayParts[0];
-      if (prev === idx) return; // same spot, no change
-      setSelectedDayParts([Math.min(prev, idx), Math.max(prev, idx)]);
+      if (prev === idx) return;
+      newRange = [Math.min(prev, idx), Math.max(prev, idx)];
       setDayPartClickCount(2);
     } else {
-      // Third click (or first after reset): select only this one
-      setSelectedDayParts([idx, idx]);
+      newRange = [idx, idx];
       setDayPartClickCount(1);
+    }
+    setSelectedDayParts(newRange);
+    syncTimesFromDayPart(newRange[0], newRange[1]);
+  };
+
+  const handleStartTimeChange = (value: string) => {
+    setStartTime(value);
+    if (value && endTime) {
+      const newRange = timeRangeToDayParts(value, endTime);
+      setSelectedDayParts(newRange);
+      setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
+    }
+  };
+
+  const handleEndTimeChange = (value: string) => {
+    setEndTime(value);
+    if (startTime && value) {
+      const newRange = timeRangeToDayParts(startTime, value);
+      setSelectedDayParts(newRange);
+      setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
     }
   };
 
@@ -207,12 +240,12 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-sm font-medium mb-1 block">Fra</label>
-                      <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+                      <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
                         className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1 block">Til</label>
-                      <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+                      <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
                         className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
                     </div>
                   </div>
