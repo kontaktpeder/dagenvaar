@@ -15,7 +15,7 @@ interface EventDetailSheetProps {
   onEdit?: (event: Event) => void;
 }
 
-const EventDetailSheet = ({ event, members, currentMemberId, onClose }: EventDetailSheetProps) => {
+const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: EventDetailSheetProps) => {
   const [comment, setComment] = useState('');
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
