@@ -52,20 +52,16 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const queryClient = useQueryClient();
 
   const uploadAvatar = useMutation({
-    mutationFn: async (file: File) => {
-      if (!file.type.startsWith('image/')) throw new Error('Filen må være et bilde');
-      if (file.size > 5 * 1024 * 1024) throw new Error('Maks 5 MB');
-
+    mutationFn: async (blob: Blob) => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       if (!userId) throw new Error('Ikke innlogget');
 
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filePath = `${userId}/avatar.${ext}`;
+      const filePath = `${userId}/avatar.jpg`;
 
       const { error: uploadErr } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg' });
       if (uploadErr) throw uploadErr;
 
       const { data: publicData } = supabase.storage
@@ -84,6 +80,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
     },
     onSuccess: () => {
       setUploadError('');
+      setCropImageSrc(null);
       queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
       queryClient.invalidateQueries({ queryKey: ['members'] });
     },
@@ -95,10 +92,25 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Filen må være et bilde');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('Maks 10 MB');
+        return;
+      }
       setUploadError('');
-      uploadAvatar.mutate(file);
+      const reader = new FileReader();
+      reader.onload = () => setCropImageSrc(reader.result as string);
+      reader.readAsDataURL(file);
     }
     e.target.value = '';
+  };
+
+  const handleCropDone = (blob: Blob) => {
+    setCropImageSrc(null);
+    uploadAvatar.mutate(blob);
   };
 
   const joinHousehold = useMutation({
