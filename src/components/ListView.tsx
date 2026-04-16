@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { getMonthTheme } from '@/lib/monthTheme';
@@ -19,12 +19,64 @@ interface ListViewProps {
   onDateChange?: (date: Date) => void;
 }
 
+const AXIS_START = 6;
+const AXIS_END = 26;
+const AXIS_SPAN = AXIS_END - AXIS_START;
+
+const DAY_PART_RANGES: Record<string, [number, number]> = {
+  morning: [6, 10],
+  late_morning: [10, 14],
+  afternoon: [14, 18],
+  evening: [18, 22],
+  night: [22, 26],
+  all_day: [6, 26],
+};
+
+const formatHourLabel = (h: number) => {
+  const normalized = h >= 24 ? h - 24 : h;
+  return `${String(Math.floor(normalized)).padStart(2, '0')}:00`;
+};
+
+const parseTimeToHour = (value: string | null) => {
+  if (!value) return null;
+  const [hh, mm] = value.split(':').map(Number);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  let hour = hh + mm / 60;
+  if (hour < AXIS_START) hour += 24;
+  return hour;
+};
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+const getFallbackRange = (event: Event): [number, number] => {
+  const dps = (event as any).day_part_start as string | null;
+  const dpe = (event as any).day_part_end as string | null;
+  const single = event.day_part as string | null;
+
+  if (dps && dpe && DAY_PART_RANGES[dps] && DAY_PART_RANGES[dpe]) {
+    return [DAY_PART_RANGES[dps][0], DAY_PART_RANGES[dpe][1]];
+  }
+  if (dps && DAY_PART_RANGES[dps]) return DAY_PART_RANGES[dps];
+  if (single && DAY_PART_RANGES[single]) return DAY_PART_RANGES[single];
+  return DAY_PART_RANGES.afternoon;
+};
+
+type TimelineEvent = {
+  event: Event;
+  start: number;
+  end: number;
+  leftPct: number;
+  widthPct: number;
+  startLabel: string;
+  endLabel: string;
+};
+
 const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const { data: events = [] } = useEventsForDate(householdId, dateStr);
   const { data: listItems = [] } = useListItemsForDate(householdId, dateStr);
@@ -40,9 +92,50 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     onDateChange?.(selectedDate);
   }, [selectedDate, onDateChange]);
 
+  const timelineEvents = useMemo<TimelineEvent[]>(() => {
+    return events
+      .map((event) => {
+        const explicitStart = parseTimeToHour(event.start_time);
+        const explicitEnd = parseTimeToHour(event.end_time);
+
+        let start: number;
+        let end: number;
+
+        if (explicitStart != null && explicitEnd != null) {
+          start = explicitStart;
+          end = explicitEnd <= explicitStart ? explicitStart + 1 : explicitEnd;
+        } else {
+          const [fallbackStart, fallbackEnd] = getFallbackRange(event);
+          start = fallbackStart;
+          end = fallbackEnd;
+        }
+
+        start = clamp(start, AXIS_START, AXIS_END);
+        end = clamp(end, AXIS_START, AXIS_END);
+        if (end <= start) end = Math.min(AXIS_END, start + 0.5);
+
+        const leftPct = ((start - AXIS_START) / AXIS_SPAN) * 100;
+        const widthPct = ((end - start) / AXIS_SPAN) * 100;
+
+        return {
+          event,
+          start,
+          end,
+          leftPct,
+          widthPct,
+          startLabel: event.start_time?.slice(0, 5) ?? formatHourLabel(start),
+          endLabel: event.end_time?.slice(0, 5) ?? formatHourLabel(end),
+        };
+      })
+      .sort((a, b) => {
+        if (a.start !== b.start) return a.start - b.start;
+        return (b.end - b.start) - (a.end - a.start);
+      });
+  }, [events]);
+
   const handleSwipe = (_: any, info: PanInfo) => {
     if (Math.abs(info.offset.x) > 50) {
-      setSelectedDate((d) => info.offset.x < 0 ? addDays(d, 1) : subDays(d, 1));
+      setSelectedDate((d) => (info.offset.x < 0 ? addDays(d, 1) : subDays(d, 1)));
     }
   };
 
@@ -58,9 +151,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     inputRef.current?.focus();
   };
 
-  const getMemberForEvent = (event: Event) => {
-    return members.find((m) => m.id === event.owner_member_id);
-  };
+  const getMemberForEvent = (event: Event) => members.find((m) => m.id === event.owner_member_id);
 
   return (
     <>
@@ -71,7 +162,6 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         onDragEnd={handleSwipe}
         className="flex flex-col h-full"
       >
-        {/* Date header */}
         <ViewHeader
           variant="calendar"
           onPrev={() => setSelectedDate((d) => subDays(d, 1))}
@@ -83,46 +173,54 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
         </ViewHeader>
 
-        {/* Day events */}
-        {events.length > 0 && (
-          <div className="px-5 mt-4 mb-4 space-y-2">
-            {events.map((event) => {
-              const member = getMemberForEvent(event);
-              const catMeta = getEventCategoryMeta(event.category);
-              const bgColor = catMeta ? catMeta.chipBg : 'bg-muted';
-              
-              return (
-                <motion.button
-                  key={event.id}
-                  onClick={() => setSelectedEvent(event)}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full text-left rounded-2xl p-4 ${bgColor} transition-all`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {member?.display_name} · {(() => {
-                          const dps = (event as any).day_part_start;
-                          const dpe = (event as any).day_part_end;
-                          if (dps && dpe && dps !== dpe) return `${DAY_PART_LABELS[dps] || dps} – ${DAY_PART_LABELS[dpe] || dpe}`;
-                          if (dps === 'all_day') return 'Hele dagen';
-                          return DAY_PART_LABELS[event.day_part] || event.day_part;
-                        })()}
-                        {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
-                        {event.end_time && `–${event.end_time.slice(0, 5)}`}
-                      </p>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="text-muted-foreground"><path d="M8 5L13 10L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                </motion.button>
-              );
-            })}
+        {/* Sticky timeline panel */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border px-5 pt-2 pb-2">
+          <div className="grid grid-cols-5 gap-1">
+            {['Morgen', 'Formiddag', 'Etterm.', 'Kveld', 'Natt'].map((label) => (
+              <span key={label} className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center">
+                {label}
+              </span>
+            ))}
           </div>
-        )}
+
+          <div className="mt-2 space-y-1.5 max-h-28 overflow-y-auto pr-1">
+            {timelineEvents.length === 0 ? (
+              <div className="h-8 rounded-md bg-muted/25 flex items-center justify-center">
+                <span className="text-[11px] text-muted-foreground">Ingen hendelser i dag</span>
+              </div>
+            ) : (
+              timelineEvents.map((t) => {
+                const member = getMemberForEvent(t.event);
+                const catMeta = getEventCategoryMeta(t.event.category);
+                const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted';
+                const barBg = catMeta?.chipBg ?? fallback;
+
+                return (
+                  <div key={t.event.id} className="relative h-6 rounded-md bg-muted/35">
+                    {[20, 40, 60, 80].map((pct) => (
+                      <div key={pct} className="absolute top-0 bottom-0 w-px bg-border/50" style={{ left: `${pct}%` }} />
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEvent(t.event)}
+                      aria-label={`${t.event.title}, ${t.startLabel} til ${t.endLabel}`}
+                      className={`absolute top-0 h-6 min-w-[52px] rounded-md px-1.5 shadow-sm ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-primary ${barBg} text-foreground flex items-center justify-between gap-1 cursor-pointer`}
+                      style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 2)}%` }}
+                    >
+                      <span className="text-[10px] tabular-nums opacity-80 shrink-0">{t.startLabel}</span>
+                      <span className="truncate text-[10px] font-medium">{t.event.title}</span>
+                      <span className="text-[10px] tabular-nums opacity-80 shrink-0">{t.endLabel}</span>
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         {/* Separator */}
-        <div className="px-5 mb-3">
+        <div className="px-5 mb-3 mt-3">
           <div className="h-px bg-border" />
         </div>
 
