@@ -35,7 +35,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [notes, setNotes] = useState('');
   const createEvent = useCreateEvent();
 
-  const canProceed = step === 2 ? title.trim().length > 0 : true;
+  const canProceed = step === 3 ? title.trim().length > 0 : true;
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
@@ -123,55 +123,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <h2 className="text-2xl font-bold">Type hendelse</h2>
-              <div className="flex flex-col gap-2">
-                {CATEGORY_OPTIONS.map((key) => {
-                  const meta = EVENT_CATEGORY_META[key];
-                  const Icon = meta.Icon;
-                  const selected = category === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        if (selected) {
-                          setCategory(null);
-                        } else {
-                          setCategory(key);
-                          setTimeout(() => setStep(2), 200);
-                        }
-                      }}
-                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
-                        selected
-                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      <span>{meta.label}</span>
-                      <Icon size={18} strokeWidth={2.5} className={selected ? '' : meta.iconColor} />
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground text-center">Valgfritt — du kan hoppe over</p>
-            </motion.div>
-          )}
-
-          {step === 2 && (
-            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
-              <h2 className="text-2xl font-bold">Hva skal skje?</h2>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="F.eks. Middag med venner"
-                autoFocus
-                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
 
               {/* Start date + add day button */}
@@ -277,6 +228,55 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   </div>
                 </motion.div>
               )}
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+              <h2 className="text-2xl font-bold">Type hendelse</h2>
+              <div className="flex flex-col gap-2">
+                {CATEGORY_OPTIONS.map((key) => {
+                  const meta = EVENT_CATEGORY_META[key];
+                  const Icon = meta.Icon;
+                  const selected = category === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        if (selected) {
+                          setCategory(null);
+                        } else {
+                          setCategory(key);
+                          setTimeout(() => setStep(3), 200);
+                        }
+                      }}
+                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
+                        selected
+                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      <span>{meta.label}</span>
+                      <Icon size={18} strokeWidth={2.5} className={selected ? '' : meta.iconColor} />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">Valgfritt — du kan hoppe over</p>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+              <h2 className="text-2xl font-bold">Hva skal skje?</h2>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="F.eks. Middag med venner"
+                autoFocus
+                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </motion.div>
           )}
 
