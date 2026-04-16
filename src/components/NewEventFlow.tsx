@@ -18,6 +18,7 @@ interface NewEventFlowProps {
   currentMemberId: string;
   initialDate?: Date;
   onClose: () => void;
+  onCreated?: (eventId: string, dateStr: string) => void;
 }
 
 const STEPS = 4;

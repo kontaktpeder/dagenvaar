@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,10 +9,14 @@ import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
 import ListView from '@/components/ListView';
 import NewEventFlow from '@/components/NewEventFlow';
+import EditEventFlow from '@/components/EditEventFlow';
 import ProfileSheet from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
+import type { Event } from '@/hooks/useEvents';
 
 type Tab = 'calendar' | 'list';
+
+export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
 const Index = () => {
   const { loading: authLoading, signOut } = useAuth();
@@ -26,6 +30,13 @@ const Index = () => {
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
+  const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [highlight, setHighlight] = useState<Highlight>(null);
+
+  const flashHighlight = useCallback((eventId: string, dateStr: string) => {
+    setHighlight({ eventId, dateStr, ts: Date.now() });
+    window.setTimeout(() => setHighlight(null), 1400);
+  }, []);
 
   if (authLoading || ctxLoading) {
     return (
@@ -58,6 +69,10 @@ const Index = () => {
   const handleNewFromNav = () => {
     setNewEventDate(listDate ?? selectedDate ?? new Date());
     setShowNewEvent(true);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditEvent(event);
   };
 
   const handleSignOut = async () => {
@@ -102,12 +117,27 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'calendar' && (
             <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <CalendarView householdId={household.id} members={members} onSelectDate={handleSelectDate} onCreateEvent={handleCreateEvent} />
+              <CalendarView
+                householdId={household.id}
+                members={members}
+                onSelectDate={handleSelectDate}
+                onCreateEvent={handleCreateEvent}
+                onEditEvent={handleEditEvent}
+                highlight={highlight}
+              />
             </motion.div>
           )}
           {activeTab === 'list' && (
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <ListView householdId={household.id} members={members} currentMemberId={currentMember.id} initialDate={listDate ?? selectedDate} onDateChange={setListDate} />
+              <ListView
+                householdId={household.id}
+                members={members}
+                currentMemberId={currentMember.id}
+                initialDate={listDate ?? selectedDate}
+                onDateChange={setListDate}
+                onEditEvent={handleEditEvent}
+                highlight={highlight}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -144,8 +174,31 @@ const Index = () => {
 
       <AnimatePresence>
         {showNewEvent && (
-          <NewEventFlow householdId={household.id} members={members} currentMemberId={currentMember.id}
-            initialDate={newEventDate} onClose={() => setShowNewEvent(false)} />
+          <NewEventFlow
+            householdId={household.id}
+            members={members}
+            currentMemberId={currentMember.id}
+            initialDate={newEventDate}
+            onClose={() => setShowNewEvent(false)}
+            onCreated={(eventId, dateStr) => {
+              flashHighlight(eventId, dateStr);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editEvent && (
+          <EditEventFlow
+            event={editEvent}
+            householdId={household.id}
+            members={members}
+            currentMemberId={currentMember.id}
+            onClose={() => setEditEvent(null)}
+            onSaved={(eventId, dateStr) => {
+              flashHighlight(eventId, dateStr);
+            }}
+          />
         )}
       </AnimatePresence>
 
