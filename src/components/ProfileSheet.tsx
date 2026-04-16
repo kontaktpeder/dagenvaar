@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
+import { Camera } from 'lucide-react';
 
 interface ProfileSheetProps {
   household: Household;
@@ -13,6 +14,29 @@ interface ProfileSheetProps {
   onSignOut: () => Promise<void>;
 }
 
+const MemberAvatar = ({ member, size = 'md' }: { member: HouseholdMember; size?: 'sm' | 'md' | 'lg' }) => {
+  const sizeClasses = { sm: 'w-10 h-10 text-sm', md: 'w-16 h-16 text-2xl', lg: 'w-20 h-20 text-3xl' };
+  const color = getMemberColor(member.color_token);
+
+  if (member.avatar_url) {
+    return (
+      <img
+        src={member.avatar_url}
+        alt={member.display_name}
+        className={`${sizeClasses[size]} rounded-full object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold ${color.bg}`}
+    >
+      {member.display_name.charAt(0)}
+    </div>
+  );
+};
+
 const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
@@ -21,6 +45,59 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  const uploadAvatar = useMutation({
+    mutationFn: async (file: File) => {
+      if (!file.type.startsWith('image/')) throw new Error('Filen må være et bilde');
+      if (file.size > 5 * 1024 * 1024) throw new Error('Maks 5 MB');
+
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) throw new Error('Ikke innlogget');
+
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filePath = `${userId}/avatar.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+
+      const { data: publicData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = `${publicData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateErr } = await supabase
+        .from('household_members')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', currentMember.id);
+      if (updateErr) throw updateErr;
+
+      return avatarUrl;
+    },
+    onSuccess: () => {
+      setUploadError('');
+      queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
+    onError: (err: any) => {
+      setUploadError(err?.message ?? 'Kunne ikke laste opp bilde');
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadError('');
+      uploadAvatar.mutate(file);
+    }
+    e.target.value = '';
+  };
 
   const joinHousehold = useMutation({
     mutationFn: async () => {
@@ -103,14 +180,32 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
         </div>
 
         <div className="px-5 pb-8 space-y-6">
-          {/* Profile */}
+          {/* Profile with avatar upload */}
           <div className="text-center">
-            <div
-              className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-bold`}
-              style={{ backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))` }}
-            >
-              {currentMember.display_name.charAt(0)}
+            <div className="relative w-16 h-16 mx-auto mb-3">
+              <MemberAvatar member={currentMember} size="md" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadAvatar.isPending}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-transform hover:scale-110 disabled:opacity-50"
+              >
+                {uploadAvatar.isPending ? (
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                ) : (
+                  <Camera size={14} strokeWidth={2.5} />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
+            {uploadError && (
+              <p className="text-destructive text-xs mb-2">{uploadError}</p>
+            )}
             <h2 className="text-xl font-bold">{currentMember.display_name}</h2>
             <p className="text-sm text-muted-foreground">{household.name}</p>
           </div>
@@ -119,20 +214,15 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">Medlemmer</h3>
             <div className="space-y-2">
-              {members.map((m) => {
-                const color = getMemberColor(m.color_token);
-                return (
-                  <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
-                    <div className={`w-10 h-10 rounded-full ${color.bg} flex items-center justify-center font-bold text-sm`}>
-                      {m.display_name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{m.display_name}</p>
-                      <p className="text-xs text-muted-foreground">{m.role === 'owner' ? 'Eier' : 'Medlem'}</p>
-                    </div>
+              {members.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
+                  <MemberAvatar member={m} size="sm" />
+                  <div>
+                    <p className="font-medium text-sm">{m.display_name}</p>
+                    <p className="text-xs text-muted-foreground">{m.role === 'owner' ? 'Eier' : 'Medlem'}</p>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 
