@@ -252,12 +252,12 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
                         selected
-                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                          ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}`
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
                       <span>{meta.label}</span>
-                      <Icon size={18} strokeWidth={2.5} className={selected ? '' : meta.iconColor} />
+                      <Icon size={18} strokeWidth={2.5} className={meta.iconColor} />
                     </button>
                   );
                 })}
