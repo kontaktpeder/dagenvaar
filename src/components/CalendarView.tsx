@@ -198,7 +198,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent }: Cal
                           const Icon = catMeta.Icon;
                           return (
                             <div key={ev.id} className="flex items-center justify-center">
-                              <Icon size={15} strokeWidth={3} className={catMeta.iconColor} />
+                              <Icon size={16} strokeWidth={2.5} className={catMeta.iconColor} />
                             </div>
                           );
                         }
