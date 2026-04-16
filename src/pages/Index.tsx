@@ -80,12 +80,18 @@ const Index = () => {
         <h1 className="text-lg font-bold">{household.name}</h1>
         <button
           onClick={() => setShowProfile(true)}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-          style={{
-            backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))`,
-          }}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
+          style={
+            !currentMember.avatar_url
+              ? { backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))` }
+              : undefined
+          }
         >
-          {currentMember.display_name.charAt(0)}
+          {currentMember.avatar_url ? (
+            <img src={currentMember.avatar_url} alt={currentMember.display_name} className="w-full h-full object-cover" />
+          ) : (
+            currentMember.display_name.charAt(0)
+          )}
         </button>
       </header>
 
