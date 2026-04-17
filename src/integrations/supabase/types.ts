@@ -420,6 +420,10 @@ export type Database = {
         Args: { p_household_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_own_active_household_member_row: {
+        Args: { p_household_id: string; p_member_id: string }
+        Returns: boolean
+      }
       join_household_by_code: {
         Args: {
           p_color_token?: string
