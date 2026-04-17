@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { useUpdateEvent, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
@@ -113,25 +114,30 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
 
   const handleSubmit = async () => {
     const eventEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd');
-    await updateEvent.mutateAsync({
-      id: event.id,
-      patch: {
-        title: title.trim(),
-        event_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: eventEndDate,
-        day_part: dayPartCompat,
-        day_part_start: dayPartStart || null,
-        day_part_end: dayPartEnd || null,
-        start_time: startTime || null,
-        end_time: endTime || null,
-        visibility_type: visibility,
-        location: location || null,
-        notes: notes || null,
-        category: category || null,
-      } as any,
-    });
-    onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
-    onClose();
+    try {
+      await updateEvent.mutateAsync({
+        id: event.id,
+        patch: {
+          title: title.trim(),
+          event_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: eventEndDate,
+          day_part: dayPartCompat,
+          day_part_start: dayPartStart || null,
+          day_part_end: dayPartEnd || null,
+          start_time: startTime || null,
+          end_time: endTime || null,
+          visibility_type: visibility,
+          location: location || null,
+          notes: notes || null,
+          category: category || null,
+        } as any,
+      });
+      onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
+      onClose();
+    } catch (err: any) {
+      console.error('[EditEventFlow] update failed', err);
+      toast.error(err?.message || 'Kunne ikke lagre endringene');
+    }
   };
 
   const getDayPartRangeLabel = () => {

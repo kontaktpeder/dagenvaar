@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
@@ -102,26 +103,35 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   const handleSubmit = async () => {
+    if (!householdId || !currentMemberId) {
+      toast.error('Kunne ikke opprette: mangler husholdning eller medlem');
+      return;
+    }
     const eventEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd');
     const dateStr = format(startDate, 'yyyy-MM-dd');
-    const result = await createEvent.mutateAsync({
-      household_id: householdId,
-      owner_member_id: currentMemberId,
-      title: title.trim(),
-      event_date: dateStr,
-      end_date: eventEndDate,
-      day_part: dayPartCompat,
-      day_part_start: dayPartStart || null,
-      day_part_end: dayPartEnd || null,
-      start_time: startTime || null,
-      end_time: endTime || null,
-      visibility_type: visibility,
-      location: location || null,
-      notes: notes || null,
-      category: category || null,
-    } as any);
-    onCreated?.(result.id, dateStr);
-    onClose();
+    try {
+      const result = await createEvent.mutateAsync({
+        household_id: householdId,
+        owner_member_id: currentMemberId,
+        title: title.trim(),
+        event_date: dateStr,
+        end_date: eventEndDate,
+        day_part: dayPartCompat,
+        day_part_start: dayPartStart || null,
+        day_part_end: dayPartEnd || null,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        visibility_type: visibility,
+        location: location || null,
+        notes: notes || null,
+        category: category || null,
+      } as any);
+      onCreated?.(result.id, dateStr);
+      onClose();
+    } catch (err: any) {
+      console.error('[NewEventFlow] create failed', err);
+      toast.error(err?.message || 'Kunne ikke lagre hendelsen');
+    }
   };
 
   const getDayPartRangeLabel = () => {

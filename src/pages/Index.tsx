@@ -120,6 +120,7 @@ const Index = () => {
               <CalendarView
                 householdId={household.id}
                 members={members}
+                currentMemberId={currentMember.id}
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}
