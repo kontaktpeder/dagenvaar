@@ -16,6 +16,7 @@ import { useLongPress } from '@/hooks/useLongPress';
 interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
+  currentMemberId: string;
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
@@ -24,7 +25,7 @@ interface CalendarViewProps {
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
 
-const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
   const [showYear, setShowYear] = useState(false);
@@ -199,7 +200,7 @@ const CalendarView = ({ householdId, members, onSelectDate, onCreateEvent, onEdi
           <EventDetailSheet
             event={detailEvent}
             members={members}
-            currentMemberId=""
+            currentMemberId={currentMemberId}
             onClose={() => setDetailEvent(null)}
             onEdit={onEditEvent ? (ev) => { setDetailEvent(null); onEditEvent(ev); } : undefined}
           />
