@@ -6,6 +6,7 @@ import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
+import CategoryColorSettings from '@/components/CategoryColorSettings';
 
 interface ProfileSheetProps {
   household: Household;
