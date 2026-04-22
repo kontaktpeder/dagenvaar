@@ -35,12 +35,16 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [endTime, setEndTime] = useState('18:00');
   const [showTimeFields, setShowTimeFields] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>(null);
+  const [otherLabel, setOtherLabel] = useState('');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const createEvent = useCreateEvent();
 
-  const canProceed = step === 3 ? title.trim().length > 0 : true;
+  const canProceed =
+    step === 2 ? category !== null :
+    step === 3 ? title.trim().length > 0 :
+    true;
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
