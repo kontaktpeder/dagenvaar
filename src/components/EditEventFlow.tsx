@@ -260,7 +260,10 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                   const selected = category === key;
                   return (
                     <button key={key}
-                      onClick={() => { if (selected) setCategory(null); else { setCategory(key); setTimeout(() => setStep(3), 200); } }}
+                      onClick={() => {
+                        setCategory(key);
+                        if (key !== 'other') setOtherLabel('');
+                      }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${selected ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}` : 'bg-muted hover:bg-muted/80'}`}>
                       <span>{meta.label}</span>
                       <Icon size={18} strokeWidth={2.5} className={meta.iconColor} />
@@ -268,14 +271,27 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground text-center">Valgfritt — du kan hoppe over</p>
+              {category === 'other' && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                  <label className="text-sm font-medium mb-2 block">Hva slags type er dette? (valgfritt)</label>
+                  <input
+                    type="text"
+                    value={otherLabel}
+                    onChange={(e) => setOtherLabel(e.target.value)}
+                    placeholder="f.eks. Reise, Familie, Helse"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">La stå tom hvis du bare vil bruke "Annet".</p>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
           {step === 3 && (
             <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
               <h2 className="text-2xl font-bold">Hva skal skje?</h2>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="F.eks. Middag med venner" autoFocus
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'} autoFocus
                 className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary" />
             </motion.div>
           )}
