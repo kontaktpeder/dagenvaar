@@ -53,13 +53,17 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
   const [showTimeFields, setShowTimeFields] = useState(!!event.start_time);
   const [category, setCategory] = useState<EventCategory | null>((event.category as EventCategory) || null);
+  const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     event.visibility_type as any || 'all_members',
   );
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
-  const canProceed = step === 3 ? title.trim().length > 0 : true;
+  const canProceed =
+    step === 2 ? category !== null :
+    step === 3 ? title.trim().length > 0 :
+    true;
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
