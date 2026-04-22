@@ -63,11 +63,12 @@ const CategoryColorSettings = ({ member }: CategoryColorSettingsProps) => {
           const meta = EVENT_CATEGORY_META[catKey];
           const Icon = meta.Icon;
           const selectedToken = map[catKey] ?? DEFAULT_CATEGORY_COLOR_MAP[catKey];
+          const visuals = resolveCategoryVisuals(catKey, map);
           return (
             <div key={catKey} className="rounded-xl bg-muted p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Icon size={16} strokeWidth={2.5} className={`text-${selectedToken}-500`} />
+                  <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
                   <span className="text-sm font-medium">{meta.label}</span>
                 </div>
                 {savedKey === catKey && (
