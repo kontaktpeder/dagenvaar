@@ -241,6 +241,9 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
           </div>
 
+          {/* Category color settings */}
+          <CategoryColorSettings member={currentMember} />
+
           {/* Invite */}
           {isOwner && (
             <div className="space-y-2">
