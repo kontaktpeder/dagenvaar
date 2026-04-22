@@ -26,6 +26,15 @@ interface CalendarViewProps {
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
 
+const CATEGORY_ORDER: Record<string, number> = {
+  important: 0,
+  work: 1,
+  couple: 2,
+  celebration: 3,
+  social: 4,
+  other: 5,
+};
+
 const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
@@ -274,9 +283,10 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
         <div className="flex flex-col gap-0.5 mt-1 w-full px-1">
           {dayEvents
             .sort((a, b) => {
-              const aCat = a.category === 'important' ? 0 : 1;
-              const bCat = b.category === 'important' ? 0 : 1;
-              return aCat - bCat;
+              const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
+              const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
+              if (aRank !== bRank) return aRank - bRank;
+              return (a.start_time || '').localeCompare(b.start_time || '');
             })
             .slice(0, 2)
             .map((ev) => {
