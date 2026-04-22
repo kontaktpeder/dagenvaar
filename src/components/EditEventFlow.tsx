@@ -133,7 +133,8 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           visibility_type: visibility,
           location: location || null,
           notes: notes || null,
-          category: category || null,
+          category: category!,
+          category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
         } as any,
       });
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
