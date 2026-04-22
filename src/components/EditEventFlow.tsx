@@ -322,7 +322,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                   {' · '}{getDayPartRangeLabel()}
                   {startTime && ` · ${startTime}`}{endTime && `–${endTime}`}
                 </p>
-                {category && <p className="text-sm text-muted-foreground mt-1">{EVENT_CATEGORY_META[category].label}</p>}
+                {category && <p className="text-sm text-muted-foreground mt-1">{resolveCategoryLabel(category, otherLabel)}</p>}
               </div>
             </motion.div>
           )}
