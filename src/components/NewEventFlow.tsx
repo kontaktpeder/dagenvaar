@@ -128,7 +128,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         visibility_type: visibility,
         location: location || null,
         notes: notes || null,
-        category: category || null,
+        category: category!,
+        category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
       } as any);
       onCreated?.(result.id, dateStr);
       onClose();
