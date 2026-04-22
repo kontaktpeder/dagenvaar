@@ -7,6 +7,7 @@ import {
   DEFAULT_CATEGORY_COLOR_MAP,
   getColorTokenSwatch,
   getMemberColorMap,
+  resolveCategoryVisuals,
   type CategoryColorMap,
   type CategoryColorToken,
 } from '@/lib/categoryPresentation';
