@@ -4,7 +4,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta } from '@/lib/eventCategories';
+import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
+import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface EventDetailSheetProps {
@@ -90,13 +91,14 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: 
             {event.location && <p className="text-sm mt-2">📍 {event.location}</p>}
             {event.notes && <p className="text-sm mt-2 text-muted-foreground">{event.notes}</p>}
             {(() => {
-              const catMeta = getEventCategoryMeta(event.category);
-              if (!catMeta) return null;
-              const Icon = catMeta.Icon;
+              const meta = EVENT_CATEGORY_META[(event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+              const visuals = resolveCategoryVisuals(event.category, getMemberColorMap(owner));
+              const label = resolveCategoryLabel(event.category, (event as any).category_label_override);
+              const Icon = meta?.Icon;
               return (
-                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium ${catMeta.chipBg}`}>
-                  <Icon size={12} />
-                  {catMeta.label}
+                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium ${visuals.softBg}`}>
+                  {Icon && <Icon size={12} className={visuals.iconColor} />}
+                  {label}
                 </div>
               );
             })()}

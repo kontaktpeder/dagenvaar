@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta } from '@/lib/eventCategories';
+import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
+import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
 import type { Event } from '@/hooks/useEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
@@ -51,17 +52,19 @@ const CalendarDaySheet = ({ date, events, members, onClose, onPickEvent, onCreat
             events.map((ev) => {
               const member = getMember(ev.owner_member_id);
               const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
-              const catMeta = getEventCategoryMeta(ev.category);
+              const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+              const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
+              const Icon = meta?.Icon;
               const dps = (ev as any).day_part_start as string | null;
 
               return (
                 <button
                   key={ev.id}
                   onClick={() => onPickEvent(ev)}
-                  className={`w-full text-left rounded-xl p-3 ${catMeta?.chipBg ?? color.bg} transition-all active:scale-[0.98]`}
+                  className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all active:scale-[0.98]`}
                 >
                   <div className="flex items-center gap-2">
-                    {catMeta && <catMeta.Icon size={14} className={catMeta.iconColor} />}
+                    {Icon && <Icon size={14} className={visuals.iconColor} />}
                     <span className="font-semibold text-sm truncate">{ev.title}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -69,6 +72,7 @@ const CalendarDaySheet = ({ date, events, members, onClose, onPickEvent, onCreat
                     {ev.start_time && ` · ${ev.start_time.slice(0, 5)}`}
                     {ev.end_time && `–${ev.end_time.slice(0, 5)}`}
                     {member && ` · ${member.display_name}`}
+                    {` · ${resolveCategoryLabel(ev.category, (ev as any).category_label_override)}`}
                   </p>
                 </button>
               );
