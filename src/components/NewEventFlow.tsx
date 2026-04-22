@@ -293,11 +293,9 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                     <button
                       key={key}
                       onClick={() => {
-                        if (selected) {
-                          setCategory(null);
-                        } else {
-                          setCategory(key);
-                          setTimeout(() => setStep(3), 200);
+                        setCategory(key);
+                        if (key !== 'other') {
+                          setOtherLabel('');
                         }
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
@@ -312,7 +310,19 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground text-center">Valgfritt — du kan hoppe over</p>
+              {category === 'other' && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                  <label className="text-sm font-medium mb-2 block">Egen kategori (valgfritt)</label>
+                  <input
+                    type="text"
+                    value={otherLabel}
+                    onChange={(e) => setOtherLabel(e.target.value)}
+                    placeholder="F.eks. Trening, Lege, Reise..."
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">La stå tom hvis du bare vil bruke "Annet".</p>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
@@ -323,7 +333,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="F.eks. Middag med venner"
+                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
                 autoFocus
                 className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
