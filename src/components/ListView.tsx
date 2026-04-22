@@ -6,7 +6,7 @@ import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
 import { getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta } from '@/lib/eventCategories';
+import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import {
   AXIS_START, AXIS_END, AXIS_SPAN,
   DAY_PART_AXIS_RANGES, TIMELINE_SEGMENTS,
@@ -303,10 +303,10 @@ const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPres
     onTap(t.event);
   };
 
-  const catMeta = getEventCategoryMeta(t.event.category);
   const member = getMemberForEvent(t.event);
+  const visuals = resolveCategoryVisuals(t.event.category, getMemberColorMap(member));
   const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
-  const barBg = catMeta?.chipBg ?? fallback;
+  const barBg = visuals.softBg ?? fallback;
   const isHighlighted = highlight && highlight.eventId === t.event.id;
 
   return (

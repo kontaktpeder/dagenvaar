@@ -6,6 +6,7 @@ import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
+import CategoryColorSettings from '@/components/CategoryColorSettings';
 
 interface ProfileSheetProps {
   household: Household;
@@ -239,6 +240,9 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               ))}
             </div>
           </div>
+
+          {/* Category color settings */}
+          <CategoryColorSettings member={currentMember} />
 
           {/* Invite */}
           {isOwner && (

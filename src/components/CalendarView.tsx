@@ -4,7 +4,8 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
-import { getEventCategoryMeta } from '@/lib/eventCategories';
+import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
+import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
@@ -279,21 +280,22 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
             })
             .slice(0, 2)
             .map((ev) => {
-              const catMeta = getEventCategoryMeta(ev.category);
+              const member = getMemberForEvent(ev);
+              const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+              const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
               const evHighlighted = highlight && highlight.eventId === ev.id;
-              if (catMeta) {
-                const Icon = catMeta.Icon;
+              const Icon = meta?.Icon;
+              if (Icon) {
                 return (
                   <div key={ev.id} className={`flex items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
-                    <Icon size={16} strokeWidth={2.5} className={catMeta.iconColor} />
+                    <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
                   </div>
                 );
               }
-              const member = getMemberForEvent(ev);
-              const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+              const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
               const firstWord = ev.title.split(' ')[0] || ev.title;
               return (
-                <div key={ev.id} className={`${color.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}>
+                <div key={ev.id} className={`${fallback.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}>
                   {firstWord}
                 </div>
               );

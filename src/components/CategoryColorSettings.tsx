@@ -1,0 +1,104 @@
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { CATEGORY_OPTIONS, EVENT_CATEGORY_META } from '@/lib/eventCategories';
+import {
+  COLOR_TOKEN_OPTIONS,
+  DEFAULT_CATEGORY_COLOR_MAP,
+  getColorTokenSwatch,
+  getMemberColorMap,
+  resolveCategoryVisuals,
+  type CategoryColorMap,
+  type CategoryColorToken,
+} from '@/lib/categoryPresentation';
+import type { HouseholdMember } from '@/hooks/useHousehold';
+
+interface CategoryColorSettingsProps {
+  member: HouseholdMember;
+}
+
+const CategoryColorSettings = ({ member }: CategoryColorSettingsProps) => {
+  const queryClient = useQueryClient();
+  const initial = getMemberColorMap(member) ?? { ...DEFAULT_CATEGORY_COLOR_MAP };
+  const [map, setMap] = useState<CategoryColorMap>(initial);
+  const [savedKey, setSavedKey] = useState<string | null>(null);
+
+  const update = useMutation({
+    mutationFn: async (next: CategoryColorMap) => {
+      const { error } = await supabase
+        .from('household_members')
+        .update({ category_color_map: next as any })
+        .eq('id', member.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['currentMember'] });
+      queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
+    },
+  });
+
+  const handlePick = (catKey: keyof typeof DEFAULT_CATEGORY_COLOR_MAP, token: CategoryColorToken) => {
+    const next = { ...map, [catKey]: token };
+    setMap(next);
+    setSavedKey(catKey);
+    update.mutate(next);
+    setTimeout(() => setSavedKey((k) => (k === catKey ? null : k)), 1200);
+  };
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-muted-foreground mb-1">Farger for kategorier</h3>
+      <p className="text-xs text-muted-foreground mb-3">Velg hvordan dine kategorier vises i kalenderen.</p>
+      <div className="space-y-3">
+        {CATEGORY_OPTIONS.map((catKey) => {
+          if (catKey === 'other') {
+            return (
+              <div key={catKey} className="rounded-xl bg-muted p-3 flex items-center justify-between opacity-70">
+                <span className="text-sm font-medium">Annet</span>
+                <span className="text-xs text-muted-foreground">Fast nøytral</span>
+              </div>
+            );
+          }
+          const meta = EVENT_CATEGORY_META[catKey];
+          const Icon = meta.Icon;
+          const selectedToken = map[catKey] ?? DEFAULT_CATEGORY_COLOR_MAP[catKey];
+          const visuals = resolveCategoryVisuals(catKey, map);
+          return (
+            <div key={catKey} className="rounded-xl bg-muted p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
+                  <span className="text-sm font-medium">{meta.label}</span>
+                </div>
+                {savedKey === catKey && (
+                  <span className="text-[11px] text-muted-foreground">Lagret ✓</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_TOKEN_OPTIONS.map((token) => {
+                  const isSelected = selectedToken === token;
+                  return (
+                    <button
+                      key={token}
+                      onClick={() => handlePick(catKey, token)}
+                      aria-label={token}
+                      className={`w-7 h-7 rounded-full ${getColorTokenSwatch(token)} transition-all ${
+                        isSelected ? 'ring-2 ring-offset-2 ring-foreground scale-110' : 'hover:scale-105'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {update.isError && (
+        <p className="text-destructive text-xs mt-2">Kunne ikke lagre farger</p>
+      )}
+    </div>
+  );
+};
+
+export default CategoryColorSettings;

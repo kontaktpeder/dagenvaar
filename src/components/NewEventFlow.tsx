@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import { resolveCategoryLabel } from '@/lib/categoryPresentation';
 import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
@@ -128,7 +129,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         visibility_type: visibility,
         location: location || null,
         notes: notes || null,
-        category: category || null,
+        category: category!,
+        category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
       } as any);
       onCreated?.(result.id, dateStr);
       onClose();
@@ -379,7 +381,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 </p>
                 {category && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {EVENT_CATEGORY_META[category].label}
+                    {resolveCategoryLabel(category, otherLabel)}
                   </p>
                 )}
               </div>

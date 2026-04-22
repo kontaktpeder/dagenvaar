@@ -91,7 +91,8 @@ export type Database = {
       }
       events: {
         Row: {
-          category: string | null
+          category: string
+          category_label_override: string | null
           created_at: string
           day_part: string
           day_part_end: string | null
@@ -111,7 +112,8 @@ export type Database = {
           visibility_type: string
         }
         Insert: {
-          category?: string | null
+          category: string
+          category_label_override?: string | null
           created_at?: string
           day_part: string
           day_part_end?: string | null
@@ -131,7 +133,8 @@ export type Database = {
           visibility_type?: string
         }
         Update: {
-          category?: string | null
+          category?: string
+          category_label_override?: string | null
           created_at?: string
           day_part?: string
           day_part_end?: string | null
@@ -211,6 +214,7 @@ export type Database = {
       household_members: {
         Row: {
           avatar_url: string | null
+          category_color_map: Json | null
           color_token: string
           created_at: string
           display_name: string
@@ -223,6 +227,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          category_color_map?: Json | null
           color_token?: string
           created_at?: string
           display_name: string
@@ -235,6 +240,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          category_color_map?: Json | null
           color_token?: string
           created_at?: string
           display_name?: string
