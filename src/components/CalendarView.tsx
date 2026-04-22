@@ -26,6 +26,15 @@ interface CalendarViewProps {
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
 
+const CATEGORY_ORDER: Record<string, number> = {
+  important: 0,
+  work: 1,
+  couple: 2,
+  celebration: 3,
+  social: 4,
+  other: 5,
+};
+
 const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
