@@ -380,7 +380,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 </p>
                 {category && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    {EVENT_CATEGORY_META[category].label}
+                    {resolveCategoryLabel(category, otherLabel)}
                   </p>
                 )}
               </div>
