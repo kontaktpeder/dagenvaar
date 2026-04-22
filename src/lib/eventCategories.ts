@@ -55,9 +55,16 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-orange-500',
   },
+  other: {
+    label: 'Annet',
+    Icon: MoreHorizontal,
+    chipBg: 'bg-muted',
+    chipText: 'text-foreground',
+    iconColor: 'text-muted-foreground',
+  },
 };
 
-export const CATEGORY_OPTIONS: EventCategory[] = ['couple', 'work', 'social', 'celebration', 'important'];
+export const CATEGORY_OPTIONS: EventCategory[] = ['couple', 'work', 'social', 'celebration', 'important', 'other'];
 
 export function getEventCategoryMeta(category: string | null | undefined) {
   if (!category) return null;
