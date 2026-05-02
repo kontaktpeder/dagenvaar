@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -19,7 +19,7 @@ interface CalendarViewProps {
   members: HouseholdMember[];
   currentMemberId: string;
   currentDate?: Date;
-  onCurrentDateChange?: (date: Date) => void;
+  onCurrentDateChange?: Dispatch<SetStateAction<Date>>;
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
@@ -40,11 +40,13 @@ const CATEGORY_ORDER: Record<string, number> = {
 const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
-  const setCurrentDate = (updater: Date | ((d: Date) => Date)) => {
-    const next = typeof updater === 'function' ? (updater as (d: Date) => Date)(currentDate) : updater;
-    if (onCurrentDateChange) onCurrentDateChange(next);
-    else setInternalDate(next);
-  };
+  const setCurrentDate = useCallback(
+    (updater: SetStateAction<Date>) => {
+      if (onCurrentDateChange) onCurrentDateChange(updater);
+      else setInternalDate(updater);
+    },
+    [onCurrentDateChange],
+  );
   const [direction, setDirection] = useState(0);
   const [showYear, setShowYear] = useState(false);
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
@@ -87,7 +89,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     setDirection(dir);
     setNavTick((t) => t + 1);
     setCurrentDate((d) => dir > 0 ? addMonths(d, 1) : subMonths(d, 1));
-  }, []);
+  }, [setCurrentDate]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     const dx = info.offset.x;
