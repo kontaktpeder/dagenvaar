@@ -27,6 +27,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [listDate, setListDate] = useState<Date | undefined>();
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
