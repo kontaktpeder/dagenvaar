@@ -131,28 +131,18 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     <>
       <div className="flex flex-col h-full">
         {/* Month header with dynamic theme */}
-        <div className="relative">
-          <ViewHeader
-            variant="calendar"
-            onPrev={() => navigate(-1)}
-            onNext={() => navigate(1)}
-            onTitleClick={() => setShowYear(true)}
-            calendarStyle={{ background: monthTheme.gradient }}
-          >
-            {format(currentDate, 'MMMM yyyy', { locale: nb })}
-          </ViewHeader>
-          {!isOnCurrentMonth && (
-            <button
-              onClick={goToToday}
-              className="absolute left-1/2 -translate-x-1/2 -bottom-3 z-10 px-3 py-1 rounded-full bg-white/95 backdrop-blur text-foreground text-[11px] font-semibold shadow-soft hover:bg-white active:scale-95 transition-all"
-            >
-              I dag
-            </button>
-          )}
-        </div>
+        <ViewHeader
+          variant="calendar"
+          onPrev={() => navigate(-1)}
+          onNext={() => navigate(1)}
+          onTitleClick={() => setShowYear(true)}
+          calendarStyle={{ background: monthTheme.gradient }}
+        >
+          {format(currentDate, 'MMMM yyyy', { locale: nb })}
+        </ViewHeader>
 
         {/* Weekday headers */}
-        <div className="bg-transparent">
+        <div className="bg-transparent relative">
           <div className="grid grid-cols-7 px-3 py-3">
             {WEEKDAYS.map((d, i) => (
               <div key={d} className={`text-center text-[13px] font-bold uppercase tracking-wider ${
@@ -162,6 +152,14 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               </div>
             ))}
           </div>
+          {!isOnCurrentMonth && (
+            <button
+              onClick={goToToday}
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full bg-muted/70 hover:bg-muted text-foreground/70 hover:text-foreground text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all"
+            >
+              I dag
+            </button>
+          )}
         </div>
 
         {/* Days grid */}
