@@ -122,6 +122,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
+                currentDate={calendarMonth}
+                onCurrentDateChange={setCalendarMonth}
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}
