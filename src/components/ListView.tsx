@@ -164,14 +164,28 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             ))}
           </div>
 
-          <div className="relative space-y-2">
+          <div className="relative space-y-2 rounded-xl overflow-hidden">
+            {/* Time-of-day color background: morning blue → late_morning sunrise → afternoon yellow → evening dusk → night dark */}
+            <div
+              className="absolute inset-0 -z-10 opacity-50"
+              style={{
+                background:
+                  'linear-gradient(to right, hsl(205, 75%, 86%) 0%, hsl(205, 75%, 86%) 12.5%, hsl(25, 88%, 80%) 25%, hsl(48, 92%, 80%) 37.5%, hsl(48, 92%, 80%) 62.5%, hsl(18, 70%, 70%) 75%, hsl(232, 35%, 38%) 87.5%, hsl(232, 38%, 30%) 100%)',
+              }}
+            />
+
+            {/* Subtle vertical separators between day parts */}
             {segmentPositions.slice(1).map((seg) => (
-              <div key={seg.key} className="absolute top-0 bottom-0 w-px bg-border/15" style={{ left: `${seg.leftPct}%` }} />
+              <div
+                key={seg.key}
+                className="absolute top-0 bottom-0 w-px bg-foreground/15 pointer-events-none"
+                style={{ left: `${seg.leftPct}%` }}
+              />
             ))}
 
             {timelineEvents.length === 0 ? (
               <div className="py-3 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
+                <span className="text-xs text-foreground/60">Ingen hendelser</span>
               </div>
             ) : (
               timelineEvents.map((t) => (
