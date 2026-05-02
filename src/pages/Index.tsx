@@ -156,6 +156,7 @@ const Index = () => {
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}
+                onQuickEditEvent={setQuickEditEvent}
                 highlight={highlight}
               />
             </motion.div>
@@ -169,6 +170,7 @@ const Index = () => {
                 initialDate={focusedDate}
                 onDateChange={setFocusedDate}
                 onEditEvent={handleEditEvent}
+                onQuickEditEvent={setQuickEditEvent}
                 highlight={highlight}
               />
             </motion.div>
@@ -230,6 +232,24 @@ const Index = () => {
             onClose={() => setEditEvent(null)}
             onSaved={(eventId, dateStr) => {
               flashHighlight(eventId, dateStr);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {quickEditEvent && (
+          <EditEventQuickSheet
+            event={quickEditEvent}
+            householdId={household.id}
+            currentMemberId={currentMember.id}
+            onClose={() => setQuickEditEvent(null)}
+            onSaved={(eventId, dateStr) => {
+              flashHighlight(eventId, dateStr);
+            }}
+            onOpenFullEdit={(ev) => {
+              setQuickEditEvent(null);
+              setEditEvent(ev);
             }}
           />
         )}
