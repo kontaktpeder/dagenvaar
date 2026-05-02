@@ -186,6 +186,15 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           </div>
 
           <div className="relative space-y-2">
+            {/* Subtle vertical guide lines extending below the time strip */}
+            {segmentPositions.slice(1).map((seg) => (
+              <div
+                key={`guide-${seg.key}`}
+                className="absolute top-0 bottom-0 w-px bg-foreground/10 pointer-events-none"
+                style={{ left: `${seg.leftPct}%` }}
+              />
+            ))}
+
             {timelineEvents.length === 0 ? (
               <div className="py-3 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
