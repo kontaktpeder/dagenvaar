@@ -22,6 +22,7 @@ export const DAY_PART_LABELS: Record<string, string> = {
   afternoon: 'Ettermiddag',
   evening: 'Kveld',
   night: 'Natt',
+  full_diem: 'Hele døgnet',
   all_day: 'Hele dagen',
 };
 

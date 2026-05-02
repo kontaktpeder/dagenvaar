@@ -1,4 +1,4 @@
-export const DAY_PART_ORDER = ['morning', 'late_morning', 'afternoon', 'evening', 'night', 'all_day'] as const;
+export const DAY_PART_ORDER = ['morning', 'late_morning', 'afternoon', 'evening', 'night', 'full_diem', 'all_day'] as const;
 export type DayPart = typeof DAY_PART_ORDER[number];
 
 export const DAY_PART_TIME_RANGES: Record<DayPart, { start: string; end: string; label: string }> = {
@@ -7,7 +7,8 @@ export const DAY_PART_TIME_RANGES: Record<DayPart, { start: string; end: string;
   afternoon:    { start: '12:00', end: '18:00', label: '12–18' },
   evening:      { start: '18:00', end: '24:00', label: '18–24' },
   night:        { start: '00:00', end: '06:00', label: '00–06' },
-  all_day:      { start: '00:00', end: '24:00', label: '00–24' },
+  full_diem:    { start: '00:00', end: '23:59', label: '00–24' },
+  all_day:      { start: '06:00', end: '06:00', label: '06–06' },
 } as const;
 
 /** Timeline axis constants */
@@ -22,6 +23,7 @@ export const DAY_PART_AXIS_RANGES: Record<string, [number, number]> = {
   afternoon:    [12, 18],
   evening:      [18, 24],
   night:        [24, 30],
+  full_diem:    [6, 30],
   all_day:      [6, 30],
 };
 
@@ -53,7 +55,7 @@ export function timeRangeToDayParts(startTime: string, endTime: string): [number
   const startH = parseTimeToAxisHour(startTime) ?? AXIS_START;
   const endH = parseTimeToAxisHour(endTime) ?? startH + 1;
 
-  const parts = DAY_PART_ORDER.slice(0, 5); // exclude all_day
+  const parts = ['morning', 'late_morning', 'afternoon', 'evening', 'night'] as const;
   let bestStart = 2; // default afternoon
   let bestEnd = 2;
   let bestStartOverlap = 0;
