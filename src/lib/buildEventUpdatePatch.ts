@@ -1,0 +1,42 @@
+import { format } from 'date-fns';
+import type { EventCategory } from '@/lib/eventCategories';
+
+export interface EventUpdatePatchInput {
+  title: string;
+  startDate: Date;
+  endDate: Date | null;
+  dayPartStart: string | null;
+  dayPartEnd: string | null;
+  startTime: string;
+  endTime: string;
+  category: EventCategory;
+  otherLabel: string;
+  visibility: 'all_members' | 'private' | 'selected_members';
+  location: string;
+  notes: string;
+}
+
+export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
+  const eventEndDate = input.endDate
+    ? format(input.endDate, 'yyyy-MM-dd')
+    : format(input.startDate, 'yyyy-MM-dd');
+  const dayPartCompat =
+    !input.dayPartStart || input.dayPartStart === 'all_day' ? 'morning' : input.dayPartStart;
+
+  return {
+    title: input.title.trim(),
+    event_date: format(input.startDate, 'yyyy-MM-dd'),
+    end_date: eventEndDate,
+    day_part: dayPartCompat,
+    day_part_start: input.dayPartStart || null,
+    day_part_end: input.dayPartEnd || null,
+    start_time: input.startTime || null,
+    end_time: input.endTime || null,
+    visibility_type: input.visibility,
+    location: input.location || null,
+    notes: input.notes || null,
+    category: input.category,
+    category_label_override:
+      input.category === 'other' ? input.otherLabel.trim() || null : null,
+  } as any;
+}
