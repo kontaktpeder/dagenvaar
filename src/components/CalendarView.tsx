@@ -181,15 +181,15 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           <motion.div
             key={`${year}-${month}-${navTick}`}
             custom={direction}
-            initial={{ x: direction * 60, opacity: 0.6 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -direction * 60, opacity: 0.6 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 38, mass: 0.6 }}
+            initial={{ x: direction * 100 + '%' }}
+            animate={{ x: 0 }}
+            exit={{ x: -direction * 100 + '%' }}
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.6}
+            dragElastic={0}
             dragMomentum={false}
-            dragTransition={{ bounceStiffness: 600, bounceDamping: 30 }}
+            dragTransition={{ bounceStiffness: 0, bounceDamping: 100, power: 0 }}
             dragSnapToOrigin
             onDragEnd={handleDragEnd}
             className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-pan-y will-change-transform"
