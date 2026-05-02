@@ -18,6 +18,8 @@ interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  currentDate?: Date;
+  onCurrentDateChange?: (date: Date) => void;
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
