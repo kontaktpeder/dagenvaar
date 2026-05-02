@@ -355,7 +355,7 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
         </div>
 
         {/* Footer */}
-        <div className="px-5 pt-3 pb-6 border-t border-border bg-background space-y-2">
+        <div className="px-5 pt-3 pb-6 border-t border-border bg-background">
           <button
             onClick={handleSubmit}
             disabled={!canSave || updateEvent.isPending}
@@ -363,17 +363,6 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
           >
             {updateEvent.isPending ? 'Lagrer...' : 'Lagre ✨'}
           </button>
-          {onOpenFullEdit && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenFullEdit(event);
-              }}
-              className="w-full text-center text-sm text-muted-foreground underline underline-offset-2 py-1"
-            >
-              Alle steg …
-            </button>
-          )}
         </div>
       </motion.div>
     </motion.div>
