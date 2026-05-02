@@ -21,7 +21,10 @@ export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
     ? format(input.endDate, 'yyyy-MM-dd')
     : format(input.startDate, 'yyyy-MM-dd');
   const dayPartCompat =
-    !input.dayPartStart || input.dayPartStart === 'all_day' ? 'morning' : input.dayPartStart;
+    !input.dayPartStart || input.dayPartStart === 'all_day' || input.dayPartStart === 'full_diem'
+      ? 'morning'
+      : input.dayPartStart;
+  const isFullDiem = input.dayPartStart === 'full_diem' && input.dayPartEnd === 'full_diem';
 
   return {
     title: input.title.trim(),
@@ -30,8 +33,8 @@ export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
     day_part: dayPartCompat,
     day_part_start: input.dayPartStart || null,
     day_part_end: input.dayPartEnd || null,
-    start_time: input.startTime || null,
-    end_time: input.endTime || null,
+    start_time: isFullDiem ? '00:00' : (input.startTime || null),
+    end_time: isFullDiem ? '23:59' : (input.endTime || null),
     visibility_type: input.visibility,
     location: input.location || null,
     notes: input.notes || null,
