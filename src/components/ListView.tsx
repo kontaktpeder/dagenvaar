@@ -156,36 +156,39 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
         {/* Timeline panel */}
         <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
-          <div className="flex px-0 mb-2">
-            {segmentPositions.map((seg) => (
-              <div key={seg.key} className="text-center" style={{ width: `${seg.widthPct}%` }}>
-                <span className="text-[9px] font-medium tracking-wider text-muted-foreground/60">{seg.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="relative space-y-2 rounded-xl overflow-hidden">
-            {/* Time-of-day color background: morning blue → late_morning sunrise → afternoon yellow → evening dusk → night dark */}
+          {/* Time-of-day color strip behind the time labels */}
+          <div className="relative mb-2 h-5 rounded-md overflow-hidden">
             <div
-              className="absolute inset-0 -z-10 opacity-50"
+              className="absolute inset-0"
               style={{
                 background:
-                  'linear-gradient(to right, hsl(205, 75%, 86%) 0%, hsl(205, 75%, 86%) 12.5%, hsl(25, 88%, 80%) 25%, hsl(48, 92%, 80%) 37.5%, hsl(48, 92%, 80%) 62.5%, hsl(18, 70%, 70%) 75%, hsl(232, 35%, 38%) 87.5%, hsl(232, 38%, 30%) 100%)',
+                  'linear-gradient(to right, hsl(205, 75%, 84%) 0%, hsl(205, 75%, 84%) 12.5%, hsl(25, 88%, 78%) 25%, hsl(48, 92%, 78%) 37.5%, hsl(48, 92%, 78%) 62.5%, hsl(18, 70%, 68%) 75%, hsl(232, 35%, 38%) 87.5%, hsl(232, 38%, 30%) 100%)',
               }}
             />
-
-            {/* Subtle vertical separators between day parts */}
+            {/* Sharp vertical separators on the strip */}
             {segmentPositions.slice(1).map((seg) => (
               <div
-                key={seg.key}
-                className="absolute top-0 bottom-0 w-px bg-foreground/15 pointer-events-none"
+                key={`sep-${seg.key}`}
+                className="absolute top-0 bottom-0 w-px bg-foreground/40 pointer-events-none"
                 style={{ left: `${seg.leftPct}%` }}
               />
             ))}
+            {/* Time labels on top of strip — readable */}
+            <div className="absolute inset-0 flex">
+              {segmentPositions.map((seg) => (
+                <div key={seg.key} className="text-center flex items-center justify-center" style={{ width: `${seg.widthPct}%` }}>
+                  <span className="text-[9px] font-semibold tracking-wider text-foreground/85 mix-blend-plus-lighter">
+                    {seg.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
 
+          <div className="relative space-y-2">
             {timelineEvents.length === 0 ? (
               <div className="py-3 flex items-center justify-center">
-                <span className="text-xs text-foreground/60">Ingen hendelser</span>
+                <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
               </div>
             ) : (
               timelineEvents.map((t) => (
