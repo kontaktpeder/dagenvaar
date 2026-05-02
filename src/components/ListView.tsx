@@ -7,6 +7,7 @@ import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
 import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
+import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import {
   AXIS_START, AXIS_END, AXIS_SPAN,
   DAY_PART_AXIS_RANGES, TIMELINE_SEGMENTS,
@@ -340,6 +341,8 @@ const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPres
   const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
   const barBg = visuals.softBg ?? fallback;
   const isHighlighted = highlight && highlight.eventId === t.event.id;
+  const meta = EVENT_CATEGORY_META[(t.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+  const Icon = meta?.Icon;
 
   return (
     <div className="relative h-7">
@@ -348,9 +351,12 @@ const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPres
         {...longPressHandlers}
         onClick={handleClick}
         aria-label={t.event.title}
-        className={`absolute top-0 h-7 min-w-[48px] rounded-xl px-2.5 ${barBg} text-foreground flex items-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        className={`absolute top-0 h-7 min-w-[28px] rounded-xl px-1.5 ${barBg} text-foreground flex items-center gap-1 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
         style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
       >
+        {Icon && (
+          <Icon size={14} strokeWidth={2.25} className={`${visuals.iconColor} shrink-0`} />
+        )}
         <span className="truncate text-[11px] font-semibold">{t.event.title}</span>
       </button>
     </div>
