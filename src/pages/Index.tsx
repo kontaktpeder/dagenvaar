@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { startOfMonth } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,9 +26,7 @@ const Index = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [listDate, setListDate] = useState<Date | undefined>();
-  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
+  const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
@@ -36,11 +35,27 @@ const Index = () => {
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
-    // Navigate calendar to the month of the created/edited event
     const [y, m, d] = dateStr.split('-').map(Number);
-    if (y && m && d) setCalendarMonth(new Date(y, m - 1, d));
+    if (y && m && d) setFocusedDate(new Date(y, m - 1, d));
     window.setTimeout(() => setHighlight(null), 1400);
   }, []);
+
+  const handleCalendarMonthChange = useCallback<Dispatch<SetStateAction<Date>>>(
+    (update) => {
+      setFocusedDate((prev) => {
+        const anchor = startOfMonth(prev);
+        const nextAnchor = typeof update === 'function' ? update(anchor) : update;
+        const y = nextAnchor.getFullYear();
+        const m = nextAnchor.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const day = Math.min(prev.getDate(), lastDay);
+        return new Date(y, m, day);
+      });
+    },
+    [],
+  );
+
+  const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
 
   if (authLoading || ctxLoading) {
     return (
@@ -60,8 +75,7 @@ const Index = () => {
   }
 
   const handleSelectDate = (date: Date) => {
-    setSelectedDate(date);
-    setListDate(date);
+    setFocusedDate(date);
     setActiveTab('list');
   };
 
@@ -71,7 +85,7 @@ const Index = () => {
   };
 
   const handleNewFromNav = () => {
-    setNewEventDate(listDate ?? selectedDate ?? new Date());
+    setNewEventDate(focusedDate);
     setShowNewEvent(true);
   };
 
@@ -80,19 +94,13 @@ const Index = () => {
   };
 
   const handleCalendarNavClick = () => {
-    if (activeTab === 'calendar') setCalendarMonth(new Date());
+    if (activeTab === 'calendar') setFocusedDate(new Date());
     else setActiveTab('calendar');
   };
 
   const handleListNavClick = () => {
-    if (activeTab === 'list') {
-      const today = new Date();
-      setListDate(today);
-      setSelectedDate(today);
-    } else {
-      setSelectedDate(undefined);
-      setActiveTab('list');
-    }
+    if (activeTab === 'list') setFocusedDate(new Date());
+    else setActiveTab('list');
   };
 
   const handleSignOut = async () => {
@@ -141,8 +149,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
-                currentDate={calendarMonth}
-                onCurrentDateChange={setCalendarMonth}
+                currentDate={calendarMonthAnchor}
+                onCurrentDateChange={handleCalendarMonthChange}
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}
@@ -156,8 +164,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
-                initialDate={listDate ?? selectedDate}
-                onDateChange={setListDate}
+                initialDate={focusedDate}
+                onDateChange={setFocusedDate}
                 onEditEvent={handleEditEvent}
                 highlight={highlight}
               />
