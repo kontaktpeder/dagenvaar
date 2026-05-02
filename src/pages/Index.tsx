@@ -75,8 +75,7 @@ const Index = () => {
   }
 
   const handleSelectDate = (date: Date) => {
-    setSelectedDate(date);
-    setListDate(date);
+    setFocusedDate(date);
     setActiveTab('list');
   };
 
@@ -86,7 +85,7 @@ const Index = () => {
   };
 
   const handleNewFromNav = () => {
-    setNewEventDate(listDate ?? selectedDate ?? new Date());
+    setNewEventDate(focusedDate);
     setShowNewEvent(true);
   };
 
@@ -95,19 +94,13 @@ const Index = () => {
   };
 
   const handleCalendarNavClick = () => {
-    if (activeTab === 'calendar') setCalendarMonth(new Date());
+    if (activeTab === 'calendar') setFocusedDate(new Date());
     else setActiveTab('calendar');
   };
 
   const handleListNavClick = () => {
-    if (activeTab === 'list') {
-      const today = new Date();
-      setListDate(today);
-      setSelectedDate(today);
-    } else {
-      setSelectedDate(undefined);
-      setActiveTab('list');
-    }
+    if (activeTab === 'list') setFocusedDate(new Date());
+    else setActiveTab('list');
   };
 
   const handleSignOut = async () => {
@@ -156,8 +149,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
-                currentDate={calendarMonth}
-                onCurrentDateChange={setCalendarMonth}
+                currentDate={calendarMonthAnchor}
+                onCurrentDateChange={handleCalendarMonthChange}
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}
@@ -171,8 +164,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
-                initialDate={listDate ?? selectedDate}
-                onDateChange={setListDate}
+                initialDate={focusedDate}
+                onDateChange={setFocusedDate}
                 onEditEvent={handleEditEvent}
                 highlight={highlight}
               />
