@@ -14,9 +14,10 @@ interface EventDetailSheetProps {
   currentMemberId: string;
   onClose: () => void;
   onEdit?: (event: Event) => void;
+  onQuickEdit?: (event: Event) => void;
 }
 
-const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: EventDetailSheetProps) => {
+const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
   const [comment, setComment] = useState('');
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
@@ -155,13 +156,25 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit }: 
           </div>
 
           {/* Edit */}
-          {onEdit && event.owner_member_id === currentMemberId && (
-            <button
-              onClick={() => onEdit(event)}
-              className="w-full rounded-xl border border-primary/30 py-3 text-sm text-primary font-medium hover:bg-primary/10 transition-colors mb-2"
-            >
-              Endre hendelse
-            </button>
+          {event.owner_member_id === currentMemberId && (onQuickEdit || onEdit) && (
+            <div className="space-y-2 mb-2">
+              {onQuickEdit && (
+                <button
+                  onClick={() => onQuickEdit(event)}
+                  className="w-full rounded-xl bg-primary/15 hover:bg-primary/25 py-3 text-sm text-primary font-semibold transition-colors"
+                >
+                  Rask redigering
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(event)}
+                  className="w-full text-center text-xs text-muted-foreground underline underline-offset-2 py-1"
+                >
+                  Alle steg …
+                </button>
+              )}
+            </div>
           )}
 
           {/* Delete */}

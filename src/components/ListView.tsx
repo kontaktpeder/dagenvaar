@@ -26,6 +26,7 @@ interface ListViewProps {
   initialDate?: Date;
   onDateChange?: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
+  onQuickEditEvent?: (event: Event) => void;
   highlight?: Highlight;
 }
 
@@ -52,7 +53,7 @@ type TimelineEvent = {
   widthPct: number;
 };
 
-const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, highlight }: ListViewProps) => {
+const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, onQuickEditEvent, highlight }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -309,6 +310,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             currentMemberId={currentMemberId}
             onClose={() => setSelectedEvent(null)}
             onEdit={onEditEvent ? (ev) => { setSelectedEvent(null); onEditEvent(ev); } : undefined}
+            onQuickEdit={onQuickEditEvent ? (ev) => { setSelectedEvent(null); onQuickEditEvent(ev); } : undefined}
           />
         )}
       </AnimatePresence>

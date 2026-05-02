@@ -23,6 +23,7 @@ interface CalendarViewProps {
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
+  onQuickEditEvent?: (event: Event) => void;
   highlight?: Highlight;
 }
 
@@ -37,7 +38,7 @@ const CATEGORY_ORDER: Record<string, number> = {
   other: 5,
 };
 
-const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, highlight }: CalendarViewProps) => {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
   const setCurrentDate = useCallback(
@@ -252,6 +253,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             currentMemberId={currentMemberId}
             onClose={() => setDetailEvent(null)}
             onEdit={onEditEvent ? (ev) => { setDetailEvent(null); onEditEvent(ev); } : undefined}
+            onQuickEdit={onQuickEditEvent ? (ev) => { setDetailEvent(null); onQuickEditEvent(ev); } : undefined}
           />
         )}
       </AnimatePresence>
