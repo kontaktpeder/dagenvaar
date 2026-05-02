@@ -11,6 +11,7 @@ import CalendarView from '@/components/CalendarView';
 import ListView from '@/components/ListView';
 import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
+import EditEventQuickSheet from '@/components/EditEventQuickSheet';
 import ProfileSheet from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
@@ -31,6 +32,7 @@ const Index = () => {
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [quickEditEvent, setQuickEditEvent] = useState<Event | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
