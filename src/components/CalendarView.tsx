@@ -152,14 +152,20 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               </div>
             ))}
           </div>
-          {!isOnCurrentMonth && (
-            <button
-              onClick={goToToday}
-              className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full bg-muted/70 hover:bg-muted text-foreground/70 hover:text-foreground text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all"
-            >
-              I dag
-            </button>
-          )}
+          {!isOnCurrentMonth && (() => {
+            const isPast = startOfMonth(currentDate) < startOfMonth(new Date());
+            const positionClass = isPast
+              ? 'left-1/2 -translate-x-1/2'
+              : 'right-3';
+            return (
+              <button
+                onClick={goToToday}
+                className={`absolute ${positionClass} top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full bg-muted/70 hover:bg-muted text-foreground/70 hover:text-foreground text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all`}
+              >
+                I dag
+              </button>
+            );
+          })()}
         </div>
 
         {/* Days grid */}
@@ -174,8 +180,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
+            dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch"
+            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-pan-y"
           >
             {days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
