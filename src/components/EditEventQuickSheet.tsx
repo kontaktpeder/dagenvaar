@@ -1,0 +1,383 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { format, addDays } from 'date-fns';
+import { toast } from 'sonner';
+import { useUpdateEvent, type Event } from '@/hooks/useEvents';
+import { DAY_PART_LABELS } from '@/lib/colors';
+import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import {
+  DAY_PART_ORDER,
+  DAY_PART_TIME_RANGES,
+  timeRangeToDayParts,
+} from '@/lib/dayParts';
+import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
+
+interface EditEventQuickSheetProps {
+  event: Event;
+  householdId: string;
+  currentMemberId: string;
+  onClose: () => void;
+  onSaved?: (eventId: string, dateStr: string) => void;
+  onOpenFullEdit?: (event: Event) => void;
+}
+
+const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+  const updateEvent = useUpdateEvent();
+
+  const initStartIdx = (() => {
+    const dps = (event as any).day_part_start as string | null;
+    const idx = DAY_PART_ORDER.indexOf(dps as any);
+    return idx >= 0 ? idx : 2;
+  })();
+  const initEndIdx = (() => {
+    const dpe = (event as any).day_part_end as string | null;
+    const idx = DAY_PART_ORDER.indexOf(dpe as any);
+    return idx >= 0 ? idx : initStartIdx;
+  })();
+
+  const [title, setTitle] = useState(event.title);
+  const [startDate, setStartDate] = useState(new Date(event.event_date + 'T12:00:00'));
+  const [endDate, setEndDate] = useState<Date | null>(
+    (event as any).end_date && (event as any).end_date !== event.event_date
+      ? new Date((event as any).end_date + 'T12:00:00')
+      : null,
+  );
+  const [selectedDayParts, setSelectedDayParts] = useState<[number, number]>([initStartIdx, initEndIdx]);
+  const [dayPartClickCount, setDayPartClickCount] = useState(initStartIdx === initEndIdx ? 1 : 2);
+  const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
+  const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
+  const [showTimeFields, setShowTimeFields] = useState(!!event.start_time);
+  const [category, setCategory] = useState<EventCategory>((event.category as EventCategory) || 'other');
+  const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
+  const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
+    (event.visibility_type as any) || 'all_members',
+  );
+  const [location, setLocation] = useState(event.location || '');
+  const [notes, setNotes] = useState(event.notes || '');
+
+  const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
+  const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
+
+  const syncTimesFromDayPart = (startIdx: number, endIdx: number) => {
+    const range = DAY_PART_TIME_RANGES[DAY_PART_ORDER[startIdx]];
+    const rangeEnd = DAY_PART_TIME_RANGES[DAY_PART_ORDER[endIdx]];
+    setStartTime(range.start === '24:00' ? '00:00' : range.start);
+    setEndTime(rangeEnd.end === '24:00' ? '00:00' : rangeEnd.end);
+  };
+
+  const handleDayPartClick = (idx: number) => {
+    let newRange: [number, number];
+    if (dayPartClickCount === 1) {
+      const prev = selectedDayParts[0];
+      if (prev === idx) return;
+      newRange = [Math.min(prev, idx), Math.max(prev, idx)];
+      setDayPartClickCount(2);
+    } else {
+      newRange = [idx, idx];
+      setDayPartClickCount(1);
+    }
+    setSelectedDayParts(newRange);
+    syncTimesFromDayPart(newRange[0], newRange[1]);
+  };
+
+  const handleStartTimeChange = (value: string) => {
+    setStartTime(value);
+    if (value && endTime) {
+      const newRange = timeRangeToDayParts(value, endTime);
+      setSelectedDayParts(newRange);
+      setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
+    }
+  };
+
+  const handleEndTimeChange = (value: string) => {
+    setEndTime(value);
+    if (startTime && value) {
+      const newRange = timeRangeToDayParts(startTime, value);
+      setSelectedDayParts(newRange);
+      setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
+    }
+  };
+
+  const isDayPartSelected = (idx: number) => idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
+
+  const handleAddDay = () => {
+    if (!endDate) setEndDate(addDays(startDate, 1));
+    else setEndDate(addDays(endDate, 1));
+  };
+
+  const canSave = title.trim().length > 0 && !!category;
+
+  const handleSubmit = async () => {
+    if (!canSave) return;
+    try {
+      await updateEvent.mutateAsync({
+        id: event.id,
+        patch: buildEventUpdatePatch({
+          title,
+          startDate,
+          endDate,
+          dayPartStart,
+          dayPartEnd,
+          startTime,
+          endTime,
+          category,
+          otherLabel,
+          visibility,
+          location,
+          notes,
+        }),
+      });
+      onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
+      onClose();
+    } catch (err: any) {
+      console.error('[EditEventQuickSheet] update failed', err);
+      toast.error(err?.message || 'Kunne ikke lagre endringene');
+    }
+  };
+
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{children}</h3>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex flex-col"
+    >
+      <div className="absolute inset-0 bg-foreground/20" onClick={onClose} />
+
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="relative mt-auto bg-background rounded-t-3xl max-h-[92vh] flex flex-col"
+      >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 pt-2 pb-3">
+          <h2 className="text-lg font-bold">Rask redigering</h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5">
+          {/* Tittel */}
+          <div>
+            <SectionTitle>Tittel</SectionTitle>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Hva skal skje?"
+              className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {/* Dato */}
+          <div>
+            <SectionTitle>Dato</SectionTitle>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={format(startDate, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const d = new Date(e.target.value + 'T12:00:00');
+                  setStartDate(d);
+                  if (endDate && endDate <= d) setEndDate(null);
+                }}
+                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={handleAddDay}
+                className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap"
+              >
+                +1 dag
+              </button>
+            </div>
+            {endDate && (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="date"
+                  value={format(endDate, 'yyyy-MM-dd')}
+                  onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))}
+                  min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
+                  className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button onClick={() => setEndDate(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Del av dagen */}
+          <div>
+            <SectionTitle>Del av dagen</SectionTitle>
+            <div className="grid grid-cols-3 gap-2">
+              {DAY_PART_ORDER.map((key, idx) => (
+                <button
+                  key={key}
+                  onClick={() => handleDayPartClick(idx)}
+                  className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                    isDayPartSelected(idx)
+                      ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  {DAY_PART_LABELS[key]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Klokkeslett */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <SectionTitle>Klokkeslett</SectionTitle>
+              <button
+                onClick={() => setShowTimeFields((v) => !v)}
+                className="text-xs text-muted-foreground underline underline-offset-2 mb-2"
+              >
+                {showTimeFields ? 'Skjul' : '+ Legg til'}
+              </button>
+            </div>
+            {showTimeFields && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <label className="text-xs text-muted-foreground mb-1 block">Fra</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                    className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label className="text-xs text-muted-foreground mb-1 block">Til</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => handleEndTimeChange(e.target.value)}
+                    className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sted & Notat */}
+          <div className="space-y-3">
+            <div>
+              <SectionTitle>Sted</SectionTitle>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Valgfritt"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <SectionTitle>Notat</SectionTitle>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Valgfritt"
+                rows={2}
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Type */}
+          <div>
+            <SectionTitle>Type</SectionTitle>
+            <div className="grid grid-cols-2 gap-2">
+              {CATEGORY_OPTIONS.map((key) => {
+                const meta = EVENT_CATEGORY_META[key];
+                const Icon = meta.Icon;
+                const selected = category === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setCategory(key);
+                      if (key !== 'other') setOtherLabel('');
+                    }}
+                    className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all flex items-center justify-between ${
+                      selected ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}` : 'bg-muted hover:bg-muted/80'
+                    }`}
+                  >
+                    <span>{meta.label}</span>
+                    <Icon size={16} strokeWidth={2.5} className={meta.iconColor} />
+                  </button>
+                );
+              })}
+            </div>
+            {category === 'other' && (
+              <input
+                type="text"
+                value={otherLabel}
+                onChange={(e) => setOtherLabel(e.target.value)}
+                placeholder="f.eks. Reise, Familie, Helse"
+                className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            )}
+          </div>
+
+          {/* Synlighet */}
+          <div>
+            <SectionTitle>Synlighet</SectionTitle>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'all_members' as const, label: 'Alle' },
+                { value: 'private' as const, label: 'Bare meg' },
+                { value: 'selected_members' as const, label: 'Valgte' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setVisibility(opt.value)}
+                  className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                    visibility === opt.value ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pt-3 pb-6 border-t border-border bg-background space-y-2">
+          <button
+            onClick={handleSubmit}
+            disabled={!canSave || updateEvent.isPending}
+            className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 hover:bg-green-300 active:scale-95 transition-all"
+          >
+            {updateEvent.isPending ? 'Lagrer...' : 'Lagre ✨'}
+          </button>
+          {onOpenFullEdit && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenFullEdit(event);
+              }}
+              className="w-full text-center text-sm text-muted-foreground underline underline-offset-2 py-1"
+            >
+              Alle steg …
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default EditEventQuickSheet;
