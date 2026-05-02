@@ -26,6 +26,7 @@ interface ListViewProps {
   initialDate?: Date;
   onDateChange?: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
+  onQuickEditEvent?: (event: Event) => void;
   highlight?: Highlight;
 }
 
