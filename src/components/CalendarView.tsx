@@ -291,7 +291,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-1 rounded-2xl transition-all duration-200 min-h-[60px] ${
+      className={`relative flex flex-col items-center justify-start pt-1 rounded-2xl transition-all duration-200 min-h-[56px] ${
         !inMonth ? 'opacity-25' : ''
       } ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
       style={
@@ -318,44 +318,68 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       >
         {format(day, 'd')}
       </span>
-      {dayEvents.length > 0 && (
-        <div className="flex flex-col gap-0.5 mt-1 w-full px-1">
-          {dayEvents
-            .sort((a, b) => {
-              const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
-              const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
-              if (aRank !== bRank) return aRank - bRank;
-              return (a.start_time || '').localeCompare(b.start_time || '');
-            })
-            .slice(0, 2)
-            .map((ev) => {
-              const member = getMemberForEvent(ev);
-              const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
-              const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
-              const evHighlighted = highlight && highlight.eventId === ev.id;
-              const Icon = meta?.Icon;
-              if (Icon) {
-                return (
-                  <div key={ev.id} className={`flex items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
-                    <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
-                  </div>
-                );
-              }
-              const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
-              const firstWord = ev.title.split(' ')[0] || ev.title;
-              return (
-                <div key={ev.id} className={`${fallback.bg} rounded-full px-2 py-0.5 text-[10px] font-medium text-center truncate leading-tight ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}>
-                  {firstWord}
-                </div>
-              );
-            })}
-          {dayEvents.length > 2 && (
-            <div className="text-[9px] text-muted-foreground text-center font-medium">
-              +{dayEvents.length - 2}
+      {dayEvents.length > 0 && (() => {
+        const topTwo = [...dayEvents]
+          .sort((a, b) => {
+            const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
+            const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
+            if (aRank !== bRank) return aRank - bRank;
+            return (a.start_time || '').localeCompare(b.start_time || '');
+          })
+          .slice(0, 2);
+
+        const sameCategoryIconRow =
+          topTwo.length === 2 &&
+          (topTwo[0].category ?? 'other') === (topTwo[1].category ?? 'other');
+
+        const renderEventMark = (ev: Event) => {
+          const member = getMemberForEvent(ev);
+          const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+          const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
+          const evHighlighted = highlight && highlight.eventId === ev.id;
+          const Icon = meta?.Icon;
+          if (Icon) {
+            return (
+              <div key={ev.id} className={`flex shrink-0 items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
+                <Icon size={12} strokeWidth={2} className={visuals.iconColor} />
+              </div>
+            );
+          }
+          const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+          const firstWord = ev.title.split(' ')[0] || ev.title;
+          return (
+            <div key={ev.id} className={`${fallback.bg} rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center truncate leading-tight max-w-full ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}>
+              {firstWord}
             </div>
-          )}
-        </div>
-      )}
+          );
+        };
+
+        return (
+          <div className="mt-0.5 w-full px-0.5 flex flex-col gap-px items-center">
+            <div
+              className={
+                sameCategoryIconRow
+                  ? 'flex flex-row items-center justify-center gap-px'
+                  : 'flex flex-col gap-px w-full items-center'
+              }
+            >
+              {sameCategoryIconRow ? (
+                <>
+                  {renderEventMark(topTwo[0])}
+                  {renderEventMark(topTwo[1])}
+                </>
+              ) : (
+                topTwo.map((ev) => renderEventMark(ev))
+              )}
+            </div>
+            {dayEvents.length > 2 && (
+              <div className="text-[8px] text-muted-foreground text-center font-medium leading-none">
+                +{dayEvents.length - 2}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </button>
   );
 };
