@@ -177,7 +177,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         {/* Days grid */}
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
-            key={`${year}-${month}`}
+            key={`${year}-${month}-${navTick}`}
             custom={direction}
             initial={{ x: direction * 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
