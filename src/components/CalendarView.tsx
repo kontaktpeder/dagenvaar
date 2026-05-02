@@ -94,8 +94,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const handleDragEnd = (_: any, info: PanInfo) => {
     const dx = info.offset.x;
     const vx = info.velocity.x;
-    // Trigger on either distance OR velocity, so a quick flick always counts.
-    if (Math.abs(dx) > 50 || Math.abs(vx) > 300) {
+    // Lower thresholds + velocity-aware = feels native and snappy.
+    if (Math.abs(dx) > 40 || Math.abs(vx) > 200) {
       navigate(dx < 0 || vx < 0 ? 1 : -1);
     }
   };
@@ -181,16 +181,18 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           <motion.div
             key={`${year}-${month}-${navTick}`}
             custom={direction}
-            initial={{ x: direction * 100, opacity: 0 }}
+            initial={{ x: direction * 60, opacity: 0.6 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -direction * 100, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            exit={{ x: -direction * 60, opacity: 0.6 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 38, mass: 0.6 }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
+            dragElastic={0.6}
+            dragMomentum={false}
+            dragTransition={{ bounceStiffness: 600, bounceDamping: 30 }}
             dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-pan-y"
+            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-pan-y will-change-transform"
           >
             {days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
