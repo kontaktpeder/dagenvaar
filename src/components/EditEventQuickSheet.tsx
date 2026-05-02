@@ -66,12 +66,25 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
   };
 
   const handleDayPartClick = (idx: number) => {
+    const key = DAY_PART_ORDER[idx];
+    if (key === 'all_day' || key === 'full_diem') {
+      setSelectedDayParts([idx, idx]);
+      setDayPartClickCount(1);
+      syncTimesFromDayPart(idx, idx);
+      return;
+    }
     let newRange: [number, number];
     if (dayPartClickCount === 1) {
       const prev = selectedDayParts[0];
+      const prevKey = DAY_PART_ORDER[prev];
       if (prev === idx) return;
-      newRange = [Math.min(prev, idx), Math.max(prev, idx)];
-      setDayPartClickCount(2);
+      if (prevKey === 'all_day' || prevKey === 'full_diem') {
+        newRange = [idx, idx];
+        setDayPartClickCount(2);
+      } else {
+        newRange = [Math.min(prev, idx), Math.max(prev, idx)];
+        setDayPartClickCount(2);
+      }
     } else {
       newRange = [idx, idx];
       setDayPartClickCount(1);
