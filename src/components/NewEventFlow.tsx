@@ -49,7 +49,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
-  const dayPartCompat = (!dayPartStart || dayPartStart === 'all_day') ? 'morning' : dayPartStart;
+  const dayPartCompat = (!dayPartStart || dayPartStart === 'all_day' || dayPartStart === 'full_diem') ? 'morning' : dayPartStart;
 
   // --- Two-way sync helpers ---
 
@@ -63,12 +63,26 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   const handleDayPartClick = (idx: number) => {
+    const key = DAY_PART_ORDER[idx];
+    if (key === 'all_day' || key === 'full_diem') {
+      setSelectedDayParts([idx, idx]);
+      setDayPartClickCount(1);
+      syncTimesFromDayPart(idx, idx);
+      return;
+    }
     let newRange: [number, number];
     if (dayPartClickCount === 1) {
       const prev = selectedDayParts[0];
+      const prevKey = DAY_PART_ORDER[prev];
       if (prev === idx) return;
-      newRange = [Math.min(prev, idx), Math.max(prev, idx)];
-      setDayPartClickCount(2);
+      // If previous selection was a snap-only part, restart range
+      if (prevKey === 'all_day' || prevKey === 'full_diem') {
+        newRange = [idx, idx];
+        setDayPartClickCount(2);
+      } else {
+        newRange = [Math.min(prev, idx), Math.max(prev, idx)];
+        setDayPartClickCount(2);
+      }
     } else {
       newRange = [idx, idx];
       setDayPartClickCount(1);
@@ -124,8 +138,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         day_part: dayPartCompat,
         day_part_start: dayPartStart || null,
         day_part_end: dayPartEnd || null,
-        start_time: startTime || null,
-        end_time: endTime || null,
+        start_time: (dayPartStart === 'full_diem' && dayPartEnd === 'full_diem') ? '00:00' : (startTime || null),
+        end_time: (dayPartStart === 'full_diem' && dayPartEnd === 'full_diem') ? '23:59' : (endTime || null),
         visibility_type: visibility,
         location: location || null,
         notes: notes || null,
@@ -143,6 +157,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const getDayPartRangeLabel = () => {
     const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
     const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
+    if (DAY_PART_ORDER[selectedDayParts[0]] === 'full_diem') return 'Hele døgnet';
     if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
     if (selectedDayParts[0] === selectedDayParts[1]) return startLabel;
     return `${startLabel} – ${endLabel}`;
