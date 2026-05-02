@@ -81,14 +81,20 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentDate]);
 
+  const [navTick, setNavTick] = useState(0);
+
   const navigate = useCallback((dir: number) => {
     setDirection(dir);
+    setNavTick((t) => t + 1);
     setCurrentDate((d) => dir > 0 ? addMonths(d, 1) : subMonths(d, 1));
   }, []);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    if (Math.abs(info.offset.x) > 50) {
-      navigate(info.offset.x < 0 ? 1 : -1);
+    const dx = info.offset.x;
+    const vx = info.velocity.x;
+    // Trigger on either distance OR velocity, so a quick flick always counts.
+    if (Math.abs(dx) > 50 || Math.abs(vx) > 300) {
+      navigate(dx < 0 || vx < 0 ? 1 : -1);
     }
   };
 
