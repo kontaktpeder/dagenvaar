@@ -36,6 +36,9 @@ const Index = () => {
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
+    // Navigate calendar to the month of the created/edited event
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (y && m && d) setCalendarMonth(new Date(y, m - 1, d));
     window.setTimeout(() => setHighlight(null), 1400);
   }, []);
 
