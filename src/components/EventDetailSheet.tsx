@@ -83,6 +83,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
                 if (dps && dpe && dps !== dpe) {
                   return `${DAY_PART_LABELS[dps] || dps} – ${DAY_PART_LABELS[dpe] || dpe}`;
                 }
+                if (dps === 'full_diem') return 'Hele døgnet';
                 if (dps === 'all_day') return 'Hele dagen';
                 return DAY_PART_LABELS[event.day_part] || event.day_part;
               })()}
