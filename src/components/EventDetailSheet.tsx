@@ -156,25 +156,13 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           </div>
 
           {/* Edit */}
-          {event.owner_member_id === currentMemberId && (onQuickEdit || onEdit) && (
-            <div className="space-y-2 mb-2">
-              {onQuickEdit && (
-                <button
-                  onClick={() => onQuickEdit(event)}
-                  className="w-full rounded-xl bg-primary/15 hover:bg-primary/25 py-3 text-sm text-primary font-semibold transition-colors"
-                >
-                  Rask redigering
-                </button>
-              )}
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(event)}
-                  className="w-full text-center text-xs text-muted-foreground underline underline-offset-2 py-1"
-                >
-                  Alle steg …
-                </button>
-              )}
-            </div>
+          {event.owner_member_id === currentMemberId && onQuickEdit && (
+            <button
+              onClick={() => onQuickEdit(event)}
+              className="w-full rounded-xl bg-primary/15 hover:bg-primary/25 py-3 text-sm text-primary font-semibold transition-colors mb-2"
+            >
+              Endre hendelse
+            </button>
           )}
 
           {/* Delete */}
