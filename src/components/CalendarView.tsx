@@ -37,8 +37,14 @@ const CATEGORY_ORDER: Record<string, number> = {
   other: 5,
 };
 
-const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
+  const [internalDate, setInternalDate] = useState(new Date());
+  const currentDate = controlledDate ?? internalDate;
+  const setCurrentDate = (updater: Date | ((d: Date) => Date)) => {
+    const next = typeof updater === 'function' ? (updater as (d: Date) => Date)(currentDate) : updater;
+    if (onCurrentDateChange) onCurrentDateChange(next);
+    else setInternalDate(next);
+  };
   const [direction, setDirection] = useState(0);
   const [showYear, setShowYear] = useState(false);
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
