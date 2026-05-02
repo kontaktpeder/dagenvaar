@@ -144,7 +144,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           {!isOnCurrentMonth && (
             <button
               onClick={goToToday}
-              className="absolute right-3 -bottom-3 z-10 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-foreground text-xs font-semibold shadow-soft-lg hover:bg-white active:scale-95 transition-all"
+              className="absolute left-1/2 -translate-x-1/2 -bottom-3 z-10 px-3 py-1 rounded-full bg-white/95 backdrop-blur text-foreground text-[11px] font-semibold shadow-soft hover:bg-white active:scale-95 transition-all"
             >
               I dag
             </button>
