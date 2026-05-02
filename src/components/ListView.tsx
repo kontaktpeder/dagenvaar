@@ -157,31 +157,37 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         {/* Timeline panel */}
         <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
           {/* Time-of-day color strip behind the time labels */}
-          <div className="relative mb-2 h-5 rounded-md overflow-hidden">
+          <div className="relative mb-2 h-7 rounded-lg overflow-hidden">
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  'linear-gradient(to right, hsl(205, 75%, 84%) 0%, hsl(205, 75%, 84%) 12.5%, hsl(25, 88%, 78%) 25%, hsl(48, 92%, 78%) 37.5%, hsl(48, 92%, 78%) 62.5%, hsl(18, 70%, 68%) 75%, hsl(232, 35%, 38%) 87.5%, hsl(232, 38%, 30%) 100%)',
+                  'linear-gradient(to right, hsl(205, 75%, 78%) 0%, hsl(205, 75%, 78%) 12.5%, hsl(25, 88%, 72%) 25%, hsl(48, 92%, 72%) 37.5%, hsl(48, 92%, 72%) 62.5%, hsl(18, 70%, 60%) 75%, hsl(232, 35%, 32%) 87.5%, hsl(232, 38%, 24%) 100%)',
               }}
             />
             {/* Sharp vertical separators on the strip */}
             {segmentPositions.slice(1).map((seg) => (
               <div
                 key={`sep-${seg.key}`}
-                className="absolute top-0 bottom-0 w-px bg-foreground/40 pointer-events-none"
+                className="absolute top-0 bottom-0 w-px bg-foreground/30 pointer-events-none"
                 style={{ left: `${seg.leftPct}%` }}
               />
             ))}
-            {/* Time labels on top of strip — readable */}
+            {/* Time labels — dark on light segments, light on night segment */}
             <div className="absolute inset-0 flex">
-              {segmentPositions.map((seg) => (
-                <div key={seg.key} className="text-center flex items-center justify-center" style={{ width: `${seg.widthPct}%` }}>
-                  <span className="text-[9px] font-semibold tracking-wider text-foreground/85 mix-blend-plus-lighter">
-                    {seg.label}
-                  </span>
-                </div>
-              ))}
+              {segmentPositions.map((seg) => {
+                const isDark = seg.key === 'night';
+                return (
+                  <div key={seg.key} className="text-center flex items-center justify-center" style={{ width: `${seg.widthPct}%` }}>
+                    <span
+                      className={`text-[10px] font-bold tracking-wider ${isDark ? 'text-white' : 'text-foreground/85'}`}
+                      style={{ textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 1px rgba(255,255,255,0.6)' }}
+                    >
+                      {seg.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
