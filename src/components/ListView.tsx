@@ -85,6 +85,12 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         if (explicitStart != null && explicitEnd != null) {
           start = explicitStart;
           end = explicitEnd <= explicitStart ? explicitStart + 1 : explicitEnd;
+        } else if (explicitStart != null) {
+          start = explicitStart;
+          end = Math.min(explicitStart + 1, AXIS_END);
+        } else if (explicitEnd != null) {
+          end = explicitEnd;
+          start = Math.max(explicitEnd - 1, AXIS_START);
         } else {
           const [fallbackStart, fallbackEnd] = getFallbackRange(event);
           start = fallbackStart;
@@ -343,6 +349,7 @@ const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPres
   const isHighlighted = highlight && highlight.eventId === t.event.id;
   const meta = EVENT_CATEGORY_META[(t.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
   const Icon = meta?.Icon;
+  const barWidthPct = Math.max(t.widthPct, 0.04);
 
   return (
     <div className="relative h-7">
@@ -350,14 +357,14 @@ const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPres
         type="button"
         {...longPressHandlers}
         onClick={handleClick}
+        title={t.event.title}
         aria-label={t.event.title}
-        className={`absolute top-0 h-7 min-w-[28px] rounded-xl px-1.5 ${barBg} text-foreground flex items-center gap-1 cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
-        style={{ left: `${t.leftPct}%`, width: `${Math.max(t.widthPct, 4)}%` }}
+        className={`absolute top-0 h-7 rounded-xl overflow-hidden ${barBg} flex items-center justify-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        style={{ left: `${t.leftPct}%`, width: `${barWidthPct}%` }}
       >
         {Icon && (
-          <Icon size={14} strokeWidth={2.25} className={`${visuals.iconColor} shrink-0`} />
+          <Icon size={14} strokeWidth={2.25} className={`${visuals.iconColor} shrink-0 pointer-events-none`} />
         )}
-        <span className="truncate text-[11px] font-semibold">{t.event.title}</span>
       </button>
     </div>
   );
