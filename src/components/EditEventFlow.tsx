@@ -225,15 +225,15 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
               ) : (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-sm font-medium mb-1 block">Fra</label>
                       <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-sm font-medium mb-1 block">Til</label>
                       <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
                     </div>
                   </div>
                   <div>
