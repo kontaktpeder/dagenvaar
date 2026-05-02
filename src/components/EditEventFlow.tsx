@@ -12,6 +12,7 @@ import {
   DAY_PART_TIME_RANGES,
   timeRangeToDayParts,
 } from '@/lib/dayParts';
+import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface EditEventFlowProps {
@@ -131,25 +132,23 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   };
 
   const handleSubmit = async () => {
-    const eventEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : format(startDate, 'yyyy-MM-dd');
     try {
       await updateEvent.mutateAsync({
         id: event.id,
-        patch: {
-          title: title.trim(),
-          event_date: format(startDate, 'yyyy-MM-dd'),
-          end_date: eventEndDate,
-          day_part: dayPartCompat,
-          day_part_start: dayPartStart || null,
-          day_part_end: dayPartEnd || null,
-          start_time: startTime || null,
-          end_time: endTime || null,
-          visibility_type: visibility,
-          location: location || null,
-          notes: notes || null,
+        patch: buildEventUpdatePatch({
+          title,
+          startDate,
+          endDate,
+          dayPartStart,
+          dayPartEnd,
+          startTime,
+          endTime,
           category: category!,
-          category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
-        } as any,
+          otherLabel,
+          visibility,
+          location,
+          notes,
+        }),
       });
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
@@ -162,6 +161,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const getDayPartRangeLabel = () => {
     const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
     const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
+    if (DAY_PART_ORDER[selectedDayParts[0]] === 'full_diem') return 'Hele døgnet';
     if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
     if (selectedDayParts[0] === selectedDayParts[1]) return startLabel;
     return `${startLabel} – ${endLabel}`;
