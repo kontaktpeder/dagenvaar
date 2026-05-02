@@ -298,6 +298,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                         setCategory(key);
                         if (key !== 'other') {
                           setOtherLabel('');
+                          setStep((s) => s + 1);
                         }
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
