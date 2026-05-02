@@ -27,6 +27,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [listDate, setListDate] = useState<Date | undefined>();
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
   const [showProfile, setShowProfile] = useState(false);
@@ -35,6 +36,9 @@ const Index = () => {
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
+    // Navigate calendar to the month of the created/edited event
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (y && m && d) setCalendarMonth(new Date(y, m - 1, d));
     window.setTimeout(() => setHighlight(null), 1400);
   }, []);
 
@@ -121,6 +125,8 @@ const Index = () => {
                 householdId={household.id}
                 members={members}
                 currentMemberId={currentMember.id}
+                currentDate={calendarMonth}
+                onCurrentDateChange={setCalendarMonth}
                 onSelectDate={handleSelectDate}
                 onCreateEvent={handleCreateEvent}
                 onEditEvent={handleEditEvent}

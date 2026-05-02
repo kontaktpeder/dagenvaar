@@ -18,6 +18,8 @@ interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  currentDate?: Date;
+  onCurrentDateChange?: (date: Date) => void;
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
@@ -35,8 +37,14 @@ const CATEGORY_ORDER: Record<string, number> = {
   other: 5,
 };
 
-const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, highlight }: CalendarViewProps) => {
+  const [internalDate, setInternalDate] = useState(new Date());
+  const currentDate = controlledDate ?? internalDate;
+  const setCurrentDate = (updater: Date | ((d: Date) => Date)) => {
+    const next = typeof updater === 'function' ? (updater as (d: Date) => Date)(currentDate) : updater;
+    if (onCurrentDateChange) onCurrentDateChange(next);
+    else setInternalDate(next);
+  };
   const [direction, setDirection] = useState(0);
   const [showYear, setShowYear] = useState(false);
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
@@ -113,19 +121,35 @@ const CalendarView = ({ householdId, members, currentMemberId, onSelectDate, onC
     );
   }
 
+  const isOnCurrentMonth = isSameMonth(currentDate, new Date());
+  const goToToday = () => {
+    setDirection(currentDate < new Date() ? 1 : -1);
+    setCurrentDate(new Date());
+  };
+
   return (
     <>
       <div className="flex flex-col h-full">
         {/* Month header with dynamic theme */}
-        <ViewHeader
-          variant="calendar"
-          onPrev={() => navigate(-1)}
-          onNext={() => navigate(1)}
-          onTitleClick={() => setShowYear(true)}
-          calendarStyle={{ background: monthTheme.gradient }}
-        >
-          {format(currentDate, 'MMMM yyyy', { locale: nb })}
-        </ViewHeader>
+        <div className="relative">
+          <ViewHeader
+            variant="calendar"
+            onPrev={() => navigate(-1)}
+            onNext={() => navigate(1)}
+            onTitleClick={() => setShowYear(true)}
+            calendarStyle={{ background: monthTheme.gradient }}
+          >
+            {format(currentDate, 'MMMM yyyy', { locale: nb })}
+          </ViewHeader>
+          {!isOnCurrentMonth && (
+            <button
+              onClick={goToToday}
+              className="absolute right-3 -bottom-3 z-10 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-foreground text-xs font-semibold shadow-soft-lg hover:bg-white active:scale-95 transition-all"
+            >
+              I dag
+            </button>
+          )}
+        </div>
 
         {/* Weekday headers */}
         <div className="bg-transparent">
