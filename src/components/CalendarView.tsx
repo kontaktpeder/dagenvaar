@@ -193,7 +193,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             dragTransition={{ bounceStiffness: 0, bounceDamping: 100, power: 0 }}
             dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-pan-y will-change-transform"
+            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-none overscroll-none will-change-transform"
           >
             {days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
