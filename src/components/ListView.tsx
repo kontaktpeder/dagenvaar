@@ -146,9 +146,11 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     <>
       <motion.div
         drag="x"
+        dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
         onDragEnd={handleSwipe}
+        style={{ touchAction: 'pan-y' }}
         className="flex flex-col h-full"
       >
         <ViewHeader
