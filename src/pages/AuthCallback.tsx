@@ -14,7 +14,7 @@ const AuthCallback = () => {
 
     (async () => {
       const result = await handleAuthCallbackUrl(window.location.href);
-      if (!result.ok) {
+      if (result.ok === false) {
         setError(result.error);
         return;
       }
