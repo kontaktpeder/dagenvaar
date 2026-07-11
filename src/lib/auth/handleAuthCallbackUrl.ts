@@ -126,6 +126,14 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const isRecoveryFlag =
     query.get('type') === 'recovery' || hash.get('type') === 'recovery';
 
+  // Eagerly mark the recovery flow so the update-password page stays stable
+  // while `exchangeCodeForSession` is still in flight. If the URL doesn't
+  // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
+  // auth event fired by Supabase after the exchange will start it instead.
+  if (isRecoveryFlag) {
+    startRecoveryFlow();
+  }
+
   // 1. PKCE code first
   const code = query.get('code');
   if (code) {
