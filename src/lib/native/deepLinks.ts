@@ -1,54 +1,55 @@
-import { App, type URLOpenListenerEvent } from '@capacitor/app';
-import { supabase } from '@/integrations/supabase/client';
+import { App, type URLOpenListenerEvent, type PluginListenerHandle } from '@capacitor/app';
 import { isNativePlatform } from './platform';
+import {
+  handleAuthCallbackUrl,
+  isValidAuthCallbackUrl,
+} from '@/lib/auth/handleAuthCallbackUrl';
+import { logAuthDiagnostic } from '@/lib/auth/diagnostics';
 
-/**
- * Parse a deep-link URL like `pastelly://auth/callback#access_token=...&refresh_token=...`
- * or `?code=...` and hand tokens to Supabase.
- */
-async function handleAuthUrl(url: string): Promise<void> {
-  try {
-    const parsed = new URL(url);
+let initialized = false;
+let listenerHandle: PluginListenerHandle | null = null;
 
-    // Hash-based tokens (implicit flow)
-    const hash = parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      if (access_token && refresh_token) {
-        await supabase.auth.setSession({ access_token, refresh_token });
-        return;
-      }
-    }
+async function routeAfterAuth(kind: string): Promise<void> {
+  if (kind === 'recovery') {
+    // On native the WebView owns navigation.
+    window.location.replace('/auth/update-password');
+  }
+}
 
-    // PKCE code exchange
-    const code = parsed.searchParams.get('code');
-    if (code) {
-      await supabase.auth.exchangeCodeForSession(code);
-    }
-  } catch (err) {
-    console.error('Deep link auth error', err);
+async function processUrl(url: string, source: 'cold' | 'warm'): Promise<void> {
+  if (!isValidAuthCallbackUrl(url)) return;
+  logAuthDiagnostic(source === 'cold' ? 'deeplinks:cold_start' : 'deeplinks:warm_open');
+  const result = await handleAuthCallbackUrl(url);
+  if (result.ok) {
+    await routeAfterAuth(result.kind);
   }
 }
 
 export async function initDeepLinks(): Promise<void> {
   if (!isNativePlatform()) return;
+  if (initialized) return;
+  initialized = true;
+  logAuthDiagnostic('deeplinks:init:once');
 
   // Cold start
   try {
-    const { url } = await App.getLaunchUrl() ?? { url: '' };
-    if (url && url.includes('auth/callback')) {
-      await handleAuthUrl(url);
-    }
+    const launch = await App.getLaunchUrl();
+    const url = launch?.url ?? '';
+    if (url) await processUrl(url, 'cold');
   } catch {
-    // ignore
+    /* ignore */
   }
 
-  // Warm resume
-  App.addListener('appUrlOpen', async (event: URLOpenListenerEvent) => {
-    if (event.url && event.url.includes('auth/callback')) {
-      await handleAuthUrl(event.url);
-    }
+  // Warm resume — dedup inside handleAuthCallbackUrl prevents double processing
+  listenerHandle = await App.addListener('appUrlOpen', async (event: URLOpenListenerEvent) => {
+    if (event.url) await processUrl(event.url, 'warm');
   });
+}
+
+export async function removeDeepLinkListeners(): Promise<void> {
+  if (listenerHandle) {
+    await listenerHandle.remove();
+    listenerHandle = null;
+  }
+  initialized = false;
 }
