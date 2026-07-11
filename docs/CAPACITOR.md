@@ -52,14 +52,38 @@ npm run cap:run:android
 
 ## 5. Deep links / auth-callback
 
-Universal/App links konfigureres i `capacitor.config.ts` og i de native
-prosjektene. Custom-scheme `pastelly://auth/callback` håndteres av
-`src/lib/native/deepLinks.ts` og krever at Supabase-prosjektet har
-`pastelly://auth/callback` i **Redirect URLs**-listen.
+All auth-callbacks (signup-bekreftelse, magic link, password reset og OAuth)
+går gjennom én felles handler i `src/lib/auth/handleAuthCallbackUrl.ts`.
 
-I native Xcode-prosjektet: Info.plist → URL Types → `pastelly`.
-I Android: `AndroidManifest.xml` → intent-filter med
-`android:scheme="pastelly"` på Main Activity.
+- **Web**: Supabase redirect'er til `${origin}/auth/callback`.
+  `AuthCallback.tsx` kaller handleren, som prioriterer `?code=` (PKCE) og
+  faller tilbake til hash-tokens. `detectSessionInUrl` er slått av i
+  `src/integrations/supabase/client.ts` for å unngå dobbel-eksekvering.
+- **Native**: `pastelly://auth/callback` fanges av `@capacitor/app` deep
+  links (se `src/lib/native/deepLinks.ts`). Både cold start
+  (`App.getLaunchUrl()`) og warm resume (`appUrlOpen`) rutes gjennom samme
+  handler. Recovery-lenker sender brukeren videre til
+  `/auth/update-password`.
+- **Deduplisering**: handleren husker de siste 60 sekundene med koder /
+  token-suffix i minnet, så React Strict Mode og cold+warm dobbel-fyring
+  ikke gir "invalid grant"-feil.
+
+### Supabase Redirect URLs (må konfigureres i Supabase-dashboardet)
+
+Legg til alle disse under **Authentication → URL Configuration → Redirect URLs**:
+
+- `https://pastelly.no/auth/callback`
+- `https://dagenvaar.lovable.app/auth/callback`
+- `https://id-preview--ccf85415-947c-4482-ab63-775e8d1619d6.lovable.app/auth/callback`
+- `http://localhost:8080/auth/callback` (dev)
+- `pastelly://auth/callback` (native)
+
+### Native URL scheme
+
+- **iOS**: `ios/App/App/Info.plist` → `CFBundleURLTypes` med
+  `CFBundleURLSchemes = ["pastelly"]`.
+- **Android**: `android/app/src/main/AndroidManifest.xml` → intent-filter
+  på `MainActivity` med `<data android:scheme="pastelly" />`.
 
 ## 6. App-metadata
 

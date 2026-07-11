@@ -13,5 +13,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    // We handle callback URLs explicitly via handleAuthCallbackUrl for both
+    // web (/auth/callback) and native deep links (pastelly://auth/callback).
+    // Disabling automatic detection prevents Strict-Mode double exchanges
+    // and races with our handler.
+    detectSessionInUrl: false,
+  },
 });
