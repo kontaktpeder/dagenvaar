@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
+import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
@@ -29,25 +28,11 @@ const AuthPage = () => {
         if (error) setError(error.message);
         else setConfirmationSent(true);
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: getAuthRedirectUrl(),
-        });
-        if (error) {
-          if (import.meta.env.DEV) {
-            const err = error as { name?: string; message?: string; status?: number; code?: string };
-            // eslint-disable-next-line no-console
-            console.info('[auth] resetPasswordForEmail error', {
-              name: err?.name,
-              message: err?.message,
-              status: err?.status,
-              code: err?.code,
-            });
-            // eslint-disable-next-line no-console
-            console.debug('[auth] resetPasswordForEmail error (full)', error);
-          }
-          setError(error.message || 'Kunne ikke sende e-post.');
-        } else {
+        const result = await requestPasswordReset(email);
+        if (result.ok === true) {
           setResetSent(true);
+        } else {
+          setError(result.error.message);
         }
       }
     } finally {
@@ -89,7 +74,7 @@ const AuthPage = () => {
           <p className="text-5xl mb-4">📮</p>
           <h1 className="text-2xl font-bold mb-2">Sjekk e-posten din</h1>
           <p className="text-muted-foreground mb-6">
-            Vi har sendt en lenke til <strong>{email}</strong> så du kan velge nytt passord.
+            Vi har sendt en lenke til e-posten din. Sjekk også søppelpost.
           </p>
           <button
             onClick={() => switchMode('login')}
