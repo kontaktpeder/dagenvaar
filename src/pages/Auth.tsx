@@ -74,7 +74,7 @@ const AuthPage = () => {
           <p className="text-5xl mb-4">📮</p>
           <h1 className="text-2xl font-bold mb-2">Sjekk e-posten din</h1>
           <p className="text-muted-foreground mb-6">
-            Vi har sendt en lenke til <strong>{email}</strong> så du kan velge nytt passord.
+            Vi har sendt en lenke til e-posten din. Sjekk også søppelpost.
           </p>
           <button
             onClick={() => switchMode('login')}
