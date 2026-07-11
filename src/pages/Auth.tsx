@@ -29,7 +29,7 @@ const AuthPage = () => {
         else setConfirmationSent(true);
       } else {
         const result = await requestPasswordReset(email);
-        if (result.ok) {
+        if (result.ok === true) {
           setResetSent(true);
         } else {
           setError(result.error.message);
