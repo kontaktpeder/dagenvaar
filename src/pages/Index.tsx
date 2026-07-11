@@ -123,7 +123,8 @@ const Index = () => {
   return (
     <div className="h-screen bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
+      <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-2 pl-safe pr-safe">
+
         <h1 className="text-lg font-bold">{household.name}</h1>
         <button
           onClick={() => setShowProfile(true)}
@@ -179,7 +180,7 @@ const Index = () => {
       </main>
 
       {/* Floating navbar */}
-      <nav className="fixed bottom-0 left-0 right-0 flex justify-center pb-6 px-5 z-40 pointer-events-none">
+      <nav className="fixed bottom-0 left-0 right-0 flex justify-center pb-[calc(env(safe-area-inset-bottom)+1.5rem)] px-5 z-40 pointer-events-none">
         <div className="bg-nav-bg rounded-[28px] shadow-nav px-3 py-2.5 flex items-center pointer-events-auto border border-primary/10">
           <button type="button" onClick={handleCalendarNavClick}
             className={`flex flex-col items-center w-20 py-2 rounded-2xl transition-all ${activeTab === 'calendar' ? 'bg-calendar-accent text-foreground' : 'text-muted-foreground hover:bg-muted'}`}>

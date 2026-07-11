@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -34,7 +35,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: getAuthRedirectUrl() },
     });
     return { error };
   };
