@@ -125,11 +125,11 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setJoinError('');
       setJoinCode('');
+      await queryClient.invalidateQueries();
       onClose();
-      window.location.reload();
     },
     onError: (err: any) => {
       setJoinError(err?.message ?? 'Kunne ikke bli med via kode');
