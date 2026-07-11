@@ -32,8 +32,23 @@ const AuthPage = () => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: getAuthRedirectUrl(),
         });
-        if (error) setError(error.message);
-        else setResetSent(true);
+        if (error) {
+          if (import.meta.env.DEV) {
+            const err = error as { name?: string; message?: string; status?: number; code?: string };
+            // eslint-disable-next-line no-console
+            console.info('[auth] resetPasswordForEmail error', {
+              name: err?.name,
+              message: err?.message,
+              status: err?.status,
+              code: err?.code,
+            });
+            // eslint-disable-next-line no-console
+            console.debug('[auth] resetPasswordForEmail error (full)', error);
+          }
+          setError(error.message || 'Kunne ikke sende e-post.');
+        } else {
+          setResetSent(true);
+        }
       }
     } finally {
       setBusy(false);
