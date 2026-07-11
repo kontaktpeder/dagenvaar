@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logAuthDiagnostic } from './diagnostics';
+import { startRecoveryFlow } from './recoveryState';
 
 export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
 
@@ -14,16 +15,58 @@ const NATIVE_HOST = 'auth';
 const NATIVE_PATH = '/callback';
 const WEB_PATH = '/auth/callback';
 
-/** In-memory dedup — same code/token pair is only processed once per app session. */
-const seenTokens = new Set<string>();
+/**
+ * Persistent dedup across WebView reloads. On native, `App.getLaunchUrl()`
+ * keeps returning the original recovery URL after `window.location.replace`,
+ * so an in-memory Set gets wiped on reload and lets the same code be
+ * processed twice. sessionStorage survives WebView reload but is cleared
+ * when the native process is killed — exactly the semantics we want.
+ */
+const DEDUP_KEY = 'pastelly:auth-callback-seen';
 const DEDUP_TTL_MS = 60_000;
 
+type DedupEntry = { key: string; expiresAt: number };
+
+function safeSession(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+function readDedup(): DedupEntry[] {
+  const store = safeSession();
+  if (!store) return [];
+  try {
+    const raw = store.getItem(DEDUP_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as DedupEntry[];
+    const now = Date.now();
+    return Array.isArray(parsed) ? parsed.filter((e) => e.expiresAt > now) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDedup(entries: DedupEntry[]): void {
+  const store = safeSession();
+  if (!store) return;
+  try {
+    store.setItem(DEDUP_KEY, JSON.stringify(entries));
+  } catch {
+    /* ignore */
+  }
+}
+
 function markSeen(key: string): boolean {
-  if (seenTokens.has(key)) return true;
-  seenTokens.add(key);
-  setTimeout(() => seenTokens.delete(key), DEDUP_TTL_MS);
+  const entries = readDedup();
+  if (entries.some((e) => e.key === key)) return true;
+  entries.push({ key, expiresAt: Date.now() + DEDUP_TTL_MS });
+  writeDedup(entries);
   return false;
 }
+
 
 function safeParse(url: string): URL | null {
   try {
@@ -82,6 +125,14 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const hash = getHashParams(parsed);
   const isRecoveryFlag =
     query.get('type') === 'recovery' || hash.get('type') === 'recovery';
+
+  // Eagerly mark the recovery flow so the update-password page stays stable
+  // while `exchangeCodeForSession` is still in flight. If the URL doesn't
+  // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
+  // auth event fired by Supabase after the exchange will start it instead.
+  if (isRecoveryFlag) {
+    startRecoveryFlow();
+  }
 
   // 1. PKCE code first
   const code = query.get('code');

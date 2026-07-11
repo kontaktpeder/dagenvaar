@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
 import AuthUpdatePassword from "./pages/AuthUpdatePassword.tsx";
+import RecoveryRouter from "./components/RecoveryRouter";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <RecoveryRouter />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -29,3 +31,4 @@ const App = () => (
 );
 
 export default App;
+
