@@ -38,13 +38,13 @@ describe('requestPasswordReset', () => {
     mockReset.mockResolvedValue({ data: null, error: { message: 'Bad' } });
     const result = await requestPasswordReset('a@b.no');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.message).toBe('Bad');
+    if (result.ok === false) expect(result.error.message).toBe('Bad');
   });
 
   it('normalizes rate-limit error', async () => {
     mockReset.mockResolvedValue({ data: null, error: { status: 429 } });
     const result = await requestPasswordReset('a@b.no');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.message).toContain('For mange forsøk');
+    if (result.ok === false) expect(result.error.message).toContain('For mange forsøk');
   });
 });
