@@ -18,7 +18,13 @@ type DiagnosticEvent =
   | 'callback:set_session_error'
   | 'callback:dedup_code'
   | 'callback:dedup_token'
-  | 'callback:no_params';
+  | 'callback:no_params'
+  | 'recovery:event'
+  | 'recovery:navigate'
+  | 'recovery:page:checking'
+  | 'recovery:page:ready'
+  | 'recovery:page:error'
+  | 'recovery:page:timeout';
 
 function currentPlatform(): 'ios' | 'android' | 'web' {
   if (isIOS()) return 'ios';
