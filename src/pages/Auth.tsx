@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
+import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
