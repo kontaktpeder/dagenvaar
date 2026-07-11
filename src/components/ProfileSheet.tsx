@@ -314,7 +314,29 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               <p className="text-destructive text-sm text-center">{signOutError}</p>
             )}
           </div>
+
+          {/* Legal & app info */}
+          <div className="pt-2 pb-6 space-y-3 text-center text-xs text-muted-foreground">
+            <div className="flex items-center justify-center gap-4">
+              <a
+                href="https://pastelly.no/personvern"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                Personvern
+              </a>
+              <a
+                href="mailto:hei@pastelly.no?subject=Slett%20kontoen%20min"
+                className="underline underline-offset-2"
+              >
+                Slett konto
+              </a>
+            </div>
+            <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
+          </div>
         </div>
+
       </motion.div>
 
       <AnimatePresence>
