@@ -123,7 +123,8 @@ const Index = () => {
   return (
     <div className="h-screen bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
+      <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-2 pl-safe pr-safe">
+
         <h1 className="text-lg font-bold">{household.name}</h1>
         <button
           onClick={() => setShowProfile(true)}
