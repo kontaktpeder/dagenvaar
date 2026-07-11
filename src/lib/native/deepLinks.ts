@@ -1,4 +1,5 @@
-import { App, type URLOpenListenerEvent, type PluginListenerHandle } from '@capacitor/app';
+import { App, type URLOpenListenerEvent } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { isNativePlatform } from './platform';
 import {
   handleAuthCallbackUrl,
