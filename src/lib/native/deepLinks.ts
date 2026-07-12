@@ -38,7 +38,7 @@ export async function initDeepLinks(): Promise<void> {
       const launch = await App.getLaunchUrl();
       const url = launch?.url ?? '';
       if (url) await processUrl(url, 'cold');
-    } catch (error) {
+    } catch {
       logAuthDiagnostic('native:init:fail', { step: 'launch_url' });
     }
   }
