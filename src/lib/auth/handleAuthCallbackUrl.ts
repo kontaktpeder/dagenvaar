@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logAuthDiagnostic } from './diagnostics';
-import { markRecoverySessionReady, startRecoveryFlow } from './recoveryState';
+import { getRecoveryState, markRecoverySessionReady, startRecoveryFlow } from './recoveryState';
 
 
 export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
@@ -76,6 +76,13 @@ async function dedupResultForKind(
 ): Promise<AuthCallbackResult> {
   const { data } = await supabase.auth.getSession();
   if (data.session) {
+    // Rehydrate recovery readiness so a WebView reload mid-flow still
+    // lands on /auth/update-password instead of hanging on "checking".
+    const rs = getRecoveryState();
+    if (kind === 'recovery' || rs.isRecoveryFlow) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+    }
     return { ok: true, kind };
   }
   return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
@@ -165,7 +172,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    if (isRecoveryFlag) {
+    // Mark ready when the URL flagged recovery, OR when the global
+    // PASSWORD_RECOVERY listener started the flow during exchange (PKCE
+    // often strips `type=recovery`, so the URL flag alone isn't enough).
+    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
     }
@@ -189,7 +199,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    if (isRecoveryFlag) {
+    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
     }

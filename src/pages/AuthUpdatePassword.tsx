@@ -58,6 +58,16 @@ const AuthUpdatePassword = () => {
     // promote immediately. Do NOT promote on a plain existing session.
     tryPromoteFromState(null);
 
+    // If recovery flow is active but not yet marked ready (e.g. PKCE code
+    // exchanged without type=recovery, and PASSWORD_RECOVERY event was
+    // missed), promote as soon as a session is confirmed.
+    void supabase.auth.getSession().then(({ data }) => {
+      if (disposed) return;
+      if (data.session && getRecoveryState().isRecoveryFlow) {
+        promote();
+      }
+    });
+
     // Live auth events — only PASSWORD_RECOVERY is authoritative.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (disposed) return;
