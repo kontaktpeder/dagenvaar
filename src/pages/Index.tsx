@@ -61,6 +61,12 @@ const Index = () => {
 
   const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
 
+  // If a password-recovery flow is active, always route to the update-password
+  // page — never render the calendar mid-recovery.
+  if (getRecoveryState().isRecoveryFlow) {
+    return <Navigate to="/auth/update-password" replace />;
+  }
+
   if (authLoading || ctxLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
