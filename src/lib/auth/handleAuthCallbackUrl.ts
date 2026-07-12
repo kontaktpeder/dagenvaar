@@ -167,13 +167,18 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const hash = getHashParams(parsed);
   const isRecoveryFlag =
     query.get('type') === 'recovery' || hash.get('type') === 'recovery';
+  // On native (Capacitor), any auth code arriving via `pastelly://` deep
+  // link is treated as a recovery callback for this app — we never open
+  // signup/magic-link deep links through this scheme.
+  const isNativeUrl = parsed.protocol === NATIVE_SCHEME;
 
   // Eagerly mark the recovery flow so the update-password page stays stable
   // while `exchangeCodeForSession` is still in flight. If the URL doesn't
   // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
   // auth event fired by Supabase after the exchange will start it instead.
   const pendingIntent = hasPendingRecoveryIntent();
-  if (isRecoveryFlag || pendingIntent) {
+  const treatAsRecovery = isRecoveryFlag || pendingIntent || isNativeUrl;
+  if (treatAsRecovery) {
     startRecoveryFlow();
   }
 
@@ -181,10 +186,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const code = query.get('code');
   if (code) {
     const dedupKey = `code:${code}`;
-    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'signup';
+    let kind: AuthCallbackKind = treatAsRecovery ? 'recovery' : 'signup';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
+      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown', { isNativeUrl });
     }
     logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -195,7 +200,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
     const rsAfter = getRecoveryState();
-    if (isRecoveryFlag || pendingIntent || rsAfter.isRecoveryFlow) {
+    if (treatAsRecovery || rsAfter.isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
       emitRecoveryNavigate();
@@ -210,10 +215,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {
     const dedupKey = `token:${access_token.slice(-16)}`;
-    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'magic_link';
+    let kind: AuthCallbackKind = treatAsRecovery ? 'recovery' : 'magic_link';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
+      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown', { isNativeUrl });
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
@@ -222,7 +227,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    if (isRecoveryFlag || pendingIntent || getRecoveryState().isRecoveryFlow) {
+    if (treatAsRecovery || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
       emitRecoveryNavigate();
