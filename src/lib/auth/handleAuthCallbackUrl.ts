@@ -76,6 +76,13 @@ async function dedupResultForKind(
 ): Promise<AuthCallbackResult> {
   const { data } = await supabase.auth.getSession();
   if (data.session) {
+    // Rehydrate recovery readiness so a WebView reload mid-flow still
+    // lands on /auth/update-password instead of hanging on "checking".
+    const rs = getRecoveryState();
+    if (kind === 'recovery' || rs.isRecoveryFlow) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+    }
     return { ok: true, kind };
   }
   return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
