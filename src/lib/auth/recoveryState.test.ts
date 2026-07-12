@@ -4,6 +4,7 @@ import {
   getRecoveryState,
   markRecoverySessionReady,
   startRecoveryFlow,
+  subscribeRecoveryState,
 } from './recoveryState';
 
 describe('recoveryState', () => {
