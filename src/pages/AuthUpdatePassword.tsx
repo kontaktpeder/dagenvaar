@@ -123,6 +123,7 @@ const AuthUpdatePassword = () => {
       disposed = true;
       sub.subscription.unsubscribe();
       unsubState();
+      window.clearInterval(pollId);
       if (timeoutRef.current !== null) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
