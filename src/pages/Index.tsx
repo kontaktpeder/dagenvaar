@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { Navigate } from 'react-router-dom';
 import { startOfMonth } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
+import { getRecoveryState } from '@/lib/auth/recoveryState';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
@@ -58,6 +60,12 @@ const Index = () => {
   );
 
   const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
+
+  // If a password-recovery flow is active, always route to the update-password
+  // page — never render the calendar mid-recovery.
+  if (getRecoveryState().isRecoveryFlow) {
+    return <Navigate to="/auth/update-password" replace />;
+  }
 
   if (authLoading || ctxLoading) {
     return (

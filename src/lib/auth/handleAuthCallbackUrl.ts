@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logAuthDiagnostic } from './diagnostics';
-import { startRecoveryFlow } from './recoveryState';
+import { markRecoverySessionReady, startRecoveryFlow } from './recoveryState';
+
 
 export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
 
@@ -164,6 +165,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
+    if (isRecoveryFlag) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+    }
     return { ok: true, kind };
   }
 
@@ -184,6 +189,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
+    if (isRecoveryFlag) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+    }
     return { ok: true, kind };
   }
 

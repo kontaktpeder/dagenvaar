@@ -6,6 +6,7 @@ import {
   getRecoveryState,
   markRecoverySessionReady,
   startRecoveryFlow,
+  subscribeRecoveryState,
 } from '@/lib/auth/recoveryState';
 
 const TARGET_PATH = '/auth/update-password';
@@ -49,8 +50,16 @@ export default function RecoveryRouter() {
       }
     });
 
+    // The module-level global listener may set recovery state BEFORE this
+    // component mounts (e.g. cold-start deep link on native). Subscribe to
+    // state changes so we still navigate when that happens post-mount.
+    const unsubState = subscribeRecoveryState((rs) => {
+      if (rs.isRecoveryFlow) goToUpdatePassword();
+    });
+
     return () => {
       data.subscription.unsubscribe();
+      unsubState();
     };
     // navigate is stable; location intentionally omitted so we don't re-run
     // on every route change.

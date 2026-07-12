@@ -111,3 +111,31 @@ describe('handleAuthCallbackUrl dedup semantics', () => {
     expect(window.sessionStorage.getItem(DEDUP_KEY) ?? '').not.toContain('TOKENEND');
   });
 });
+
+describe('handleAuthCallbackUrl recovery state', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    exchangeMock.mockReset();
+    setSessionMock.mockReset();
+    getSessionMock.mockReset();
+  });
+
+  it('marks recovery flow ready after successful exchange with type=recovery', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    const result = await handleAuthCallbackUrl(
+      'https://pastelly.no/auth/callback?code=rec1&type=recovery',
+    );
+    expect(result.ok).toBe(true);
+    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.isRecoveryFlow).toBe(true);
+    expect(parsed.recoverySessionReady).toBe(true);
+  });
+
+  it('does NOT mark recovery flow for non-recovery code exchange', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=signup1');
+    expect(window.sessionStorage.getItem('pastelly:recovery-state')).toBeNull();
+  });
+});
