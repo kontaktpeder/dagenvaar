@@ -6,6 +6,7 @@ import {
   getRecoveryState,
   markRecoverySessionReady,
   startRecoveryFlow,
+  subscribeRecoveryState,
 } from '@/lib/auth/recoveryState';
 
 const TARGET_PATH = '/auth/update-password';
