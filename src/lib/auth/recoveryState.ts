@@ -105,6 +105,52 @@ export function markRecoverySessionReady(): void {
 
 export function clearRecoveryFlow(): void {
   writeRaw({ ...EMPTY });
+  clearPendingRecoveryIntent();
+}
+
+// ---------- pendingRecoveryIntent ----------
+// Set when the user requests a password-reset email. Used as a fallback
+// signal on native (Capacitor) where the PASSWORD_RECOVERY auth event
+// often does not fire and PKCE deep links strip `type=recovery`.
+const INTENT_KEY = 'pastelly:pending-recovery-intent';
+const INTENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+export function setPendingRecoveryIntent(): void {
+  const store = safeSession();
+  if (!store) return;
+  try {
+    store.setItem(INTENT_KEY, JSON.stringify({ at: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function hasPendingRecoveryIntent(): boolean {
+  const store = safeSession();
+  if (!store) return false;
+  try {
+    const raw = store.getItem(INTENT_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { at?: number };
+    if (typeof parsed.at !== 'number') return false;
+    if (Date.now() - parsed.at > INTENT_TTL_MS) {
+      store.removeItem(INTENT_KEY);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearPendingRecoveryIntent(): void {
+  const store = safeSession();
+  if (!store) return;
+  try {
+    store.removeItem(INTENT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function subscribeRecoveryState(listener: Listener): () => void {
