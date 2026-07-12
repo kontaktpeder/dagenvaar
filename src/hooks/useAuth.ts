@@ -42,6 +42,7 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    clearPendingRecoveryIntent();
     const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) throw error;
   };
