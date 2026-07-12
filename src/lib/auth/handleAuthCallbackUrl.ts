@@ -180,10 +180,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const code = query.get('code');
   if (code) {
     const dedupKey = `code:${code}`;
-    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'signup';
+    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'signup';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
+      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
     }
     logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -193,12 +193,13 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    // Mark ready when the URL flagged recovery, OR when the global
-    // PASSWORD_RECOVERY listener started the flow during exchange (PKCE
-    // often strips `type=recovery`, so the URL flag alone isn't enough).
-    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
+    const rsAfter = getRecoveryState();
+    if (isRecoveryFlag || pendingIntent || rsAfter.isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      kind = 'recovery';
     }
     return { ok: true, kind };
   }
