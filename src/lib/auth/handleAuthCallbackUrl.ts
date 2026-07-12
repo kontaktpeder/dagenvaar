@@ -172,7 +172,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    if (isRecoveryFlag) {
+    // Mark ready when the URL flagged recovery, OR when the global
+    // PASSWORD_RECOVERY listener started the flow during exchange (PKCE
+    // often strips `type=recovery`, so the URL flag alone isn't enough).
+    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
     }
