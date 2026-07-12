@@ -10,10 +10,11 @@ import {
   startRecoveryFlow,
   subscribeRecoveryState,
 } from '@/lib/auth/recoveryState';
+import { shouldPromoteRecoveryPage } from '@/lib/auth/recoveryGating';
 
 type PageState = 'checking' | 'ready' | 'submitting' | 'success' | 'error';
 
-// How long we wait for a session / PASSWORD_RECOVERY event before giving up
+// How long we wait for a PASSWORD_RECOVERY signal before giving up
 // with a proper error state. Never an infinite spinner.
 const SESSION_TIMEOUT_MS = 5000;
 
@@ -29,12 +30,6 @@ const AuthUpdatePassword = () => {
     let disposed = false;
     logAuthDiagnostic('recovery:page:checking');
 
-    // If we landed here directly, assume an in-progress recovery flow so the
-    // page renders stably while Supabase finishes hydrating the session.
-    if (!getRecoveryState().isRecoveryFlow) {
-      startRecoveryFlow();
-    }
-
     const promote = () => {
       if (disposed) return;
       if (timeoutRef.current !== null) {
@@ -43,30 +38,44 @@ const AuthUpdatePassword = () => {
       }
       markRecoverySessionReady();
       setState((prev) => (prev === 'checking' ? 'ready' : prev));
+      logAuthDiagnostic('recovery:page:promote');
       logAuthDiagnostic('recovery:page:ready');
     };
 
-    // 1. Existing session (exchange finished before we mounted)
-    supabase.auth.getSession().then(({ data }) => {
-      if (disposed) return;
-      if (data.session) promote();
-    });
+    const tryPromoteFromState = (event: string | null) => {
+      const rs = getRecoveryState();
+      if (shouldPromoteRecoveryPage(rs, event)) {
+        promote();
+      } else {
+        logAuthDiagnostic('recovery:page:promote_blocked', {
+          isRecoveryFlow: rs.isRecoveryFlow,
+          recoverySessionReady: rs.recoverySessionReady,
+        });
+      }
+    };
 
-    // 2. Live auth events — both PASSWORD_RECOVERY and SIGNED_IN indicate
-    //    we have a usable session for updateUser({ password }).
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+    // If recovery is already marked ready (e.g. event fired before mount),
+    // promote immediately. Do NOT promote on a plain existing session.
+    tryPromoteFromState(null);
+
+    // Live auth events — only PASSWORD_RECOVERY is authoritative.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (disposed) return;
+      logAuthDiagnostic('auth:event', { event });
       if (event === 'PASSWORD_RECOVERY') {
         startRecoveryFlow();
-        promote();
-        return;
-      }
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+        markRecoverySessionReady();
         promote();
       }
     });
 
-    // 3. Timeout — surface a clear error instead of flashing spinners.
+    // External recovery-state changes (e.g. RecoveryRouter marked ready).
+    const unsubState = subscribeRecoveryState((rs) => {
+      if (disposed) return;
+      if (rs.recoverySessionReady) promote();
+    });
+
+    // Timeout — surface a clear error instead of flashing spinners.
     timeoutRef.current = window.setTimeout(() => {
       if (disposed) return;
       setState((prev) => {
@@ -80,6 +89,7 @@ const AuthUpdatePassword = () => {
     return () => {
       disposed = true;
       sub.subscription.unsubscribe();
+      unsubState();
       if (timeoutRef.current !== null) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -87,12 +97,6 @@ const AuthUpdatePassword = () => {
     };
   }, []);
 
-  // Reflect external recovery-state changes (rare, but keeps the flow honest).
-  useEffect(() => {
-    return subscribeRecoveryState(() => {
-      /* no-op: state is already driven by auth events. */
-    });
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

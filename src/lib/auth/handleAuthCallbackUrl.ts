@@ -59,12 +59,25 @@ function writeDedup(entries: DedupEntry[]): void {
   }
 }
 
-function markSeen(key: string): boolean {
+function hasSeen(key: string): boolean {
+  return readDedup().some((e) => e.key === key);
+}
+
+function markSeen(key: string): void {
   const entries = readDedup();
-  if (entries.some((e) => e.key === key)) return true;
+  if (entries.some((e) => e.key === key)) return;
   entries.push({ key, expiresAt: Date.now() + DEDUP_TTL_MS });
   writeDedup(entries);
-  return false;
+}
+
+async function dedupResultForKind(
+  kind: AuthCallbackKind,
+): Promise<AuthCallbackResult> {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) {
+    return { ok: true, kind };
+  }
+  return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
 }
 
 
@@ -137,17 +150,21 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   // 1. PKCE code first
   const code = query.get('code');
   if (code) {
-    if (markSeen(`code:${code}`)) {
+    const dedupKey = `code:${code}`;
+    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'signup';
+    if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'unknown' };
+      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
     }
+    logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       logAuthDiagnostic('callback:exchange_error');
       return { ok: false, error: error.message };
     }
+    markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'signup' };
+    return { ok: true, kind };
   }
 
   // 2. Hash tokens fallback (implicit flow)
@@ -155,17 +172,19 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {
     const dedupKey = `token:${access_token.slice(-16)}`;
-    if (markSeen(dedupKey)) {
+    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'magic_link';
+    if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'unknown' };
+      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
       logAuthDiagnostic('callback:set_session_error');
       return { ok: false, error: error.message };
     }
+    markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'magic_link' };
+    return { ok: true, kind };
   }
 
   logAuthDiagnostic('callback:no_params');
