@@ -59,12 +59,25 @@ function writeDedup(entries: DedupEntry[]): void {
   }
 }
 
-function markSeen(key: string): boolean {
+function hasSeen(key: string): boolean {
+  return readDedup().some((e) => e.key === key);
+}
+
+function markSeen(key: string): void {
   const entries = readDedup();
-  if (entries.some((e) => e.key === key)) return true;
+  if (entries.some((e) => e.key === key)) return;
   entries.push({ key, expiresAt: Date.now() + DEDUP_TTL_MS });
   writeDedup(entries);
-  return false;
+}
+
+async function dedupResultForKind(
+  kind: AuthCallbackKind,
+): Promise<AuthCallbackResult> {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) {
+    return { ok: true, kind };
+  }
+  return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
 }
 
 
