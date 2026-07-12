@@ -138,4 +138,36 @@ describe('handleAuthCallbackUrl recovery state', () => {
     await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=signup1');
     expect(window.sessionStorage.getItem('pastelly:recovery-state')).toBeNull();
   });
+
+  it('marks recovery flow when pendingRecoveryIntent is set (PKCE strips type=recovery)', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    window.sessionStorage.setItem(
+      'pastelly:pending-recovery-intent',
+      JSON.stringify({ at: Date.now() }),
+    );
+    const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=nativepkce');
+    expect(result.ok).toBe(true);
+    expect((result as { kind: string }).kind).toBe('recovery');
+    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.isRecoveryFlow).toBe(true);
+    expect(parsed.recoverySessionReady).toBe(true);
+    // intent consumed
+    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
+  });
+
+  it('emits pastelly:recovery-navigate on successful recovery exchange', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    const spy = vi.fn();
+    window.addEventListener('pastelly:recovery-navigate', spy);
+    window.sessionStorage.setItem(
+      'pastelly:pending-recovery-intent',
+      JSON.stringify({ at: Date.now() }),
+    );
+    await handleAuthCallbackUrl('pastelly://auth/callback?code=abc');
+    window.removeEventListener('pastelly:recovery-navigate', spy);
+    expect(spy).toHaveBeenCalled();
+  });
 });
+
