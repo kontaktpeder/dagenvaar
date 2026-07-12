@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logAuthDiagnostic } from './diagnostics';
 import {
   clearPendingRecoveryIntent,
   getRecoveryState,
