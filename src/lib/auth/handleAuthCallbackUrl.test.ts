@@ -64,6 +64,7 @@ describe('parseAuthCallbackType', () => {
 describe('handleAuthCallbackUrl dedup semantics', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     exchangeMock.mockReset();
     setSessionMock.mockReset();
     getSessionMock.mockReset();
@@ -115,6 +116,7 @@ describe('handleAuthCallbackUrl dedup semantics', () => {
 describe('handleAuthCallbackUrl recovery state', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     exchangeMock.mockReset();
     setSessionMock.mockReset();
     getSessionMock.mockReset();

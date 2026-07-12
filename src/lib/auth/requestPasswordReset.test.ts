@@ -21,6 +21,7 @@ describe('requestPasswordReset', () => {
   beforeEach(() => {
     mockReset.mockReset();
     window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   it('returns ok:true on success even when data is {} and error is null', async () => {
