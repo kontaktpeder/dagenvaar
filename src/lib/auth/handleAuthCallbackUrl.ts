@@ -209,10 +209,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {
     const dedupKey = `token:${access_token.slice(-16)}`;
-    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'magic_link';
+    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'magic_link';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
+      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
@@ -221,9 +221,12 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
+    if (isRecoveryFlag || pendingIntent || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      kind = 'recovery';
     }
     return { ok: true, kind };
   }
