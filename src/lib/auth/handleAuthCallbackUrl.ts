@@ -24,26 +24,24 @@ const WEB_PATH = '/auth/callback';
 
 /**
  * Persistent dedup across WebView reloads. On native, `App.getLaunchUrl()`
- * keeps returning the original recovery URL after `window.location.replace`,
- * so an in-memory Set gets wiped on reload and lets the same code be
- * processed twice. sessionStorage survives WebView reload but is cleared
- * when the native process is killed — exactly the semantics we want.
+ * keeps returning the original recovery URL after a WebView reload, so an
+ * in-memory Set gets wiped and lets the same code be processed twice.
  */
 const DEDUP_KEY = 'pastelly:auth-callback-seen';
 const DEDUP_TTL_MS = 60_000;
 
 type DedupEntry = { key: string; expiresAt: number };
 
-function safeSession(): Storage | null {
+function safeLocal(): Storage | null {
   try {
-    return typeof window !== 'undefined' ? window.sessionStorage : null;
+    return typeof window !== 'undefined' ? window.localStorage : null;
   } catch {
     return null;
   }
 }
 
 function readDedup(): DedupEntry[] {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return [];
   try {
     const raw = store.getItem(DEDUP_KEY);
@@ -57,7 +55,7 @@ function readDedup(): DedupEntry[] {
 }
 
 function writeDedup(entries: DedupEntry[]): void {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return;
   try {
     store.setItem(DEDUP_KEY, JSON.stringify(entries));
@@ -109,6 +107,18 @@ function emitRecoveryNavigate(): void {
   }
 }
 
+function hasPkceCodeVerifier(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (key?.endsWith('-code-verifier')) return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
 
 function safeParse(url: string): URL | null {
   try {
@@ -191,6 +201,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
       logAuthDiagnostic('callback:dedup_code');
       return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown', { isNativeUrl });
     }
+    logAuthDiagnostic('callback:pkce_verifier', { present: hasPkceCodeVerifier() });
     logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {

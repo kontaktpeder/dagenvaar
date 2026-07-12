@@ -1,7 +1,6 @@
 /**
- * Central recovery-flow state. Persisted in sessionStorage so it survives
- * WebView reloads (native cold-launch → deep link → potential reload) and
- * component unmount/remount during the recovery flow.
+ * Central recovery-flow state. Persisted in localStorage so it survives
+ * iOS WebView reloads and cold starts during native password recovery.
  *
  * NOT for storing tokens. Only holds a boolean + timestamp indicating that
  * a password-recovery flow is currently in progress.
@@ -26,16 +25,16 @@ const EMPTY: RecoveryState = {
 type Listener = (state: RecoveryState) => void;
 const listeners = new Set<Listener>();
 
-function safeSession(): Storage | null {
+function safeLocal(): Storage | null {
   try {
-    return typeof window !== 'undefined' ? window.sessionStorage : null;
+    return typeof window !== 'undefined' ? window.localStorage : null;
   } catch {
     return null;
   }
 }
 
 function readRaw(): RecoveryState {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return { ...EMPTY };
   try {
     const raw = store.getItem(KEY);
@@ -52,7 +51,7 @@ function readRaw(): RecoveryState {
 }
 
 function writeRaw(state: RecoveryState): void {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return;
   try {
     if (!state.isRecoveryFlow) {
@@ -114,14 +113,6 @@ export function clearRecoveryFlow(): void {
 // requesting the email and opening the deep link.
 const INTENT_KEY = 'pastelly:pending-recovery-intent';
 const INTENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-function safeLocal(): Storage | null {
-  try {
-    return typeof window !== 'undefined' ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
 
 export function setPendingRecoveryIntent(): void {
   const store = safeLocal();
