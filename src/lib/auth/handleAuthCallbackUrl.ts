@@ -85,13 +85,27 @@ async function dedupResultForKind(
     // Rehydrate recovery readiness so a WebView reload mid-flow still
     // lands on /auth/update-password instead of hanging on "checking".
     const rs = getRecoveryState();
-    if (kind === 'recovery' || rs.isRecoveryFlow) {
+    const pending = hasPendingRecoveryIntent();
+    if (kind === 'recovery' || rs.isRecoveryFlow || pending) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      return { ok: true, kind: 'recovery' };
     }
     return { ok: true, kind };
   }
   return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
+}
+
+function emitRecoveryNavigate(): void {
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pastelly:recovery-navigate'));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 
