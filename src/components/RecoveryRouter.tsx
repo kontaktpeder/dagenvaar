@@ -57,9 +57,15 @@ export default function RecoveryRouter() {
       if (rs.isRecoveryFlow) goToUpdatePassword();
     });
 
+    // Fallback signal from handleAuthCallbackUrl for native PKCE where
+    // PASSWORD_RECOVERY often does not fire.
+    const onRecoveryNavigate = () => goToUpdatePassword();
+    window.addEventListener('pastelly:recovery-navigate', onRecoveryNavigate);
+
     return () => {
       data.subscription.unsubscribe();
       unsubState();
+      window.removeEventListener('pastelly:recovery-navigate', onRecoveryNavigate);
     };
     // navigate is stable; location intentionally omitted so we don't re-run
     // on every route change.
