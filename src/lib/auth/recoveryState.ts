@@ -99,6 +99,9 @@ export function markRecoverySessionReady(): void {
     });
     return;
   }
+  if (existing.recoverySessionReady) {
+    return;
+  }
   writeRaw({ ...existing, recoverySessionReady: true });
 }
 

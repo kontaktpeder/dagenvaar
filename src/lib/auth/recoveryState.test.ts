@@ -4,6 +4,7 @@ import {
   getRecoveryState,
   markRecoverySessionReady,
   startRecoveryFlow,
+  subscribeRecoveryState,
 } from './recoveryState';
 
 describe('recoveryState', () => {
@@ -33,6 +34,20 @@ describe('recoveryState', () => {
     const state = getRecoveryState();
     expect(state.isRecoveryFlow).toBe(true);
     expect(state.recoverySessionReady).toBe(true);
+  });
+
+  it('markRecoverySessionReady is idempotent and does not notify listeners again when already ready', () => {
+    const states: boolean[] = [];
+    const unsubscribe = subscribeRecoveryState((state) => {
+      states.push(state.recoverySessionReady);
+    });
+
+    startRecoveryFlow();
+    markRecoverySessionReady();
+    markRecoverySessionReady();
+
+    unsubscribe();
+    expect(states).toEqual([false, true]);
   });
 
   it('clearRecoveryFlow removes the state', () => {
