@@ -79,6 +79,7 @@ function markSeen(key: string): void {
 
 async function dedupResultForKind(
   kind: AuthCallbackKind,
+  opts: { isNativeUrl?: boolean } = {},
 ): Promise<AuthCallbackResult> {
   const { data } = await supabase.auth.getSession();
   if (data.session) {
@@ -86,7 +87,7 @@ async function dedupResultForKind(
     // lands on /auth/update-password instead of hanging on "checking".
     const rs = getRecoveryState();
     const pending = hasPendingRecoveryIntent();
-    if (kind === 'recovery' || rs.isRecoveryFlow || pending) {
+    if (kind === 'recovery' || rs.isRecoveryFlow || pending || opts.isNativeUrl) {
       startRecoveryFlow();
       markRecoverySessionReady();
       emitRecoveryNavigate();
