@@ -133,7 +133,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
     expect(parsed.recoverySessionReady).toBe(true);
   });
 
-  it('does NOT mark recovery flow for non-recovery code exchange', async () => {
+  it('does NOT mark recovery flow for non-recovery web code exchange', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=signup1');
     expect(window.sessionStorage.getItem('pastelly:recovery-state')).toBeNull();
@@ -141,7 +141,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
 
   it('marks recovery flow when pendingRecoveryIntent is set (PKCE strips type=recovery)', async () => {
     exchangeMock.mockResolvedValue({ error: null });
-    window.sessionStorage.setItem(
+    window.localStorage.setItem(
       'pastelly:pending-recovery-intent',
       JSON.stringify({ at: Date.now() }),
     );
@@ -154,17 +154,35 @@ describe('handleAuthCallbackUrl recovery state', () => {
     expect(parsed.isRecoveryFlow).toBe(true);
     expect(parsed.recoverySessionReady).toBe(true);
     // intent consumed
-    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
+    expect(window.localStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
+  });
+
+  it('native pastelly:// code exchange ALWAYS finalizes as recovery, even without pending intent', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=nativenoint');
+    expect(result.ok).toBe(true);
+    expect((result as { kind: string }).kind).toBe('recovery');
+    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    const parsed = JSON.parse(raw!);
+    expect(parsed.recoverySessionReady).toBe(true);
+  });
+
+  it('native dedup path finalizes as recovery when session exists', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    await handleAuthCallbackUrl('pastelly://auth/callback?code=dedupnative');
+    exchangeMock.mockClear();
+    window.sessionStorage.removeItem('pastelly:recovery-state');
+    getSessionMock.mockResolvedValue({ data: { session: { access_token: 'x' } } });
+    const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=dedupnative');
+    expect(exchangeMock).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    expect((result as { kind: string }).kind).toBe('recovery');
   });
 
   it('emits pastelly:recovery-navigate on successful recovery exchange', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     const spy = vi.fn();
     window.addEventListener('pastelly:recovery-navigate', spy);
-    window.sessionStorage.setItem(
-      'pastelly:pending-recovery-intent',
-      JSON.stringify({ at: Date.now() }),
-    );
     await handleAuthCallbackUrl('pastelly://auth/callback?code=abc');
     window.removeEventListener('pastelly:recovery-navigate', spy);
     expect(spy).toHaveBeenCalled();
