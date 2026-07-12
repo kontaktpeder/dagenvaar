@@ -35,5 +35,6 @@ export async function requestPasswordReset(
     return { ok: false, error: normalizeAuthError(error) };
   }
 
+  setPendingRecoveryIntent();
   return { ok: true };
 }
