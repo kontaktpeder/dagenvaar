@@ -50,15 +50,15 @@ describe('requestPasswordReset', () => {
     if (result.ok === false) expect(result.error.message).toContain('For mange forsøk');
   });
 
-  it('sets pendingRecoveryIntent in sessionStorage on success', async () => {
+  it('sets pendingRecoveryIntent in localStorage on success', async () => {
     mockReset.mockResolvedValue({ data: {}, error: null });
     await requestPasswordReset('a@b.no');
-    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeTruthy();
+    expect(window.localStorage.getItem('pastelly:pending-recovery-intent')).toBeTruthy();
   });
 
   it('does NOT set pendingRecoveryIntent on error', async () => {
     mockReset.mockResolvedValue({ data: null, error: { message: 'Bad' } });
     await requestPasswordReset('a@b.no');
-    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
+    expect(window.localStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
   });
 });
