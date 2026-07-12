@@ -20,6 +20,7 @@ const mockReset = supabase.auth.resetPasswordForEmail as unknown as ReturnType<t
 describe('requestPasswordReset', () => {
   beforeEach(() => {
     mockReset.mockReset();
+    window.sessionStorage.clear();
   });
 
   it('returns ok:true on success even when data is {} and error is null', async () => {
