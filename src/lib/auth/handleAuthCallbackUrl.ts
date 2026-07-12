@@ -1,6 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
-import { logAuthDiagnostic } from './diagnostics';
-import { getRecoveryState, markRecoverySessionReady, startRecoveryFlow } from './recoveryState';
+import {
+  clearPendingRecoveryIntent,
+  getRecoveryState,
+  hasPendingRecoveryIntent,
+  markRecoverySessionReady,
+  startRecoveryFlow,
+} from './recoveryState';
 
 
 export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
