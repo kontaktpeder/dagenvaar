@@ -171,7 +171,8 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   // while `exchangeCodeForSession` is still in flight. If the URL doesn't
   // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
   // auth event fired by Supabase after the exchange will start it instead.
-  if (isRecoveryFlag) {
+  const pendingIntent = hasPendingRecoveryIntent();
+  if (isRecoveryFlag || pendingIntent) {
     startRecoveryFlow();
   }
 
