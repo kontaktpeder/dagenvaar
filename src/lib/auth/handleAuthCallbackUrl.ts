@@ -199,7 +199,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    if (isRecoveryFlag) {
+    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
     }
