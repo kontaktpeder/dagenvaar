@@ -150,17 +150,21 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   // 1. PKCE code first
   const code = query.get('code');
   if (code) {
-    if (markSeen(`code:${code}`)) {
+    const dedupKey = `code:${code}`;
+    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'signup';
+    if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'unknown' };
+      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
     }
+    logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       logAuthDiagnostic('callback:exchange_error');
       return { ok: false, error: error.message };
     }
+    markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'signup' };
+    return { ok: true, kind };
   }
 
   // 2. Hash tokens fallback (implicit flow)
@@ -168,17 +172,19 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {
     const dedupKey = `token:${access_token.slice(-16)}`;
-    if (markSeen(dedupKey)) {
+    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'magic_link';
+    if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'unknown' };
+      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
       logAuthDiagnostic('callback:set_session_error');
       return { ok: false, error: error.message };
     }
+    markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    return { ok: true, kind: isRecoveryFlag ? 'recovery' : 'magic_link' };
+    return { ok: true, kind };
   }
 
   logAuthDiagnostic('callback:no_params');
