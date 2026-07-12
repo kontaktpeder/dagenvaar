@@ -63,42 +63,34 @@ const AuthUpdatePassword = () => {
 
     // Short polling fallback: on native PKCE the PASSWORD_RECOVERY event
     // often never fires and `type=recovery` is stripped. Poll getSession
-    // briefly — as soon as we have a session + (recovery flow OR pending
-    // intent), promote.
+    // every 400ms up to 5s — as soon as we have a session, promote. If
+    // we've landed on this page a session already implies the recovery
+    // deep link was consumed.
     let pollAttempts = 0;
     const pollId = window.setInterval(async () => {
       if (disposed) return;
       pollAttempts += 1;
       const { data } = await supabase.auth.getSession();
       if (disposed) return;
-      const rs = getRecoveryState();
-      if (data.session && (rs.isRecoveryFlow || hasPendingRecoveryIntent())) {
+      if (data.session) {
         startRecoveryFlow();
+        markRecoverySessionReady();
         promote();
         window.clearInterval(pollId);
         return;
       }
-      if (pollAttempts >= 10) window.clearInterval(pollId);
+      if (pollAttempts >= 13) window.clearInterval(pollId);
     }, 400);
 
     // Live auth events — PASSWORD_RECOVERY authoritative; SIGNED_IN is a
-    // native PKCE fallback when the recovery flow / intent is active.
+    // native PKCE fallback (fires without PASSWORD_RECOVERY).
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (disposed) return;
       logAuthDiagnostic('auth:event', { event });
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         startRecoveryFlow();
         markRecoverySessionReady();
         promote();
-        return;
-      }
-      if (event === 'SIGNED_IN') {
-        const rs = getRecoveryState();
-        if (rs.isRecoveryFlow || hasPendingRecoveryIntent()) {
-          startRecoveryFlow();
-          markRecoverySessionReady();
-          promote();
-        }
       }
     });
 

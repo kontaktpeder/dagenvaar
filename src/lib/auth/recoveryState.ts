@@ -109,14 +109,22 @@ export function clearRecoveryFlow(): void {
 }
 
 // ---------- pendingRecoveryIntent ----------
-// Set when the user requests a password-reset email. Used as a fallback
-// signal on native (Capacitor) where the PASSWORD_RECOVERY auth event
-// often does not fire and PKCE deep links strip `type=recovery`.
+// Set when the user requests a password-reset email. Stored in
+// localStorage so it survives the native app being force-quit between
+// requesting the email and opening the deep link.
 const INTENT_KEY = 'pastelly:pending-recovery-intent';
 const INTENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+function safeLocal(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setPendingRecoveryIntent(): void {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return;
   try {
     store.setItem(INTENT_KEY, JSON.stringify({ at: Date.now() }));
@@ -126,7 +134,7 @@ export function setPendingRecoveryIntent(): void {
 }
 
 export function hasPendingRecoveryIntent(): boolean {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return false;
   try {
     const raw = store.getItem(INTENT_KEY);
@@ -144,7 +152,7 @@ export function hasPendingRecoveryIntent(): boolean {
 }
 
 export function clearPendingRecoveryIntent(): void {
-  const store = safeSession();
+  const store = safeLocal();
   if (!store) return;
   try {
     store.removeItem(INTENT_KEY);
