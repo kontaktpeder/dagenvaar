@@ -39,7 +39,7 @@ export async function initDeepLinks(): Promise<void> {
       const url = launch?.url ?? '';
       if (url) await processUrl(url, 'cold');
     } catch {
-      /* ignore */
+      logAuthDiagnostic('native:init:fail', { step: 'launch_url' });
     }
   }
 

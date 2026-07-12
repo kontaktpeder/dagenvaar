@@ -74,14 +74,14 @@ describe('handleAuthCallbackUrl dedup semantics', () => {
     exchangeMock.mockResolvedValue({ error: { message: 'boom' } });
     const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=abc123');
     expect(result.ok).toBe(false);
-    expect(window.sessionStorage.getItem(DEDUP_KEY) ?? '').not.toContain('abc123');
+    expect(window.localStorage.getItem(DEDUP_KEY) ?? '').not.toContain('abc123');
   });
 
   it('marks dedup after successful exchange', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=abc123');
     expect(result.ok).toBe(true);
-    expect(window.sessionStorage.getItem(DEDUP_KEY)).toContain('abc123');
+    expect(window.localStorage.getItem(DEDUP_KEY)).toContain('abc123');
   });
 
   it('dedup hit with no session returns ok:false', async () => {
@@ -109,7 +109,7 @@ describe('handleAuthCallbackUrl dedup semantics', () => {
     const url = 'pastelly://auth/callback#access_token=aaaaaaaaaaaaaaaaTOKENEND&refresh_token=r';
     const result = await handleAuthCallbackUrl(url);
     expect(result.ok).toBe(false);
-    expect(window.sessionStorage.getItem(DEDUP_KEY) ?? '').not.toContain('TOKENEND');
+    expect(window.localStorage.getItem(DEDUP_KEY) ?? '').not.toContain('TOKENEND');
   });
 });
 
@@ -128,7 +128,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
       'https://pastelly.no/auth/callback?code=rec1&type=recovery',
     );
     expect(result.ok).toBe(true);
-    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    const raw = window.localStorage.getItem('pastelly:recovery-state');
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
     expect(parsed.isRecoveryFlow).toBe(true);
@@ -138,7 +138,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
   it('does NOT mark recovery flow for non-recovery web code exchange', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=signup1');
-    expect(window.sessionStorage.getItem('pastelly:recovery-state')).toBeNull();
+    expect(window.localStorage.getItem('pastelly:recovery-state')).toBeNull();
   });
 
   it('marks recovery flow when pendingRecoveryIntent is set (PKCE strips type=recovery)', async () => {
@@ -150,7 +150,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
     const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=nativepkce');
     expect(result.ok).toBe(true);
     expect((result as { kind: string }).kind).toBe('recovery');
-    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    const raw = window.localStorage.getItem('pastelly:recovery-state');
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
     expect(parsed.isRecoveryFlow).toBe(true);
@@ -164,7 +164,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
     const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=nativenoint');
     expect(result.ok).toBe(true);
     expect((result as { kind: string }).kind).toBe('recovery');
-    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    const raw = window.localStorage.getItem('pastelly:recovery-state');
     const parsed = JSON.parse(raw!);
     expect(parsed.recoverySessionReady).toBe(true);
   });
@@ -173,7 +173,7 @@ describe('handleAuthCallbackUrl recovery state', () => {
     exchangeMock.mockResolvedValue({ error: null });
     await handleAuthCallbackUrl('pastelly://auth/callback?code=dedupnative');
     exchangeMock.mockClear();
-    window.sessionStorage.removeItem('pastelly:recovery-state');
+    window.localStorage.removeItem('pastelly:recovery-state');
     getSessionMock.mockResolvedValue({ data: { session: { access_token: 'x' } } });
     const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=dedupnative');
     expect(exchangeMock).not.toHaveBeenCalled();

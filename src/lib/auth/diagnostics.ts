@@ -14,6 +14,7 @@ type DiagnosticEvent =
   | 'callback:invalid_url'
   | 'callback:exchange_start'
   | 'callback:exchange_ok'
+  | 'callback:pkce_verifier'
   | 'recovery:page:promote'
   | 'recovery:page:promote_blocked'
   | 'auth:event'

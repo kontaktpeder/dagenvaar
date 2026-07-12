@@ -18,6 +18,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 describe('installGlobalRecoveryListener', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     handlers.length = 0;
     onAuthStateChangeMock.mockClear();
     vi.resetModules();
@@ -28,7 +29,7 @@ describe('installGlobalRecoveryListener', () => {
     installGlobalRecoveryListener();
     expect(onAuthStateChangeMock).toHaveBeenCalledTimes(1);
     handlers[0]('PASSWORD_RECOVERY');
-    const raw = window.sessionStorage.getItem('pastelly:recovery-state');
+    const raw = window.localStorage.getItem('pastelly:recovery-state');
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
     expect(parsed.isRecoveryFlow).toBe(true);
@@ -40,7 +41,7 @@ describe('installGlobalRecoveryListener', () => {
     installGlobalRecoveryListener();
     handlers[0]('SIGNED_IN');
     handlers[0]('TOKEN_REFRESHED');
-    expect(window.sessionStorage.getItem('pastelly:recovery-state')).toBeNull();
+    expect(window.localStorage.getItem('pastelly:recovery-state')).toBeNull();
   });
 
   it('is idempotent — only installs once', async () => {
