@@ -6,6 +6,7 @@ import { logAuthDiagnostic } from '@/lib/auth/diagnostics';
 import {
   clearRecoveryFlow,
   getRecoveryState,
+  hasPendingRecoveryIntent,
   markRecoverySessionReady,
   startRecoveryFlow,
   subscribeRecoveryState,
