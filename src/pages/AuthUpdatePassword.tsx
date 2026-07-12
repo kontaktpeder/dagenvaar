@@ -45,12 +45,14 @@ const AuthUpdatePassword = () => {
 
     const tryPromoteFromState = (event: string | null) => {
       const rs = getRecoveryState();
-      if (shouldPromoteRecoveryPage(rs, event)) {
+      const pending = hasPendingRecoveryIntent();
+      if (shouldPromoteRecoveryPage(rs, event, { pendingIntent: pending })) {
         promote();
       } else {
         logAuthDiagnostic('recovery:page:promote_blocked', {
           isRecoveryFlow: rs.isRecoveryFlow,
           recoverySessionReady: rs.recoverySessionReady,
+          pending,
         });
       }
     };
@@ -59,17 +61,28 @@ const AuthUpdatePassword = () => {
     // promote immediately. Do NOT promote on a plain existing session.
     tryPromoteFromState(null);
 
-    // If recovery flow is active but not yet marked ready (e.g. PKCE code
-    // exchanged without type=recovery, and PASSWORD_RECOVERY event was
-    // missed), promote as soon as a session is confirmed.
-    void supabase.auth.getSession().then(({ data }) => {
+    // Short polling fallback: on native PKCE the PASSWORD_RECOVERY event
+    // often never fires and `type=recovery` is stripped. Poll getSession
+    // briefly — as soon as we have a session + (recovery flow OR pending
+    // intent), promote.
+    let pollAttempts = 0;
+    const pollId = window.setInterval(async () => {
       if (disposed) return;
-      if (data.session && getRecoveryState().isRecoveryFlow) {
+      pollAttempts += 1;
+      const { data } = await supabase.auth.getSession();
+      if (disposed) return;
+      const rs = getRecoveryState();
+      if (data.session && (rs.isRecoveryFlow || hasPendingRecoveryIntent())) {
+        startRecoveryFlow();
         promote();
+        window.clearInterval(pollId);
+        return;
       }
-    });
+      if (pollAttempts >= 10) window.clearInterval(pollId);
+    }, 400);
 
-    // Live auth events — only PASSWORD_RECOVERY is authoritative.
+    // Live auth events — PASSWORD_RECOVERY authoritative; SIGNED_IN is a
+    // native PKCE fallback when the recovery flow / intent is active.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (disposed) return;
       logAuthDiagnostic('auth:event', { event });
@@ -77,6 +90,15 @@ const AuthUpdatePassword = () => {
         startRecoveryFlow();
         markRecoverySessionReady();
         promote();
+        return;
+      }
+      if (event === 'SIGNED_IN') {
+        const rs = getRecoveryState();
+        if (rs.isRecoveryFlow || hasPendingRecoveryIntent()) {
+          startRecoveryFlow();
+          markRecoverySessionReady();
+          promote();
+        }
       }
     });
 
