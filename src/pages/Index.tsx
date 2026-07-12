@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { Navigate } from 'react-router-dom';
 import { startOfMonth } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
+import { getRecoveryState } from '@/lib/auth/recoveryState';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
