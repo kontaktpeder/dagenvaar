@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
 import { normalizeAuthError, type NormalizedAuthError } from './normalizeAuthError';
+import { setPendingRecoveryIntent } from './recoveryState';
 
 export type RequestPasswordResetResult =
   | { ok: true }
@@ -34,5 +35,6 @@ export async function requestPasswordReset(
     return { ok: false, error: normalizeAuthError(error) };
   }
 
+  setPendingRecoveryIntent();
   return { ok: true };
 }

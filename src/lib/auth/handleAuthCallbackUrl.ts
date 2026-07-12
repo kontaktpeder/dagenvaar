@@ -1,6 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logAuthDiagnostic } from './diagnostics';
-import { getRecoveryState, markRecoverySessionReady, startRecoveryFlow } from './recoveryState';
+import {
+  clearPendingRecoveryIntent,
+  getRecoveryState,
+  hasPendingRecoveryIntent,
+  markRecoverySessionReady,
+  startRecoveryFlow,
+} from './recoveryState';
 
 
 export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
@@ -79,13 +85,27 @@ async function dedupResultForKind(
     // Rehydrate recovery readiness so a WebView reload mid-flow still
     // lands on /auth/update-password instead of hanging on "checking".
     const rs = getRecoveryState();
-    if (kind === 'recovery' || rs.isRecoveryFlow) {
+    const pending = hasPendingRecoveryIntent();
+    if (kind === 'recovery' || rs.isRecoveryFlow || pending) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      return { ok: true, kind: 'recovery' };
     }
     return { ok: true, kind };
   }
   return { ok: false, error: 'Gjenopprettingslenken er allerede brukt. Be om en ny e-post.' };
+}
+
+function emitRecoveryNavigate(): void {
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pastelly:recovery-navigate'));
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 
@@ -151,7 +171,8 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   // while `exchangeCodeForSession` is still in flight. If the URL doesn't
   // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
   // auth event fired by Supabase after the exchange will start it instead.
-  if (isRecoveryFlag) {
+  const pendingIntent = hasPendingRecoveryIntent();
+  if (isRecoveryFlag || pendingIntent) {
     startRecoveryFlow();
   }
 
@@ -159,10 +180,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const code = query.get('code');
   if (code) {
     const dedupKey = `code:${code}`;
-    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'signup';
+    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'signup';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
+      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
     }
     logAuthDiagnostic('callback:exchange_start');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -172,12 +193,13 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
-    // Mark ready when the URL flagged recovery, OR when the global
-    // PASSWORD_RECOVERY listener started the flow during exchange (PKCE
-    // often strips `type=recovery`, so the URL flag alone isn't enough).
-    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
+    const rsAfter = getRecoveryState();
+    if (isRecoveryFlag || pendingIntent || rsAfter.isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      kind = 'recovery';
     }
     return { ok: true, kind };
   }
@@ -187,10 +209,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {
     const dedupKey = `token:${access_token.slice(-16)}`;
-    const kind: AuthCallbackKind = isRecoveryFlag ? 'recovery' : 'magic_link';
+    let kind: AuthCallbackKind = isRecoveryFlag || pendingIntent ? 'recovery' : 'magic_link';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return dedupResultForKind(isRecoveryFlag ? 'recovery' : 'unknown');
+      return dedupResultForKind(isRecoveryFlag || pendingIntent ? 'recovery' : 'unknown');
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
@@ -199,9 +221,12 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:set_session_ok');
-    if (isRecoveryFlag || getRecoveryState().isRecoveryFlow) {
+    if (isRecoveryFlag || pendingIntent || getRecoveryState().isRecoveryFlow) {
       startRecoveryFlow();
       markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      kind = 'recovery';
     }
     return { ok: true, kind };
   }

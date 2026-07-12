@@ -17,4 +17,23 @@ describe('shouldPromoteRecoveryPage', () => {
     expect(shouldPromoteRecoveryPage({ recoverySessionReady: true }, null)).toBe(true);
     expect(shouldPromoteRecoveryPage({ recoverySessionReady: true }, 'SIGNED_IN')).toBe(true);
   });
+
+  it('returns true on SIGNED_IN when recovery flow is active', () => {
+    expect(
+      shouldPromoteRecoveryPage(
+        { recoverySessionReady: false, isRecoveryFlow: true },
+        'SIGNED_IN',
+      ),
+    ).toBe(true);
+  });
+
+  it('returns true on SIGNED_IN when pending recovery intent is set', () => {
+    expect(
+      shouldPromoteRecoveryPage(
+        { recoverySessionReady: false },
+        'SIGNED_IN',
+        { pendingIntent: true },
+      ),
+    ).toBe(true);
+  });
 });

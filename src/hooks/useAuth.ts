@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
+import { clearPendingRecoveryIntent } from '@/lib/auth/recoveryState';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -41,6 +42,7 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    clearPendingRecoveryIntent();
     const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) throw error;
   };

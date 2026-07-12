@@ -20,6 +20,7 @@ const mockReset = supabase.auth.resetPasswordForEmail as unknown as ReturnType<t
 describe('requestPasswordReset', () => {
   beforeEach(() => {
     mockReset.mockReset();
+    window.sessionStorage.clear();
   });
 
   it('returns ok:true on success even when data is {} and error is null', async () => {
@@ -46,5 +47,17 @@ describe('requestPasswordReset', () => {
     const result = await requestPasswordReset('a@b.no');
     expect(result.ok).toBe(false);
     if (result.ok === false) expect(result.error.message).toContain('For mange forsøk');
+  });
+
+  it('sets pendingRecoveryIntent in sessionStorage on success', async () => {
+    mockReset.mockResolvedValue({ data: {}, error: null });
+    await requestPasswordReset('a@b.no');
+    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeTruthy();
+  });
+
+  it('does NOT set pendingRecoveryIntent on error', async () => {
+    mockReset.mockResolvedValue({ data: null, error: { message: 'Bad' } });
+    await requestPasswordReset('a@b.no');
+    expect(window.sessionStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
   });
 });
