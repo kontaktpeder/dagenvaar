@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
