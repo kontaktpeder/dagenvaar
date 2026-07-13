@@ -63,6 +63,7 @@ const DEFAULT_LABELS: Record<EventCategory, string> = {
   social: 'Sosialt',
   celebration: 'Fest',
   important: 'Viktig',
+  travel: 'Reise',
   other: 'Annet',
 };
 
