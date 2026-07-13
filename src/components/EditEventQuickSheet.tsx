@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
-import { useUpdateEvent, type Event } from '@/hooks/useEvents';
+import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import {
@@ -11,17 +11,19 @@ import {
   timeRangeToDayParts,
 } from '@/lib/dayParts';
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
+import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface EditEventQuickSheetProps {
   event: Event;
   householdId: string;
   currentMemberId: string;
+  members?: HouseholdMember[];
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
   onOpenFullEdit?: (event: Event) => void;
 }
 
-const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
 
   const initStartIdx = (() => {
