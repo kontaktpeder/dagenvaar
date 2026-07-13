@@ -319,6 +319,50 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             )}
           </div>
 
+          {/* Leave household */}
+          <div className="space-y-2">
+            {!showLeaveConfirm ? (
+              <button
+                onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
+                className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Forlat hjemmet
+              </button>
+            ) : (
+              <div className="rounded-xl bg-muted p-4 space-y-3">
+                <p className="text-sm font-medium text-center">
+                  Er du sikker på at du vil forlate «{household.name}»?
+                </p>
+                <p className="text-xs text-muted-foreground text-center">
+                  {members.length <= 1
+                    ? 'Du er eneste medlem – hjemmet og alt innhold blir slettet.'
+                    : currentMember.role === 'owner'
+                    ? 'Du er eier. Eierskapet overføres til et annet medlem.'
+                    : 'Du mister tilgang til hendelser og lister i dette hjemmet.'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
+                    disabled={leaveHousehold.isPending}
+                    className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    onClick={() => leaveHousehold.mutate()}
+                    disabled={leaveHousehold.isPending}
+                    className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {leaveHousehold.isPending ? 'Forlater...' : 'Ja, forlat'}
+                  </button>
+                </div>
+                {leaveError && (
+                  <p className="text-destructive text-sm text-center">{leaveError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Sign out */}
           <div className="space-y-2">
             <button
