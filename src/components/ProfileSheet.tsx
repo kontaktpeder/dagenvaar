@@ -49,8 +49,26 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [joinError, setJoinError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState('');
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const leaveHousehold = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('leave_household');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      setLeaveError('');
+      setShowLeaveConfirm(false);
+      await queryClient.invalidateQueries();
+      onClose();
+    },
+    onError: (err: any) => {
+      setLeaveError(err?.message ?? 'Kunne ikke forlate hjemmet');
+    },
+  });
 
   const uploadAvatar = useMutation({
     mutationFn: async (blob: Blob) => {
