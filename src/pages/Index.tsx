@@ -251,6 +251,7 @@ const Index = () => {
           <EditEventQuickSheet
             event={quickEditEvent}
             householdId={household.id}
+            members={members}
             currentMemberId={currentMember.id}
             onClose={() => setQuickEditEvent(null)}
             onSaved={(eventId, dateStr) => {
