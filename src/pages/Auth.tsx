@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
