@@ -128,3 +128,38 @@ export function useAddComment() {
     },
   });
 }
+
+export function useEventVisibleMembers(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ['eventVisibleMembers', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_visible_members')
+        .select('member_id')
+        .eq('event_id', eventId!);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.member_id as string);
+    },
+  });
+}
+
+/**
+ * Replace the set of members that can see this event.
+ * Only meaningful when the event's visibility_type is 'selected_members'.
+ */
+export async function syncEventVisibleMembers(
+  eventId: string,
+  memberIds: string[],
+): Promise<void> {
+  const unique = Array.from(new Set(memberIds));
+  const { error: delErr } = await supabase
+    .from('event_visible_members')
+    .delete()
+    .eq('event_id', eventId);
+  if (delErr) throw delErr;
+  if (unique.length === 0) return;
+  const rows = unique.map((mid) => ({ event_id: eventId, member_id: mid }));
+  const { error: insErr } = await supabase.from('event_visible_members').insert(rows);
+  if (insErr) throw insErr;
+}
