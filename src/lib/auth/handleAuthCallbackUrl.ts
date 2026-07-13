@@ -232,7 +232,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     let kind: AuthCallbackKind = treatAsRecovery ? 'recovery' : 'magic_link';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_token');
-      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown', { isNativeUrl });
+      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown');
     }
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (error) {
