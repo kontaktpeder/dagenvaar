@@ -174,19 +174,23 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
 
   const query = parsed.searchParams;
   const hash = getHashParams(parsed);
-  const isRecoveryFlag =
-    query.get('type') === 'recovery' || hash.get('type') === 'recovery';
-  // On native (Capacitor), any auth code arriving via `pastelly://` deep
-  // link is treated as a recovery callback for this app — we never open
-  // signup/magic-link deep links through this scheme.
-  const isNativeUrl = parsed.protocol === NATIVE_SCHEME;
+  const explicitType = query.get('type') ?? hash.get('type') ?? null;
+  const isRecoveryFlag = explicitType === 'recovery';
+  // Explicit non-recovery URL types (signup, magiclink, invite, email_change).
+  // If Supabase tells us the link is anything other than recovery, honor it
+  // and drop any stale pendingRecoveryIntent — otherwise a leftover intent
+  // from an earlier "forgot password" attempt would hijack signup links.
+  const isExplicitNonRecovery = !!explicitType && explicitType !== 'recovery';
+  if (isExplicitNonRecovery && hasPendingRecoveryIntent()) {
+    clearPendingRecoveryIntent();
+  }
 
-  // Eagerly mark the recovery flow so the update-password page stays stable
-  // while `exchangeCodeForSession` is still in flight. If the URL doesn't
-  // carry `type=recovery` (PKCE often strips it), the `PASSWORD_RECOVERY`
-  // auth event fired by Supabase after the exchange will start it instead.
+  // Recovery only when: URL explicitly marked recovery, or a pending
+  // recovery intent exists (native PKCE strips `type=recovery`). We do NOT
+  // treat every native `pastelly://` link as recovery — signup deep links
+  // arrive on the same scheme and must route normally.
   const pendingIntent = hasPendingRecoveryIntent();
-  const treatAsRecovery = isRecoveryFlag || pendingIntent || isNativeUrl;
+  const treatAsRecovery = isRecoveryFlag || (pendingIntent && !isExplicitNonRecovery);
   if (treatAsRecovery) {
     startRecoveryFlow();
   }
@@ -198,7 +202,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     let kind: AuthCallbackKind = treatAsRecovery ? 'recovery' : 'signup';
     if (hasSeen(dedupKey)) {
       logAuthDiagnostic('callback:dedup_code');
-      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown', { isNativeUrl });
+      return dedupResultForKind(treatAsRecovery ? 'recovery' : 'unknown');
     }
     logAuthDiagnostic('callback:pkce_verifier', { present: hasPkceCodeVerifier() });
     logAuthDiagnostic('callback:exchange_start');
