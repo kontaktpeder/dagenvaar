@@ -59,12 +59,20 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     event.visibility_type as any || 'all_members',
   );
+  const { data: existingVisibleIds } = useEventVisibleMembers(
+    event.visibility_type === 'selected_members' ? event.id : undefined,
+  );
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (existingVisibleIds) setSelectedMemberIds(existingVisibleIds);
+  }, [existingVisibleIds]);
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
   const canProceed =
     step === 2 ? category !== null :
     step === 3 ? title.trim().length > 0 :
+    step === 4 ? (visibility !== 'selected_members' || selectedMemberIds.length > 0) :
     true;
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
