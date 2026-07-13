@@ -148,6 +148,14 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         category: category!,
         category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
       } as any);
+      if (visibility === 'selected_members') {
+        try {
+          await syncEventVisibleMembers(result.id, selectedMemberIds);
+        } catch (syncErr: any) {
+          console.error('[NewEventFlow] sync visible members failed', syncErr);
+          toast.error('Hendelsen ble opprettet, men delingen feilet.');
+        }
+      }
       onCreated?.(result.id, dateStr);
       onClose();
     } catch (err: any) {
