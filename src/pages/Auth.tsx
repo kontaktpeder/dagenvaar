@@ -109,14 +109,14 @@ const AuthPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="E-post" required autoComplete="email"
+            placeholder="E-post" required autoComplete="email" onFocus={scrollFocusIntoView}
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {mode !== 'forgot' && (
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)}
               placeholder="Passord" required minLength={6}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'} onFocus={scrollFocusIntoView}
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
             />
           )}
