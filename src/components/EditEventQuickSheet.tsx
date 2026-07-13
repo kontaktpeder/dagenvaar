@@ -54,6 +54,13 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     (event.visibility_type as any) || 'all_members',
   );
+  const { data: existingVisibleIds } = useEventVisibleMembers(
+    event.visibility_type === 'selected_members' ? event.id : undefined,
+  );
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (existingVisibleIds) setSelectedMemberIds(existingVisibleIds);
+  }, [existingVisibleIds]);
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
