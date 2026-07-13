@@ -93,7 +93,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="text-sm font-medium mb-2 block">Hva heter du?</label>
-            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+            <input type="text" onFocus={scrollFocusIntoView} value={displayName} onChange={(e) => setDisplayName(e.target.value)}
               placeholder="F.eks. Peder"
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
@@ -101,14 +101,14 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
           {mode === 'create' ? (
             <div>
               <label className="text-sm font-medium mb-2 block">Navn på hjemmet</label>
-              <input type="text" value={householdName} onChange={(e) => setHouseholdName(e.target.value)}
+              <input type="text" onFocus={scrollFocusIntoView} value={householdName} onChange={(e) => setHouseholdName(e.target.value)}
                 placeholder="Vårt hjem"
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           ) : (
             <div>
               <label className="text-sm font-medium mb-2 block">Invitasjonskode</label>
-              <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              <input type="text" onFocus={scrollFocusIntoView} value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 placeholder="F.eks. AB12-CD34"
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
