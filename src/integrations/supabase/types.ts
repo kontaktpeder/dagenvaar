@@ -438,6 +438,7 @@ export type Database = {
         }
         Returns: string
       }
+      leave_household: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
