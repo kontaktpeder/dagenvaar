@@ -12,6 +12,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   social: 'purple',
   celebration: 'amber',
   important: 'orange',
+  travel: 'teal',
 };
 
 type Visuals = {
@@ -62,6 +63,7 @@ const DEFAULT_LABELS: Record<EventCategory, string> = {
   social: 'Sosialt',
   celebration: 'Fest',
   important: 'Viktig',
+  travel: 'Reise',
   other: 'Annet',
 };
 

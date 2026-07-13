@@ -4,11 +4,12 @@ import {
   Users,
   PartyPopper,
   AlertTriangle,
+  Plane,
   MoreHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 
-export type EventCategory = 'couple' | 'work' | 'social' | 'celebration' | 'important' | 'other';
+export type EventCategory = 'couple' | 'work' | 'social' | 'celebration' | 'important' | 'travel' | 'other';
 export type EventPriority = 'normal' | 'high';
 
 type CategoryMeta = {
@@ -55,6 +56,13 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-orange-500',
   },
+  travel: {
+    label: 'Reise',
+    Icon: Plane,
+    chipBg: 'bg-member-mint/60',
+    chipText: 'text-foreground',
+    iconColor: 'text-teal-500',
+  },
   other: {
     label: 'Annet',
     Icon: MoreHorizontal,
@@ -64,7 +72,7 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
   },
 };
 
-export const CATEGORY_OPTIONS: EventCategory[] = ['couple', 'work', 'social', 'celebration', 'important', 'other'];
+export const CATEGORY_OPTIONS: EventCategory[] = ['couple', 'work', 'social', 'celebration', 'important', 'travel', 'other'];
 
 export function getEventCategoryMeta(category: string | null | undefined) {
   if (!category) return null;
