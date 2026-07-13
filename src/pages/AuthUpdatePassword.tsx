@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -197,7 +198,7 @@ const AuthUpdatePassword = () => {
             placeholder="Nytt passord"
             required
             minLength={6}
-            autoComplete="new-password"
+            autoComplete="new-password" onFocus={scrollFocusIntoView}
             disabled={state === 'submitting' || state === 'success'}
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
@@ -208,7 +209,7 @@ const AuthUpdatePassword = () => {
             placeholder="Bekreft passord"
             required
             minLength={6}
-            autoComplete="new-password"
+            autoComplete="new-password" onFocus={scrollFocusIntoView}
             disabled={state === 'submitting' || state === 'success'}
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
