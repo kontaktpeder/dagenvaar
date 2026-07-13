@@ -127,7 +127,10 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
     else setEndDate(addDays(endDate, 1));
   };
 
-  const canSave = title.trim().length > 0 && !!category;
+  const canSave =
+    title.trim().length > 0 &&
+    !!category &&
+    (visibility !== 'selected_members' || selectedMemberIds.length > 0);
 
   const handleSubmit = async () => {
     if (!canSave) return;
@@ -149,6 +152,14 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           notes,
         }),
       });
+      if (visibility === 'selected_members') {
+        try {
+          await syncEventVisibleMembers(event.id, selectedMemberIds);
+        } catch (syncErr: any) {
+          console.error('[EditEventQuickSheet] sync visible members failed', syncErr);
+          toast.error('Endringene ble lagret, men delingen feilet.');
+        }
+      }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
     } catch (err: any) {
