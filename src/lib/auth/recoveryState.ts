@@ -115,7 +115,7 @@ export function clearRecoveryFlow(): void {
 // localStorage so it survives the native app being force-quit between
 // requesting the email and opening the deep link.
 const INTENT_KEY = 'pastelly:pending-recovery-intent';
-const INTENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const INTENT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export function setPendingRecoveryIntent(): void {
   const store = safeLocal();
