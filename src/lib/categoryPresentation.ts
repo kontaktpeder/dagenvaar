@@ -12,6 +12,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   social: 'purple',
   celebration: 'amber',
   important: 'orange',
+  travel: 'teal',
 };
 
 type Visuals = {
