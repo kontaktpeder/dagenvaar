@@ -384,7 +384,40 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
                 </button>
               ))}
             </div>
+            {visibility === 'selected_members' && (
+              <div className="mt-3 rounded-xl bg-muted/50 p-3">
+                <div className="flex flex-col gap-1.5">
+                  {members.filter((m) => m.id !== currentMemberId).map((m) => {
+                    const checked = selectedMemberIds.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedMemberIds((prev) => checked ? prev.filter((id) => id !== m.id) : [...prev, m.id])}
+                        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all ${checked ? 'bg-primary/20 ring-2 ring-primary' : 'bg-background hover:bg-muted'}`}
+                      >
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{ backgroundColor: `hsl(var(--member-${m.color_token.replace('pastel-', '')}))` }}>
+                          {m.display_name.charAt(0)}
+                        </span>
+                        <span className="flex-1 text-sm font-medium">{m.display_name}</span>
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checked ? 'bg-primary border-primary' : 'border-border'}`}>
+                          {checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {members.filter((m) => m.id !== currentMemberId).length === 0 && (
+                    <p className="text-xs text-muted-foreground">Ingen andre medlemmer å dele med enda.</p>
+                  )}
+                </div>
+                {selectedMemberIds.length === 0 && (
+                  <p className="text-xs text-destructive mt-2">Velg minst én person.</p>
+                )}
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* Footer */}
