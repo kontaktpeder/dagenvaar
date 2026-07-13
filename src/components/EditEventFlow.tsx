@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { useUpdateEvent, type Event } from '@/hooks/useEvents';
+import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import { resolveCategoryLabel } from '@/lib/categoryPresentation';
@@ -59,12 +59,20 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     event.visibility_type as any || 'all_members',
   );
+  const { data: existingVisibleIds } = useEventVisibleMembers(
+    event.visibility_type === 'selected_members' ? event.id : undefined,
+  );
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (existingVisibleIds) setSelectedMemberIds(existingVisibleIds);
+  }, [existingVisibleIds]);
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
   const canProceed =
     step === 2 ? category !== null :
     step === 3 ? title.trim().length > 0 :
+    step === 4 ? (visibility !== 'selected_members' || selectedMemberIds.length > 0) :
     true;
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
@@ -150,6 +158,14 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           notes,
         }),
       });
+      if (visibility === 'selected_members') {
+        try {
+          await syncEventVisibleMembers(event.id, selectedMemberIds);
+        } catch (syncErr: any) {
+          console.error('[EditEventFlow] sync visible members failed', syncErr);
+          toast.error('Endringene ble lagret, men delingen feilet.');
+        }
+      }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
     } catch (err: any) {
@@ -326,6 +342,41 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                   </button>
                 ))}
               </div>
+
+              {visibility === 'selected_members' && (
+                <div className="rounded-2xl bg-muted/50 p-4">
+                  <p className="text-sm font-semibold mb-3">Velg hvem som skal se</p>
+                  <div className="flex flex-col gap-2">
+                    {members.filter((m) => m.id !== currentMemberId).map((m) => {
+                      const checked = selectedMemberIds.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setSelectedMemberIds((prev) => checked ? prev.filter((id) => id !== m.id) : [...prev, m.id])}
+                          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${checked ? 'bg-primary/20 ring-2 ring-primary' : 'bg-background hover:bg-muted'}`}
+                        >
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ backgroundColor: `hsl(var(--member-${m.color_token.replace('pastel-', '')}))` }}>
+                            {m.display_name.charAt(0)}
+                          </span>
+                          <span className="flex-1 text-sm font-medium">{m.display_name}</span>
+                          <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${checked ? 'bg-primary border-primary' : 'border-border'}`}>
+                            {checked && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {members.filter((m) => m.id !== currentMemberId).length === 0 && (
+                      <p className="text-sm text-muted-foreground">Ingen andre medlemmer å dele med enda.</p>
+                    )}
+                  </div>
+                  {selectedMemberIds.length === 0 && (
+                    <p className="text-xs text-destructive mt-2">Velg minst én person for å fortsette.</p>
+                  )}
+                </div>
+              )}
+
 
               <div className="rounded-2xl bg-muted p-4 mt-4">
                 <p className="text-sm text-muted-foreground mb-1">Oppsummering</p>

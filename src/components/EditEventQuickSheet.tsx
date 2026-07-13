@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
-import { useUpdateEvent, type Event } from '@/hooks/useEvents';
+import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import {
@@ -11,17 +11,19 @@ import {
   timeRangeToDayParts,
 } from '@/lib/dayParts';
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
+import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface EditEventQuickSheetProps {
   event: Event;
   householdId: string;
   currentMemberId: string;
+  members?: HouseholdMember[];
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
   onOpenFullEdit?: (event: Event) => void;
 }
 
-const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
 
   const initStartIdx = (() => {
@@ -52,6 +54,13 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     (event.visibility_type as any) || 'all_members',
   );
+  const { data: existingVisibleIds } = useEventVisibleMembers(
+    event.visibility_type === 'selected_members' ? event.id : undefined,
+  );
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (existingVisibleIds) setSelectedMemberIds(existingVisibleIds);
+  }, [existingVisibleIds]);
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
@@ -118,7 +127,10 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
     else setEndDate(addDays(endDate, 1));
   };
 
-  const canSave = title.trim().length > 0 && !!category;
+  const canSave =
+    title.trim().length > 0 &&
+    !!category &&
+    (visibility !== 'selected_members' || selectedMemberIds.length > 0);
 
   const handleSubmit = async () => {
     if (!canSave) return;
@@ -140,6 +152,14 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
           notes,
         }),
       });
+      if (visibility === 'selected_members') {
+        try {
+          await syncEventVisibleMembers(event.id, selectedMemberIds);
+        } catch (syncErr: any) {
+          console.error('[EditEventQuickSheet] sync visible members failed', syncErr);
+          toast.error('Endringene ble lagret, men delingen feilet.');
+        }
+      }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
     } catch (err: any) {
@@ -364,7 +384,40 @@ const EditEventQuickSheet = ({ event, onClose, onSaved, onOpenFullEdit }: EditEv
                 </button>
               ))}
             </div>
+            {visibility === 'selected_members' && (
+              <div className="mt-3 rounded-xl bg-muted/50 p-3">
+                <div className="flex flex-col gap-1.5">
+                  {members.filter((m) => m.id !== currentMemberId).map((m) => {
+                    const checked = selectedMemberIds.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedMemberIds((prev) => checked ? prev.filter((id) => id !== m.id) : [...prev, m.id])}
+                        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all ${checked ? 'bg-primary/20 ring-2 ring-primary' : 'bg-background hover:bg-muted'}`}
+                      >
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{ backgroundColor: `hsl(var(--member-${m.color_token.replace('pastel-', '')}))` }}>
+                          {m.display_name.charAt(0)}
+                        </span>
+                        <span className="flex-1 text-sm font-medium">{m.display_name}</span>
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checked ? 'bg-primary border-primary' : 'border-border'}`}>
+                          {checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {members.filter((m) => m.id !== currentMemberId).length === 0 && (
+                    <p className="text-xs text-muted-foreground">Ingen andre medlemmer å dele med enda.</p>
+                  )}
+                </div>
+                {selectedMemberIds.length === 0 && (
+                  <p className="text-xs text-destructive mt-2">Velg minst én person.</p>
+                )}
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* Footer */}
