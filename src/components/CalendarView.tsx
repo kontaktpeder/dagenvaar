@@ -35,7 +35,8 @@ const CATEGORY_ORDER: Record<string, number> = {
   couple: 2,
   celebration: 3,
   social: 4,
-  other: 5,
+  travel: 5,
+  other: 6,
 };
 
 const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, highlight }: CalendarViewProps) => {
