@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { useUpdateEvent, type Event } from '@/hooks/useEvents';
+import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import { resolveCategoryLabel } from '@/lib/categoryPresentation';
