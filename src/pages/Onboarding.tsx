@@ -72,7 +72,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-2">Velkommen! 🏡</h1>
         <p className="text-muted-foreground text-center mb-6">La oss sette opp hjemmet ditt</p>

@@ -50,7 +50,7 @@ const AuthPage = () => {
 
   if (confirmationSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+      <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm text-center">
           <p className="text-5xl mb-4">📬</p>
           <h1 className="text-2xl font-bold mb-2">Sjekk e-posten din!</h1>
@@ -70,7 +70,7 @@ const AuthPage = () => {
 
   if (resetSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+      <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm text-center">
           <p className="text-5xl mb-4">📮</p>
           <h1 className="text-2xl font-bold mb-2">Sjekk e-posten din</h1>
@@ -101,7 +101,7 @@ const AuthPage = () => {
     mode === 'login' ? 'Logg inn' : mode === 'signup' ? 'Opprett konto' : 'Send lenke';
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-2">{title}</h1>
         <p className="text-muted-foreground text-center mb-8">{subtitle}</p>
