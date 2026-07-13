@@ -152,13 +152,14 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           notes,
         }),
       });
-      if (visibility === 'selected_members') {
-        try {
-          await syncEventVisibleMembers(event.id, selectedMemberIds);
-        } catch (syncErr: any) {
-          console.error('[EditEventQuickSheet] sync visible members failed', syncErr);
-          toast.error('Endringene ble lagret, men delingen feilet.');
-        }
+      try {
+        await syncEventVisibleMembers(
+          event.id,
+          visibility === 'selected_members' ? selectedMemberIds : [],
+        );
+      } catch (syncErr: any) {
+        console.error('[EditEventQuickSheet] sync visible members failed', syncErr);
+        toast.error('Endringene ble lagret, men delingen feilet.');
       }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();

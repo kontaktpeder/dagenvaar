@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -167,7 +168,7 @@ const AuthUpdatePassword = () => {
 
   if (state === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+      <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
         <div className="w-full max-w-sm text-center">
           <p className="text-5xl mb-4">🔒</p>
           <h1 className="text-2xl font-bold mb-2">Lenken er ugyldig</h1>
@@ -184,7 +185,7 @@ const AuthUpdatePassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-background">
+    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-2">Nytt passord 🔑</h1>
         <p className="text-muted-foreground text-center mb-8">Velg et nytt passord for kontoen din</p>
@@ -197,7 +198,7 @@ const AuthUpdatePassword = () => {
             placeholder="Nytt passord"
             required
             minLength={6}
-            autoComplete="new-password"
+            autoComplete="new-password" onFocus={scrollFocusIntoView}
             disabled={state === 'submitting' || state === 'success'}
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
@@ -208,7 +209,7 @@ const AuthUpdatePassword = () => {
             placeholder="Bekreft passord"
             required
             minLength={6}
-            autoComplete="new-password"
+            autoComplete="new-password" onFocus={scrollFocusIntoView}
             disabled={state === 'submitting' || state === 'success'}
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
