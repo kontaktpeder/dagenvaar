@@ -4,11 +4,12 @@ import {
   Users,
   PartyPopper,
   AlertTriangle,
+  Plane,
   MoreHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 
-export type EventCategory = 'couple' | 'work' | 'social' | 'celebration' | 'important' | 'other';
+export type EventCategory = 'couple' | 'work' | 'social' | 'celebration' | 'important' | 'travel' | 'other';
 export type EventPriority = 'normal' | 'high';
 
 type CategoryMeta = {
