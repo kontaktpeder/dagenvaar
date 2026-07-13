@@ -152,7 +152,7 @@ const Index = () => {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-hidden pb-24">
+      <main className="flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+7rem)]">
         <AnimatePresence mode="wait">
           {activeTab === 'calendar' && (
             <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
