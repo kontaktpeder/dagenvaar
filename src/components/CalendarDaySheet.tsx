@@ -58,9 +58,10 @@ const CalendarDaySheet = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center px-5 py-10"
+      onClick={onClose}
     >
-      <div className="absolute inset-0 bg-foreground/25" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/25" aria-hidden />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
@@ -69,8 +70,8 @@ const CalendarDaySheet = ({
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
         className={`relative z-10 w-full max-w-sm bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden ${
           showList
-            ? 'h-[min(92dvh,720px)] max-h-[calc(100%-2rem)]'
-            : 'aspect-[4/5] max-h-[min(80dvh,640px)]'
+            ? 'h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]'
+            : 'aspect-[4/5] max-h-[min(78dvh,580px)]'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

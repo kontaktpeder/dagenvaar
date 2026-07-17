@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
@@ -40,12 +40,19 @@ const MemberAvatar = ({ member, size = 'md' }: { member: HouseholdMember; size?:
   );
 };
 
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+    {children}
+  </h3>
+);
+
 const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteExpiry, setInviteExpiry] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -147,6 +154,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
     onSuccess: async () => {
       setJoinError('');
       setJoinCode('');
+      setShowJoin(false);
       await queryClient.invalidateQueries();
       onClose();
     },
@@ -196,57 +204,52 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
 
   return (
     <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-6">
-          {/* Profile with avatar upload */}
-          <div className="text-center">
-            <div className="relative w-16 h-16 mx-auto mb-3">
-              <MemberAvatar member={currentMember} size="md" />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadAvatar.isPending}
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-transform hover:scale-110 disabled:opacity-50"
-              >
-                {uploadAvatar.isPending ? (
-                  <div className="w-3.5 h-3.5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                ) : (
-                  <Camera size={14} strokeWidth={2.5} />
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-            {uploadError && (
-              <p className="text-destructive text-xs mb-2">{uploadError}</p>
-            )}
-            <h2 className="text-xl font-bold">{currentMember.display_name}</h2>
-            <p className="text-sm text-muted-foreground">{household.name}</p>
+      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-8">
+        {/* Deg */}
+        <section className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-3">
+            <MemberAvatar member={currentMember} size="md" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadAvatar.isPending}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-transform hover:scale-110 disabled:opacity-50"
+            >
+              {uploadAvatar.isPending ? (
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+              ) : (
+                <Camera size={14} strokeWidth={2.5} />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
+          {uploadError && (
+            <p className="text-destructive text-xs mb-2">{uploadError}</p>
+          )}
+          <h2 className="text-xl font-bold">{currentMember.display_name}</h2>
+          <p className="text-sm text-muted-foreground">{household.name}</p>
+        </section>
 
-          {/* Members */}
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">Medlemmer</h3>
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
-                  <MemberAvatar member={m} size="sm" />
-                  <div>
-                    <p className="font-medium text-sm">{m.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{m.role === 'owner' ? 'Eier' : 'Medlem'}</p>
-                  </div>
+        {/* Hjem */}
+        <section>
+          <SectionLabel>Hjem</SectionLabel>
+          <div className="space-y-2 mb-3">
+            {members.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
+                <MemberAvatar member={m} size="sm" />
+                <div>
+                  <p className="font-medium text-sm">{m.display_name}</p>
+                  <p className="text-xs text-muted-foreground">{m.role === 'owner' ? 'Eier' : 'Medlem'}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
-          {/* Category color settings */}
-          <CategoryColorSettings member={currentMember} />
-
-          {/* Invite */}
           {isOwner && (
             <div className="space-y-2">
               {!inviteCode ? (
@@ -270,7 +273,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
                     onClick={handleCopyCode}
                     className="w-full rounded-xl bg-calendar-accent/60 py-2.5 text-sm font-medium transition-colors hover:bg-calendar-accent/80"
                   >
-                    {copied ? '✓ Kopiert!' : 'Kopier kode'}
+                    {copied ? 'Kopiert' : 'Kopier kode'}
                   </button>
                 </div>
               )}
@@ -281,88 +284,110 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               )}
             </div>
           )}
+        </section>
 
-          {/* Join by code */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">Jeg har kode</h3>
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="F.eks. AB12-CD34"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+        {/* Innstillinger */}
+        <section>
+          <SectionLabel>Innstillinger</SectionLabel>
+          <CategoryColorSettings member={currentMember} />
+        </section>
+
+        {/* Konto */}
+        <section className="space-y-2">
+          <SectionLabel>Konto</SectionLabel>
+
+          <button
+            onClick={handleSignOutClick}
+            disabled={isSigningOut}
+            className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSigningOut ? 'Logger ut...' : 'Logg ut'}
+          </button>
+          {signOutError && (
+            <p className="text-destructive text-sm text-center">{signOutError}</p>
+          )}
+
+          {!showJoin ? (
             <button
-              onClick={() => { setJoinError(''); joinHousehold.mutate(); }}
-              disabled={joinHousehold.isPending}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50"
+              type="button"
+              onClick={() => { setShowJoin(true); setJoinError(''); }}
+              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
-              {joinHousehold.isPending ? 'Kobler til...' : 'Bli med med kode'}
+              Bli med i et annet hjem
             </button>
-            {joinError && (
-              <p className="text-destructive text-sm text-center">{joinError}</p>
-            )}
-          </div>
-
-          {/* Leave household */}
-          <div className="space-y-2">
-            {!showLeaveConfirm ? (
-              <button
-                onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
-                className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
-              >
-                Forlat hjemmet
-              </button>
-            ) : (
-              <div className="rounded-xl bg-muted p-4 space-y-3">
-                <p className="text-sm font-medium text-center">
-                  Er du sikker på at du vil forlate «{household.name}»?
-                </p>
-                <p className="text-xs text-muted-foreground text-center">
-                  {members.length <= 1
-                    ? 'Du er eneste medlem – hjemmet og alt innhold blir slettet.'
-                    : currentMember.role === 'owner'
-                    ? 'Du er eier. Eierskapet overføres til et annet medlem.'
-                    : 'Du mister tilgang til hendelser og lister i dette hjemmet.'}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
-                    disabled={leaveHousehold.isPending}
-                    className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
-                  >
-                    Avbryt
-                  </button>
-                  <button
-                    onClick={() => leaveHousehold.mutate()}
-                    disabled={leaveHousehold.isPending}
-                    className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {leaveHousehold.isPending ? 'Forlater...' : 'Ja, forlat'}
-                  </button>
-                </div>
-                {leaveError && (
-                  <p className="text-destructive text-sm text-center">{leaveError}</p>
-                )}
+          ) : (
+            <div className="rounded-xl bg-muted p-4 space-y-3">
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="F.eks. AB12-CD34"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowJoin(false); setJoinCode(''); setJoinError(''); }}
+                  className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setJoinError(''); joinHousehold.mutate(); }}
+                  disabled={joinHousehold.isPending}
+                  className="rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  {joinHousehold.isPending ? 'Kobler til...' : 'Bli med'}
+                </button>
               </div>
-            )}
-          </div>
+              {joinError && (
+                <p className="text-destructive text-sm text-center">{joinError}</p>
+              )}
+            </div>
+          )}
 
-          {/* Sign out */}
-          <div className="space-y-2">
+          {!showLeaveConfirm ? (
             <button
-              onClick={handleSignOutClick}
-              disabled={isSigningOut}
-              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
+              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
-              {isSigningOut ? 'Logger ut...' : 'Logg ut'}
+              Forlat hjemmet
             </button>
-            {signOutError && (
-              <p className="text-destructive text-sm text-center">{signOutError}</p>
-            )}
-          </div>
+          ) : (
+            <div className="rounded-xl bg-muted p-4 space-y-3">
+              <p className="text-sm font-medium text-center">
+                Er du sikker på at du vil forlate «{household.name}»?
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                {members.length <= 1
+                  ? 'Du er eneste medlem – hjemmet og alt innhold blir slettet.'
+                  : currentMember.role === 'owner'
+                  ? 'Du er eier. Eierskapet overføres til et annet medlem.'
+                  : 'Du mister tilgang til hendelser og lister i dette hjemmet.'}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
+                  disabled={leaveHousehold.isPending}
+                  className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={() => leaveHousehold.mutate()}
+                  disabled={leaveHousehold.isPending}
+                  className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {leaveHousehold.isPending ? 'Forlater...' : 'Ja, forlat'}
+                </button>
+              </div>
+              {leaveError && (
+                <p className="text-destructive text-sm text-center">{leaveError}</p>
+              )}
+            </div>
+          )}
 
-          {/* Legal & app info */}
-          <div className="pt-2 pb-6 space-y-3 text-center text-xs text-muted-foreground">
+          <div className="pt-4 space-y-3 text-center text-xs text-muted-foreground">
             <div className="flex items-center justify-center gap-4">
               <a
                 href="https://pastelly.no/personvern"
@@ -381,6 +406,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
             <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
           </div>
+        </section>
       </div>
 
       <AnimatePresence>

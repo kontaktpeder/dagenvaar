@@ -42,6 +42,9 @@ const CATEGORY_ORDER: Record<string, number> = {
 /** Commit when dragged past this fraction of width, or with enough velocity */
 const COMMIT_RATIO = 0.22;
 const COMMIT_VELOCITY = 550;
+/** Extra months jumped per this much velocity beyond the first hop */
+const VELOCITY_PER_EXTRA_HOP = 900;
+const MAX_HOPS = 3;
 
 function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   const map: Record<string, Event[]> = {};
@@ -107,6 +110,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const [pageWidth, setPageWidth] = useState(0);
   const x = useMotionValue(0);
   const animatingRef = useRef(false);
+  const animationControlsRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -120,58 +124,90 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
 
   // Reset strip when month changes externally (header / today)
   useEffect(() => {
+    animationControlsRef.current?.stop();
+    animationControlsRef.current = null;
     x.set(0);
     animatingRef.current = false;
     setPaging(false);
   }, [year, month, x]);
 
-  const snapSpring = { type: 'spring' as const, stiffness: 520, damping: 42, mass: 0.55 };
+  const snapSpring = { type: 'spring' as const, stiffness: 560, damping: 44, mass: 0.45 };
 
-  const commitMonth = useCallback(
-    (dir: 1 | -1) => {
-      if (!pageWidth || animatingRef.current) return;
+  const stopPagingAnim = useCallback(() => {
+    animationControlsRef.current?.stop();
+    animationControlsRef.current = null;
+    animatingRef.current = false;
+    setPaging(false);
+  }, []);
+
+  const commitMonths = useCallback(
+    (dir: 1 | -1, hops: number) => {
+      if (!pageWidth) return;
+      const steps = Math.min(MAX_HOPS, Math.max(1, hops));
+      stopPagingAnim();
+
+      // Fast multi-hop: jump months immediately — avoids queued springs/remounts
+      if (steps >= 2) {
+        setCurrentDate((d) => (dir > 0 ? addMonths(d, steps) : subMonths(d, steps)));
+        x.set(0);
+        return;
+      }
+
       animatingRef.current = true;
       setPaging(true);
-      // Strip is anchored with left: -pageWidth (middle month centered).
-      // Next → slide left; prev → slide right.
       const target = dir > 0 ? -pageWidth : pageWidth;
-      animate(x, target, {
+      animationControlsRef.current = animate(x, target, {
         ...snapSpring,
         onComplete: () => {
           setCurrentDate((d) => (dir > 0 ? addMonths(d, 1) : subMonths(d, 1)));
           x.set(0);
           animatingRef.current = false;
           setPaging(false);
+          animationControlsRef.current = null;
         },
       });
     },
-    [pageWidth, setCurrentDate, x],
+    [pageWidth, setCurrentDate, stopPagingAnim, x],
   );
 
   const navigate = useCallback(
     (dir: number) => {
       if (dir === 0) return;
-      commitMonth(dir > 0 ? 1 : -1);
+      commitMonths(dir > 0 ? 1 : -1, 1);
     },
-    [commitMonth],
+    [commitMonths],
   );
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (!pageWidth || animatingRef.current) return;
-    const dx = info.offset.x;
-    const vx = info.velocity.x;
-    const passed = Math.abs(dx) > pageWidth * COMMIT_RATIO || Math.abs(vx) > COMMIT_VELOCITY;
+  const hopsFromGesture = (dx: number, vx: number) => {
+    const dir: 1 | -1 = dx + vx * 0.08 < 0 ? 1 : -1;
+    const passed =
+      Math.abs(dx) > pageWidth * COMMIT_RATIO || Math.abs(vx) > COMMIT_VELOCITY;
+    if (!passed) return { dir, hops: 0 };
 
-    if (passed) {
-      // Swipe left (negative x) → next month
-      const dir: 1 | -1 = dx + vx * 0.08 < 0 ? 1 : -1;
-      commitMonth(dir);
+    const distanceHops = Math.max(1, Math.round(Math.abs(dx) / pageWidth));
+    const velocityHops = 1 + Math.floor(Math.max(0, Math.abs(vx) - COMMIT_VELOCITY) / VELOCITY_PER_EXTRA_HOP);
+    const hops = Math.min(MAX_HOPS, Math.max(distanceHops, velocityHops));
+    return { dir, hops };
+  };
+
+  const handleDragStart = () => {
+    // Let the user interrupt an in-flight snap without waiting
+    stopPagingAnim();
+  };
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (!pageWidth) return;
+    const { dir, hops } = hopsFromGesture(info.offset.x, info.velocity.x);
+
+    if (hops > 0) {
+      commitMonths(dir, hops);
     } else {
       animatingRef.current = true;
-      animate(x, 0, {
+      animationControlsRef.current = animate(x, 0, {
         ...snapSpring,
         onComplete: () => {
           animatingRef.current = false;
+          animationControlsRef.current = null;
         },
       });
     }
@@ -274,11 +310,12 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               width: pageWidth ? pageWidth * 3 : '300%',
               left: pageWidth ? -pageWidth : '-100%',
             }}
-            drag={paging || !pageWidth ? false : 'x'}
+            drag={!pageWidth ? false : 'x'}
             dragDirectionLock
             dragConstraints={pageWidth ? { left: -pageWidth, right: pageWidth } : { left: 0, right: 0 }}
             dragElastic={0.12}
             dragMomentum={false}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <MonthPanel

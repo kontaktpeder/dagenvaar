@@ -13,13 +13,14 @@ interface CenteredPopupProps {
 }
 
 const sizeClass = {
-  card: 'max-w-sm h-[min(85dvh,640px)] max-h-[calc(100%-2rem)]',
-  tall: 'max-w-md h-[min(92dvh,760px)] max-h-[calc(100%-2rem)]',
+  card: 'max-w-sm h-[min(78dvh,580px)] max-h-[calc(100%-5rem)]',
+  tall: 'max-w-md h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]',
 } as const;
 
 /**
  * Fixed centered card. Shell does not move with the keyboard —
  * sticky footers inside should use PopupStickyFooter for that.
+ * Generous outer padding so backdrop dismiss stays easy to hit.
  */
 const CenteredPopup = ({
   onClose,
@@ -33,9 +34,13 @@ const CenteredPopup = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={cn('fixed inset-0 flex items-center justify-center px-4', zClassName)}
+      className={cn(
+        'fixed inset-0 flex items-center justify-center px-5 py-10',
+        zClassName,
+      )}
+      onClick={onClose}
     >
-      <div className="absolute inset-0 bg-foreground/25" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/25" aria-hidden />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
