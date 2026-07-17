@@ -10,15 +10,12 @@ import { useMembers } from '@/hooks/useHousehold';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
-import ListView from '@/components/ListView';
 import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
 import ProfileSheet from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
-
-type Tab = 'calendar' | 'list';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
@@ -28,7 +25,6 @@ const Index = () => {
   const { data: members = [] } = useMembers(household?.id);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<Tab>('calendar');
   const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
@@ -86,7 +82,6 @@ const Index = () => {
 
   const handleSelectDate = (date: Date) => {
     setFocusedDate(date);
-    setActiveTab('list');
   };
 
   const handleCreateEvent = (date: Date) => {
@@ -94,23 +89,8 @@ const Index = () => {
     setShowNewEvent(true);
   };
 
-  const handleNewFromNav = () => {
-    setNewEventDate(focusedDate);
-    setShowNewEvent(true);
-  };
-
   const handleEditEvent = (event: Event) => {
     setEditEvent(event);
-  };
-
-  const handleCalendarNavClick = () => {
-    if (activeTab === 'calendar') setFocusedDate(new Date());
-    else setActiveTab('calendar');
-  };
-
-  const handleListNavClick = () => {
-    if (activeTab === 'list') setFocusedDate(new Date());
-    else setActiveTab('list');
   };
 
   const handleSignOut = async () => {
@@ -152,69 +132,20 @@ const Index = () => {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+7rem)]">
-        <AnimatePresence mode="wait">
-          {activeTab === 'calendar' && (
-            <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <CalendarView
-                householdId={household.id}
-                members={members}
-                currentMemberId={currentMember.id}
-                currentDate={calendarMonthAnchor}
-                onCurrentDateChange={handleCalendarMonthChange}
-                onSelectDate={handleSelectDate}
-                onCreateEvent={handleCreateEvent}
-                onEditEvent={handleEditEvent}
-                onQuickEditEvent={setQuickEditEvent}
-                highlight={highlight}
-              />
-            </motion.div>
-          )}
-          {activeTab === 'list' && (
-            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <ListView
-                householdId={household.id}
-                members={members}
-                currentMemberId={currentMember.id}
-                initialDate={focusedDate}
-                onDateChange={setFocusedDate}
-                onEditEvent={handleEditEvent}
-                onQuickEditEvent={setQuickEditEvent}
-                highlight={highlight}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <main className="flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        <CalendarView
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          currentDate={calendarMonthAnchor}
+          onCurrentDateChange={handleCalendarMonthChange}
+          onSelectDate={handleSelectDate}
+          onCreateEvent={handleCreateEvent}
+          onEditEvent={handleEditEvent}
+          onQuickEditEvent={setQuickEditEvent}
+          highlight={highlight}
+        />
       </main>
-
-      {/* Floating navbar */}
-      <nav className="fixed bottom-0 left-0 right-0 flex justify-center pb-[calc(env(safe-area-inset-bottom)+1.5rem)] px-5 z-40 pointer-events-none">
-        <div className="bg-nav-bg rounded-[28px] shadow-nav px-3 py-2.5 flex items-center pointer-events-auto border border-primary/10">
-          <button type="button" onClick={handleCalendarNavClick}
-            className={`flex flex-col items-center w-20 py-2 rounded-2xl transition-all ${activeTab === 'calendar' ? 'bg-calendar-accent text-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <span className="text-[11px] font-semibold mt-1">Kalender</span>
-          </button>
-
-          <button onClick={handleNewFromNav}
-            className="w-14 h-14 rounded-full bg-green-200 flex items-center justify-center text-green-900 shadow-soft-lg -my-4 mx-3 transition-all hover:scale-105 hover:bg-green-300 active:scale-95 ring-4 ring-background">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
-
-          <button type="button" onClick={handleListNavClick}
-            className={`flex flex-col items-center w-20 py-2 rounded-2xl transition-all ${activeTab === 'list' ? 'bg-list-accent text-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-            </svg>
-            <span className="text-[11px] font-semibold mt-1">Liste</span>
-          </button>
-        </div>
-      </nav>
 
       <AnimatePresence>
         {showNewEvent && (

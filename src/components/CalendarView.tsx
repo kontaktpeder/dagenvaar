@@ -102,15 +102,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     }
   };
 
-  let lastTapTime = 0;
   const handleDayTap = (day: Date) => {
-    const now = Date.now();
-    if (now - lastTapTime < 300) {
-      onCreateEvent(day);
-    } else {
-      onSelectDate(day);
-    }
-    lastTapTime = now;
+    setDaySheetDate(day);
+    onSelectDate(day);
   };
 
   const getMemberForEvent = (event: Event) => {
@@ -218,7 +212,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                   members={members}
                   highlight={highlight}
                   onTap={handleDayTap}
-                  onLongPress={(d) => setDaySheetDate(d)}
+                  onLongPress={(d) => onCreateEvent(d)}
                   getMemberForEvent={getMemberForEvent}
                 />
               );
@@ -233,6 +227,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             date={daySheetDate}
             events={eventsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
             members={members}
+            householdId={householdId}
+            currentMemberId={currentMemberId}
+            highlight={highlight}
             onClose={() => setDaySheetDate(null)}
             onPickEvent={(ev) => {
               setDaySheetDate(null);
@@ -242,6 +239,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               setDaySheetDate(null);
               onCreateEvent(d);
             }}
+            onEditEvent={onEditEvent}
+            onQuickEditEvent={onQuickEditEvent}
           />
         )}
       </AnimatePresence>

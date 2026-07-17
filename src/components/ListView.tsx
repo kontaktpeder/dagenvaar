@@ -28,6 +28,8 @@ interface ListViewProps {
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
   highlight?: Highlight;
+  /** Compact mode inside day dialog — fixed date, no day header/swipe */
+  embedded?: boolean;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -53,7 +55,7 @@ type TimelineEvent = {
   widthPct: number;
 };
 
-const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, onQuickEditEvent, highlight }: ListViewProps) => {
+const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, onQuickEditEvent, highlight, embedded = false }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -71,8 +73,8 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
   }, [initialDate]);
 
   useEffect(() => {
-    onDateChange?.(selectedDate);
-  }, [selectedDate, onDateChange]);
+    if (!embedded) onDateChange?.(selectedDate);
+  }, [selectedDate, onDateChange, embedded]);
 
   const timelineEvents = useMemo<TimelineEvent[]>(() => {
     return events
@@ -145,27 +147,29 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
   return (
     <>
       <motion.div
-        drag="x"
-        dragDirectionLock
+        drag={embedded ? false : 'x'}
+        dragDirectionLock={!embedded}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
-        onDragEnd={handleSwipe}
+        onDragEnd={embedded ? undefined : handleSwipe}
         style={{ touchAction: 'pan-y' }}
         className="flex flex-col h-full"
       >
-        <ViewHeader
-          variant="calendar"
-          onPrev={() => setSelectedDate((d) => subDays(d, 1))}
-          onNext={() => setSelectedDate((d) => addDays(d, 1))}
-          calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
-        >
-          {isToday(selectedDate)
-            ? `I dag · ${format(selectedDate, 'd. MMM', { locale: nb })}`
-            : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
-        </ViewHeader>
+        {!embedded && (
+          <ViewHeader
+            variant="calendar"
+            onPrev={() => setSelectedDate((d) => subDays(d, 1))}
+            onNext={() => setSelectedDate((d) => addDays(d, 1))}
+            calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
+          >
+            {isToday(selectedDate)
+              ? `I dag · ${format(selectedDate, 'd. MMM', { locale: nb })}`
+              : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
+          </ViewHeader>
+        )}
 
         {/* Timeline panel */}
-        <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pt-3 pb-3">
+        <div className={`sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pb-3 ${embedded ? 'pt-1' : 'pt-3'}`}>
           {/* Time-of-day color strip behind the time labels */}
           <div className="relative mb-2 h-7 rounded-lg overflow-hidden">
             <div
@@ -259,7 +263,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         </div>
 
         {/* List items */}
-        <div className="flex-1 overflow-y-auto px-5 pb-32 space-y-2">
+        <div className={`flex-1 overflow-y-auto px-5 space-y-2 ${embedded ? 'pb-6' : 'pb-32'}`}>
           {listItems.map((item) => (
             <motion.div
               key={item.id}
@@ -295,10 +299,8 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           ))}
 
           {events.length === 0 && listItems.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-4xl mb-3">📝</p>
+            <div className="text-center py-8 text-muted-foreground">
               <p className="font-medium">Ingen planer ennå</p>
-              <p className="text-sm">Legg til noe over 👆</p>
             </div>
           )}
         </div>
