@@ -786,6 +786,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_event_for_current_member: {
+        Args: {
+          p_category?: string
+          p_category_label_override?: string
+          p_day_part?: string
+          p_day_part_end?: string
+          p_day_part_start?: string
+          p_end_date?: string
+          p_end_time?: string
+          p_event_date: string
+          p_household_id: string
+          p_location?: string
+          p_notes?: string
+          p_start_time?: string
+          p_title: string
+          p_visibility_type?: string
+        }
+        Returns: Database["public"]["Tables"]["events"]["Row"]
+      }
       current_member_ids: { Args: never; Returns: string[] }
       is_household_member: {
         Args: { p_household_id: string; p_user_id: string }
@@ -808,6 +827,10 @@ export type Database = {
         Returns: string
       }
       leave_household: { Args: never; Returns: Json }
+      sync_event_visible_members: {
+        Args: { p_event_id: string; p_member_ids?: string[] }
+        Returns: undefined
+      }
     }
     Enums: {
       entity_relationship_kind:

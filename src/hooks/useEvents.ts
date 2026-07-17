@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 
 export type Event = Tables<'events'>;
 export type EventComment = Tables<'event_comments'>;
@@ -58,13 +58,45 @@ export function useEventsForDate(householdId: string | undefined, date: string) 
   });
 }
 
+export type CreateEventInput = {
+  household_id: string;
+  title: string;
+  event_date: string;
+  end_date?: string | null;
+  day_part: string;
+  day_part_start?: string | null;
+  day_part_end?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  visibility_type?: string;
+  location?: string | null;
+  notes?: string | null;
+  category: string;
+  category_label_override?: string | null;
+};
+
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (event: TablesInsert<'events'>) => {
-      const { data, error } = await supabase.from('events').insert(event).select().single();
+    mutationFn: async (event: CreateEventInput) => {
+      const { data, error } = await supabase.rpc('create_event_for_current_member', {
+        p_household_id: event.household_id,
+        p_title: event.title,
+        p_event_date: event.event_date,
+        p_end_date: event.end_date ?? event.event_date,
+        p_day_part: event.day_part,
+        p_day_part_start: event.day_part_start ?? undefined,
+        p_day_part_end: event.day_part_end ?? undefined,
+        p_start_time: event.start_time ?? undefined,
+        p_end_time: event.end_time ?? undefined,
+        p_visibility_type: event.visibility_type ?? 'all_members',
+        p_location: event.location ?? undefined,
+        p_notes: event.notes ?? undefined,
+        p_category: event.category,
+        p_category_label_override: event.category_label_override ?? undefined,
+      });
       if (error) throw error;
-      return data;
+      return data as Event;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -146,20 +178,16 @@ export function useEventVisibleMembers(eventId: string | undefined) {
 
 /**
  * Replace the set of members that can see this event.
- * Only meaningful when the event's visibility_type is 'selected_members'.
+ * Pass an empty array to clear (e.g. when switching to all_members or private).
  */
 export async function syncEventVisibleMembers(
   eventId: string,
   memberIds: string[],
 ): Promise<void> {
   const unique = Array.from(new Set(memberIds));
-  const { error: delErr } = await supabase
-    .from('event_visible_members')
-    .delete()
-    .eq('event_id', eventId);
-  if (delErr) throw delErr;
-  if (unique.length === 0) return;
-  const rows = unique.map((mid) => ({ event_id: eventId, member_id: mid }));
-  const { error: insErr } = await supabase.from('event_visible_members').insert(rows);
-  if (insErr) throw insErr;
+  const { error } = await supabase.rpc('sync_event_visible_members', {
+    p_event_id: eventId,
+    p_member_ids: unique,
+  });
+  if (error) throw error;
 }

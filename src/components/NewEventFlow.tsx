@@ -133,7 +133,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
     try {
       const result = await createEvent.mutateAsync({
         household_id: householdId,
-        owner_member_id: currentMemberId,
         title: title.trim(),
         event_date: dateStr,
         end_date: eventEndDate,
@@ -147,7 +146,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         notes: notes || null,
         category: category!,
         category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
-      } as any);
+      });
       if (visibility === 'selected_members') {
         try {
           await syncEventVisibleMembers(result.id, selectedMemberIds);
