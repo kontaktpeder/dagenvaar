@@ -7,6 +7,13 @@ import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
+import {
+  buildSpanSegmentsByDate,
+  isMultiDayEvent,
+  maxSpanLane,
+  MAX_SPAN_LANES,
+  type SpanSegment,
+} from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import ViewHeader from '@/components/ViewHeader';
@@ -509,38 +516,48 @@ const MonthPanel = ({
   onTap,
   onLongPress,
   getMemberForEvent,
-}: MonthPanelProps) => (
-  <div
-    className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 pt-1 pb-2 content-stretch h-full min-h-0 shrink-0 ${
-      interactive ? '' : 'pointer-events-none'
-    }`}
-    style={{ width: width || '33.333%' }}
-  >
-    {days.map((day) => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const inMonth = isSameMonth(day, monthDate);
-      const dayEvents = eventsByDate[dateStr] || neighbourEventsByDate?.[dateStr] || [];
-      return (
-        <DayCell
-          key={dateStr}
-          day={day}
-          dateStr={dateStr}
-          dayEvents={dayEvents}
-          inMonth={inMonth}
-          today={isToday(day)}
-          weekend={isWeekend(day)}
-          isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
-          monthTheme={monthTheme}
-          members={members}
-          highlight={highlight}
-          onTap={onTap}
-          onLongPress={onLongPress}
-          getMemberForEvent={getMemberForEvent}
-        />
-      );
-    })}
-  </div>
-);
+}: MonthPanelProps) => {
+  const spanByDate = useMemo(
+    () => buildSpanSegmentsByDate(days, eventsByDate, neighbourEventsByDate),
+    [days, eventsByDate, neighbourEventsByDate],
+  );
+
+  return (
+    <div
+      className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 pt-1 pb-2 content-stretch h-full min-h-0 shrink-0 ${
+        interactive ? '' : 'pointer-events-none'
+      }`}
+      style={{ width: width || '33.333%' }}
+    >
+      {days.map((day) => {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        const inMonth = isSameMonth(day, monthDate);
+        const allDayEvents = eventsByDate[dateStr] || neighbourEventsByDate?.[dateStr] || [];
+        const dayEvents = allDayEvents.filter((ev) => !isMultiDayEvent(ev));
+        const spanSegments = spanByDate.get(dateStr) || [];
+        return (
+          <DayCell
+            key={dateStr}
+            day={day}
+            dateStr={dateStr}
+            dayEvents={dayEvents}
+            spanSegments={spanSegments}
+            inMonth={inMonth}
+            today={isToday(day)}
+            weekend={isWeekend(day)}
+            isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
+            monthTheme={monthTheme}
+            members={members}
+            highlight={highlight}
+            onTap={onTap}
+            onLongPress={onLongPress}
+            getMemberForEvent={getMemberForEvent}
+          />
+        );
+      })}
+    </div>
+  );
+};
 
 /* ---------- DayCell with long-press ---------- */
 
@@ -548,6 +565,7 @@ interface DayCellProps {
   day: Date;
   dateStr: string;
   dayEvents: Event[];
+  spanSegments: SpanSegment[];
   inMonth: boolean;
   today: boolean;
   weekend: boolean;
@@ -560,13 +578,11 @@ interface DayCellProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
-/** Max event marks shown before +N overflow */
-const MAX_VISIBLE_MARKS = 5;
+/** Max single-day marks shown before +N overflow */
+const MAX_VISIBLE_MARKS = 4;
 
-type EventRow = Event[];
-
-/** Pack events into rows: side-by-side only when same category (max 2 per row). */
-function packEventRows(events: Event[], maxMarks: number): { rows: EventRow[]; overflow: number } {
+/** Pack single-day icons: side-by-side only when same category (max 2 per row). */
+function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; overflow: number } {
   const sorted = [...events].sort((a, b) => {
     const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
     const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
@@ -574,7 +590,7 @@ function packEventRows(events: Event[], maxMarks: number): { rows: EventRow[]; o
     return (a.start_time || '').localeCompare(b.start_time || '');
   });
 
-  const rows: EventRow[] = [];
+  const rows: Event[][] = [];
   let shown = 0;
 
   for (const ev of sorted) {
@@ -596,7 +612,22 @@ function packEventRows(events: Event[], maxMarks: number): { rows: EventRow[]; o
   return { rows, overflow: events.length - shown };
 }
 
-const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlighted, monthTheme, members, highlight, onTap, onLongPress, getMemberForEvent }: DayCellProps) => {
+const DayCell = ({
+  day,
+  dateStr,
+  dayEvents,
+  spanSegments,
+  inMonth: _inMonth,
+  today,
+  weekend,
+  isHighlighted,
+  monthTheme,
+  members: _members,
+  highlight,
+  onTap,
+  onLongPress,
+  getMemberForEvent,
+}: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
     onLongPress: () => onLongPress(day),
   });
@@ -607,6 +638,8 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
   };
 
   const { rows, overflow } = packEventRows(dayEvents, MAX_VISIBLE_MARKS);
+  const laneCount = Math.max(maxSpanLane(spanSegments) + 1, 0);
+  const spanByLane = new Map(spanSegments.map((s) => [s.lane, s]));
 
   const renderEventMark = (ev: Event) => {
     const member = getMemberForEvent(ev);
@@ -635,7 +668,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0.5 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
+      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
         isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
       }`}
       style={
@@ -662,8 +695,35 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       >
         {format(day, 'd')}
       </span>
+
+      {/* Multi-day stripes — always stacked by lane, never side-by-side */}
+      {laneCount > 0 && (
+        <div className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0">
+          {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
+            const seg = spanByLane.get(lane);
+            if (!seg) {
+              return <div key={`lane-${lane}`} className="h-1.5 w-full" aria-hidden />;
+            }
+            const member = getMemberForEvent(seg.event);
+            const visuals = resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
+            const evHighlighted = highlight && highlight.eventId === seg.event.id;
+            return (
+              <div
+                key={seg.event.id}
+                title={seg.event.title}
+                className={`h-1.5 w-[calc(100%+2px)] -mx-px ${visuals.dotColor} ${
+                  seg.isStart ? 'rounded-l-full' : ''
+                } ${seg.isEnd ? 'rounded-r-full' : ''} ${
+                  evHighlighted ? 'ring-1 ring-primary/60 animate-pulse' : ''
+                }`}
+              />
+            );
+          })}
+        </div>
+      )}
+
       {rows.length > 0 && (
-        <div className="mt-0.5 w-full flex flex-col items-center gap-px min-h-0 flex-1">
+        <div className="mt-0.5 w-full flex flex-col items-center gap-px min-h-0 flex-1 px-0.5">
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}

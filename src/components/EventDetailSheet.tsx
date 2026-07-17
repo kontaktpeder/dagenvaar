@@ -5,6 +5,7 @@ import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/h
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
+import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
@@ -52,10 +53,10 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           <h2 className="text-xl font-bold mb-1">{event.title}</h2>
           <p className="text-sm text-muted-foreground">
             {owner?.display_name} · {format(new Date(event.event_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: nb })}
-            {(event as any).end_date && (event as any).end_date !== event.event_date && (
-              <> → {format(new Date((event as any).end_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: nb })}</>
-            )}
           </p>
+          {formatMultiDayLabel(event) && (
+            <p className="text-sm font-medium mt-0.5">{formatMultiDayLabel(event)}</p>
+          )}
           <p className="text-sm text-muted-foreground">
             {(() => {
               const dps = (event as any).day_part_start;

@@ -5,6 +5,7 @@ import { nb } from 'date-fns/locale';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
+import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { Event } from '@/hooks/useEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
@@ -61,7 +62,7 @@ const CalendarDaySheet = ({
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} size={showList ? 'sheet' : 'hug'} zClassName="z-50">
+    <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-50">
       <div className="px-5 pt-5 pb-3 shrink-0">
         <h2 className="text-lg font-bold capitalize">
           {format(date, 'EEEE d. MMMM', { locale: nb })}
@@ -96,9 +97,9 @@ const CalendarDaySheet = ({
             exit={{ opacity: 0 }}
             className="flex flex-col min-h-0 flex-1"
           >
-            <div className="overflow-y-auto overscroll-contain px-5 pb-3 space-y-2 max-h-[min(42dvh,360px)]">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-3 space-y-2 min-h-0">
               {events.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center">
                   <p className="font-medium text-foreground">Dagen er tom</p>
                   <p className="text-sm text-muted-foreground mt-1">Ingen aktiviteter planlagt</p>
                 </div>
@@ -112,6 +113,7 @@ const CalendarDaySheet = ({
                     const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
                     const Icon = meta?.Icon;
                     const timeLabel = formatEventTime(ev);
+                    const multiLabel = formatMultiDayLabel(ev);
 
                     return (
                       <button
@@ -124,6 +126,9 @@ const CalendarDaySheet = ({
                           {Icon && <Icon size={14} className={visuals.iconColor} />}
                           <span className="font-semibold text-sm truncate">{ev.title}</span>
                         </div>
+                        {multiLabel && (
+                          <p className="text-xs font-medium text-foreground/70 mt-0.5">{multiLabel}</p>
+                        )}
                         {timeLabel && (
                           <p className="text-xs text-muted-foreground mt-0.5">{timeLabel}</p>
                         )}
