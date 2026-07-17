@@ -212,15 +212,60 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   return (
     <>
       <div className="flex flex-col h-full min-h-0">
-        <ViewHeader
-          variant="calendar"
-          onPrev={() => navigate(-1)}
-          onNext={() => navigate(1)}
-          onTitleClick={() => setShowYear(true)}
-          calendarStyle={{ background: monthTheme.gradient }}
-        >
-          {format(currentDate, 'MMMM yyyy', { locale: nb })}
-        </ViewHeader>
+        {/* Month header peeks with the same x as the day grid */}
+        <div className="relative rounded-b-3xl overflow-hidden shrink-0">
+          <div className="relative h-[4.25rem] overflow-hidden">
+            <motion.div
+              className="absolute top-0 bottom-0 flex will-change-transform"
+              style={{
+                x,
+                width: pageWidth ? pageWidth * 3 : '300%',
+                left: pageWidth ? -pageWidth : '-100%',
+              }}
+            >
+              <MonthHeaderPanel
+                width={pageWidth}
+                label={format(prevDate, 'MMMM yyyy', { locale: nb })}
+                gradient={getMonthTheme(prevDate).gradient}
+              />
+              <MonthHeaderPanel
+                width={pageWidth}
+                label={format(currentDate, 'MMMM yyyy', { locale: nb })}
+                gradient={monthTheme.gradient}
+                onTitleClick={() => setShowYear(true)}
+              />
+              <MonthHeaderPanel
+                width={pageWidth}
+                label={format(nextDate, 'MMMM yyyy', { locale: nb })}
+                gradient={getMonthTheme(nextDate).gradient}
+              />
+            </motion.div>
+          </div>
+
+          {/* Fixed chevrons over the peeking strip */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-5">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="pointer-events-auto p-2 rounded-full hover:bg-white/15 active:scale-90 transition-all"
+              aria-label="Forrige måned"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12 15L7 10L12 5" className="stroke-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(1)}
+              className="pointer-events-auto p-2 rounded-full hover:bg-white/15 active:scale-90 transition-all"
+              aria-label="Neste måned"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M8 5L13 10L8 15" className="stroke-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
 
         <div className="bg-transparent relative">
           <div className="grid grid-cols-7 px-3 py-3">
@@ -255,7 +300,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             style={{
               x,
               width: pageWidth ? pageWidth * 3 : '300%',
-              // Anchor so the middle month is on screen when x === 0
               left: pageWidth ? -pageWidth : '-100%',
             }}
             drag={paging || !pageWidth ? false : 'x'}
@@ -347,6 +391,36 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     </>
   );
 };
+
+/* ---------- Peeking month header panel ---------- */
+
+const MonthHeaderPanel = ({
+  width,
+  label,
+  gradient,
+  onTitleClick,
+}: {
+  width: number;
+  label: string;
+  gradient: string;
+  onTitleClick?: () => void;
+}) => (
+  <div
+    className="h-full shrink-0 flex items-center justify-center px-14"
+    style={{
+      width: width || '33.333%',
+      background: gradient,
+    }}
+  >
+    {onTitleClick ? (
+      <button type="button" onClick={onTitleClick} className="text-center">
+        <h2 className="text-xl font-extrabold capitalize text-white tracking-wide">{label}</h2>
+      </button>
+    ) : (
+      <h2 className="text-xl font-extrabold capitalize text-white tracking-wide text-center">{label}</h2>
+    )}
+  </div>
+);
 
 /* ---------- Month panel ---------- */
 
