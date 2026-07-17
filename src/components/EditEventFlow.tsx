@@ -216,12 +216,21 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
 
   return (
     <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-[70]">
-      <div className="flex items-center justify-center px-5 pt-4 pb-3 shrink-0">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+        <div className="w-9" aria-hidden />
         <div className="flex gap-1.5">
           {Array.from({ length: STEPS }).map((_, i) => (
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground"
+          aria-label="Lukk"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
       </div>
 
       {/* Content */}
@@ -356,9 +365,13 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           {step === 3 && (
             <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
               <h2 className="text-2xl font-bold">Hva skal skje?</h2>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'} autoFocus
-                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
+                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </motion.div>
           )}
 

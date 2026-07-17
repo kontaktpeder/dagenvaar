@@ -22,9 +22,8 @@ const sizeClass = {
 } as const;
 
 /**
- * Fixed centered card. When the keyboard opens the whole shell lifts above it
- * (overlay padding) so short hug modals stay usable. Sticky footers only need
- * safe-area padding — see PopupStickyFooter.
+ * Fixed centered card. Keyboard lifts the shell via overlay padding —
+ * sheet height stays fixed so content does not violently collapse.
  */
 const CenteredPopup = ({
   onClose,
@@ -49,27 +48,35 @@ const CenteredPopup = ({
       style={
         keyboardOpen
           ? {
-              paddingBottom: keyboardInset + 10,
-              paddingTop: 20,
+              paddingBottom: Math.min(keyboardInset + 8, window.innerHeight * 0.42),
+              paddingTop: 16,
               transition: 'padding-bottom 160ms ease-out',
             }
           : undefined
       }
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-foreground/25" aria-hidden />
+      <div className="absolute inset-0 bg-foreground/40" aria-hidden />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.94 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ type: 'spring', damping: 32, stiffness: 380 }}
         className={cn(
           'relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0',
           sizeClass[size],
-          keyboardOpen && size === 'sheet' && 'max-h-[calc(100%-0.5rem)] h-auto',
           className,
         )}
+        style={
+          keyboardOpen
+            ? {
+                // Cap height to space above keyboard — keep sheet tall, never collapse to content
+                height: size === 'sheet' ? `min(82dvh, calc(100dvh - ${keyboardInset + 36}px))` : undefined,
+                maxHeight: `calc(100dvh - ${keyboardInset + 36}px)`,
+              }
+            : undefined
+        }
         onClick={(e) => e.stopPropagation()}
       >
         {children}

@@ -271,23 +271,17 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     return members.find((m) => m.id === event.owner_member_id);
   };
 
-  if (showYear) {
-    return (
-      <YearView
-        year={year}
-        onSelectMonth={(m) => {
-          jumpToMonth(new Date(year, m, 1));
-          stopPagingAnim();
-          setShowYear(false);
-        }}
-        onBack={() => {
-          stopPagingAnim();
-          setShowYear(false);
-        }}
-        onChangeYear={(y) => jumpToMonth(new Date(y, month, 1))}
-      />
-    );
-  }
+  const openYearView = () => {
+    stopPagingAnim();
+    x.set(0);
+    setShowYear(true);
+  };
+
+  const closeYearView = () => {
+    stopPagingAnim();
+    x.set(0);
+    setShowYear(false);
+  };
 
   const isOnCurrentMonth = isSameMonth(currentDate, new Date());
   const goToToday = () => {
@@ -300,7 +294,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
 
   return (
     <>
-      <div className="flex flex-col h-full min-h-0">
+      <div className="relative flex flex-col h-full min-h-0">
+        <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
         <div className="relative rounded-b-3xl overflow-hidden shrink-0">
           <div className="relative h-[4.25rem] overflow-hidden">
@@ -318,10 +313,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: nb })}
                   gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
-                  onTitleClick={i === WINDOW ? () => {
-                    stopPagingAnim();
-                    setShowYear(true);
-                  } : undefined}
+                  onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
             </motion.div>
@@ -360,9 +352,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               left: pageWidth ? -pageWidth * WINDOW : '-200%',
               touchAction: 'pan-x',
             }}
-            onPanStart={handlePanStart}
-            onPan={handlePan}
-            onPanEnd={handlePanEnd}
+            onPanStart={showYear ? undefined : handlePanStart}
+            onPan={showYear ? undefined : handlePan}
+            onPanEnd={showYear ? undefined : handlePanEnd}
           >
             {stripDates.map((date, i) => {
               const byDate = eventsByOffset[i];
@@ -390,6 +382,30 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             })}
           </motion.div>
         </div>
+        </div>
+
+        <AnimatePresence>
+          {showYear && (
+            <motion.div
+              key="year-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 z-30 bg-background flex flex-col"
+            >
+              <YearView
+                year={year}
+                onSelectMonth={(m) => {
+                  jumpToMonth(new Date(year, m, 1));
+                  closeYearView();
+                }}
+                onBack={closeYearView}
+                onChangeYear={(y) => jumpToMonth(new Date(y, month, 1))}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
@@ -673,13 +689,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
   const theme = getMonthTheme(new Date(year, 0, 1));
 
   return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.9, opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col h-full"
-    >
+    <div className="flex flex-col h-full min-h-0">
       <ViewHeader
         variant="calendar"
         onPrev={() => onChangeYear(year - 1)}
@@ -690,15 +700,16 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         {year}
       </ViewHeader>
 
-      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start">
+      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start overflow-y-auto">
         {months.map((m) => {
           const theme = getMonthTheme(new Date(year, m, 1));
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === m;
           return (
             <button
               key={m}
+              type="button"
               onClick={() => onSelectMonth(m)}
-              className={`rounded-2xl py-4 text-center transition-all duration-200 hover:scale-105 ${
+              className={`rounded-2xl py-4 text-center transition-all duration-200 active:scale-95 ${
                 isCurrentMonth ? 'ring-2 ring-offset-2' : ''
               }`}
               style={{
@@ -713,7 +724,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
