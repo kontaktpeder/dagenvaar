@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { useState, useMemo, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
+import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from 'framer-motion';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import { getMemberColor } from '@/lib/colors';
@@ -39,6 +39,35 @@ const CATEGORY_ORDER: Record<string, number> = {
   other: 6,
 };
 
+/** Commit when dragged past this fraction of width, or with enough velocity */
+const COMMIT_RATIO = 0.22;
+const COMMIT_VELOCITY = 550;
+
+function buildEventsByDate(events: Event[]): Record<string, Event[]> {
+  const map: Record<string, Event[]> = {};
+  events.forEach((e) => {
+    const start = e.event_date;
+    const end = (e as any).end_date || e.event_date;
+    let current = start;
+    while (current <= end) {
+      if (!map[current]) map[current] = [];
+      map[current].push(e);
+      const d = new Date(current + 'T12:00:00');
+      d.setDate(d.getDate() + 1);
+      current = d.toISOString().slice(0, 10);
+    }
+  });
+  return map;
+}
+
+function buildMonthDays(monthDate: Date): Date[] {
+  const monthStart = startOfMonth(monthDate);
+  const monthEnd = endOfMonth(monthDate);
+  const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  return eachDayOfInterval({ start: calStart, end: calEnd });
+}
+
 const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, highlight }: CalendarViewProps) => {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
@@ -49,56 +78,102 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     },
     [onCurrentDateChange],
   );
-  const [direction, setDirection] = useState(0);
   const [showYear, setShowYear] = useState(false);
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
   const [detailEvent, setDetailEvent] = useState<Event | null>(null);
+  const [paging, setPaging] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const prevDate = useMemo(() => startOfMonth(subMonths(currentDate, 1)), [currentDate]);
+  const nextDate = useMemo(() => startOfMonth(addMonths(currentDate, 1)), [currentDate]);
+
+  // Prefetch neighbours so peek never looks empty
+  const { data: prevEvents = [] } = useEventsForMonth(householdId, prevDate.getFullYear(), prevDate.getMonth());
   const { data: events = [] } = useEventsForMonth(householdId, year, month);
+  const { data: nextEvents = [] } = useEventsForMonth(householdId, nextDate.getFullYear(), nextDate.getMonth());
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
-  const eventsByDate = useMemo(() => {
-    const map: Record<string, Event[]> = {};
-    events.forEach((e) => {
-      const start = e.event_date;
-      const end = (e as any).end_date || e.event_date;
-      let current = start;
-      while (current <= end) {
-        if (!map[current]) map[current] = [];
-        map[current].push(e);
-        const d = new Date(current + 'T12:00:00');
-        d.setDate(d.getDate() + 1);
-        current = d.toISOString().slice(0, 10);
-      }
-    });
-    return map;
-  }, [events]);
+  const prevByDate = useMemo(() => buildEventsByDate(prevEvents), [prevEvents]);
+  const eventsByDate = useMemo(() => buildEventsByDate(events), [events]);
+  const nextByDate = useMemo(() => buildEventsByDate(nextEvents), [nextEvents]);
 
-  const days = useMemo(() => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start: calStart, end: calEnd });
-  }, [currentDate]);
+  const prevDays = useMemo(() => buildMonthDays(prevDate), [prevDate]);
+  const days = useMemo(() => buildMonthDays(currentDate), [currentDate]);
+  const nextDays = useMemo(() => buildMonthDays(nextDate), [nextDate]);
 
-  const [navTick, setNavTick] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  const x = useMotionValue(0);
+  const animatingRef = useRef(false);
 
-  const navigate = useCallback((dir: number) => {
-    setDirection(dir);
-    setNavTick((t) => t + 1);
-    setCurrentDate((d) => dir > 0 ? addMonths(d, 1) : subMonths(d, 1));
-  }, [setCurrentDate]);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const measure = () => setPageWidth(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  // Reset strip when month changes externally (header / today)
+  useEffect(() => {
+    x.set(0);
+    animatingRef.current = false;
+    setPaging(false);
+  }, [year, month, x]);
+
+  const snapSpring = { type: 'spring' as const, stiffness: 520, damping: 42, mass: 0.55 };
+
+  const commitMonth = useCallback(
+    (dir: 1 | -1) => {
+      if (!pageWidth || animatingRef.current) return;
+      animatingRef.current = true;
+      setPaging(true);
+      // Strip is anchored with left: -pageWidth (middle month centered).
+      // Next → slide left; prev → slide right.
+      const target = dir > 0 ? -pageWidth : pageWidth;
+      animate(x, target, {
+        ...snapSpring,
+        onComplete: () => {
+          setCurrentDate((d) => (dir > 0 ? addMonths(d, 1) : subMonths(d, 1)));
+          x.set(0);
+          animatingRef.current = false;
+          setPaging(false);
+        },
+      });
+    },
+    [pageWidth, setCurrentDate, x],
+  );
+
+  const navigate = useCallback(
+    (dir: number) => {
+      if (dir === 0) return;
+      commitMonth(dir > 0 ? 1 : -1);
+    },
+    [commitMonth],
+  );
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (!pageWidth || animatingRef.current) return;
     const dx = info.offset.x;
     const vx = info.velocity.x;
-    // Lower thresholds + velocity-aware = feels native and snappy.
-    if (Math.abs(dx) > 40 || Math.abs(vx) > 200) {
-      navigate(dx < 0 || vx < 0 ? 1 : -1);
+    const passed = Math.abs(dx) > pageWidth * COMMIT_RATIO || Math.abs(vx) > COMMIT_VELOCITY;
+
+    if (passed) {
+      // Swipe left (negative x) → next month
+      const dir: 1 | -1 = dx + vx * 0.08 < 0 ? 1 : -1;
+      commitMonth(dir);
+    } else {
+      animatingRef.current = true;
+      animate(x, 0, {
+        ...snapSpring,
+        onComplete: () => {
+          animatingRef.current = false;
+        },
+      });
     }
   };
 
@@ -127,14 +202,16 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
 
   const isOnCurrentMonth = isSameMonth(currentDate, new Date());
   const goToToday = () => {
-    setDirection(currentDate < new Date() ? 1 : -1);
     setCurrentDate(new Date());
   };
 
+  const daySheetEvents = daySheetDate
+    ? eventsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []
+    : [];
+
   return (
     <>
-      <div className="flex flex-col h-full">
-        {/* Month header with dynamic theme */}
+      <div className="flex flex-col h-full min-h-0">
         <ViewHeader
           variant="calendar"
           onPrev={() => navigate(-1)}
@@ -145,7 +222,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           {format(currentDate, 'MMMM yyyy', { locale: nb })}
         </ViewHeader>
 
-        {/* Weekday headers */}
         <div className="bg-transparent relative">
           <div className="grid grid-cols-7 px-3 py-3">
             {WEEKDAYS.map((d, i) => (
@@ -172,60 +248,71 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           })()}
         </div>
 
-        {/* Days grid */}
-        <AnimatePresence mode="wait" custom={direction}>
+        {/* Finger-following 3-month pager */}
+        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-y">
           <motion.div
-            key={`${year}-${month}-${navTick}`}
-            custom={direction}
-            initial={{ x: direction * 100 + '%' }}
-            animate={{ x: 0 }}
-            exit={{ x: -direction * 100 + '%' }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0}
+            className="absolute top-0 bottom-0 flex will-change-transform"
+            style={{
+              x,
+              width: pageWidth ? pageWidth * 3 : '300%',
+              // Anchor so the middle month is on screen when x === 0
+              left: pageWidth ? -pageWidth : '-100%',
+            }}
+            drag={paging || !pageWidth ? false : 'x'}
+            dragDirectionLock
+            dragConstraints={pageWidth ? { left: -pageWidth, right: pageWidth } : { left: 0, right: 0 }}
+            dragElastic={0.12}
             dragMomentum={false}
-            dragTransition={{ bounceStiffness: 0, bounceDamping: 100, power: 0 }}
-            dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 flex-1 pt-1 pb-2 content-stretch touch-none overscroll-none will-change-transform min-h-0"
           >
-            {days.map((day) => {
-              const dateStr = format(day, 'yyyy-MM-dd');
-              const dayEvents = eventsByDate[dateStr] || [];
-              const inMonth = isSameMonth(day, currentDate);
-              const today = isToday(day);
-              const weekend = isWeekend(day);
-              const isHighlighted = highlight && highlight.dateStr === dateStr;
-
-              return (
-                <DayCell
-                  key={dateStr}
-                  day={day}
-                  dateStr={dateStr}
-                  dayEvents={dayEvents}
-                  inMonth={inMonth}
-                  today={today}
-                  weekend={weekend}
-                  isHighlighted={!!isHighlighted}
-                  monthTheme={monthTheme}
-                  members={members}
-                  highlight={highlight}
-                  onTap={handleDayTap}
-                  onLongPress={(d) => onCreateEvent(d)}
-                  getMemberForEvent={getMemberForEvent}
-                />
-              );
-            })}
+            <MonthPanel
+              width={pageWidth}
+              monthDate={prevDate}
+              days={prevDays}
+              eventsByDate={prevByDate}
+              monthTheme={getMonthTheme(prevDate)}
+              members={members}
+              highlight={highlight}
+              interactive={false}
+              onTap={handleDayTap}
+              onLongPress={onCreateEvent}
+              getMemberForEvent={getMemberForEvent}
+            />
+            <MonthPanel
+              width={pageWidth}
+              monthDate={currentDate}
+              days={days}
+              eventsByDate={eventsByDate}
+              monthTheme={monthTheme}
+              members={members}
+              highlight={highlight}
+              interactive={!paging}
+              onTap={handleDayTap}
+              onLongPress={onCreateEvent}
+              getMemberForEvent={getMemberForEvent}
+            />
+            <MonthPanel
+              width={pageWidth}
+              monthDate={nextDate}
+              days={nextDays}
+              eventsByDate={nextByDate}
+              monthTheme={getMonthTheme(nextDate)}
+              members={members}
+              highlight={highlight}
+              interactive={false}
+              onTap={handleDayTap}
+              onLongPress={onCreateEvent}
+              getMemberForEvent={getMemberForEvent}
+            />
           </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
 
       <AnimatePresence>
         {daySheetDate && (
           <CalendarDaySheet
             date={daySheetDate}
-            events={eventsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
+            events={daySheetEvents}
             members={members}
             householdId={householdId}
             currentMemberId={currentMemberId}
@@ -260,6 +347,65 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     </>
   );
 };
+
+/* ---------- Month panel ---------- */
+
+interface MonthPanelProps {
+  width: number;
+  monthDate: Date;
+  days: Date[];
+  eventsByDate: Record<string, Event[]>;
+  monthTheme: ReturnType<typeof getMonthTheme>;
+  members: HouseholdMember[];
+  highlight: Highlight;
+  interactive: boolean;
+  onTap: (day: Date) => void;
+  onLongPress: (day: Date) => void;
+  getMemberForEvent: (event: Event) => HouseholdMember | undefined;
+}
+
+const MonthPanel = ({
+  width,
+  monthDate,
+  days,
+  eventsByDate,
+  monthTheme,
+  members,
+  highlight,
+  interactive,
+  onTap,
+  onLongPress,
+  getMemberForEvent,
+}: MonthPanelProps) => (
+  <div
+    className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 pt-1 pb-2 content-stretch h-full min-h-0 shrink-0 ${
+      interactive ? '' : 'pointer-events-none'
+    }`}
+    style={{ width: width || '33.333%' }}
+  >
+    {days.map((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      return (
+        <DayCell
+          key={dateStr}
+          day={day}
+          dateStr={dateStr}
+          dayEvents={eventsByDate[dateStr] || []}
+          inMonth={isSameMonth(day, monthDate)}
+          today={isToday(day)}
+          weekend={isWeekend(day)}
+          isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
+          monthTheme={monthTheme}
+          members={members}
+          highlight={highlight}
+          onTap={onTap}
+          onLongPress={onLongPress}
+          getMemberForEvent={getMemberForEvent}
+        />
+      );
+    })}
+  </div>
+);
 
 /* ---------- DayCell with long-press ---------- */
 
@@ -321,7 +467,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
   });
 
   const handleClick = () => {
-    if (didFire()) return; // long-press already fired
+    if (didFire()) return;
     onTap(day);
   };
 
