@@ -44,7 +44,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
   const getMemberById = (id: string) => members.find((m) => m.id === id);
 
   return (
-    <CenteredPopup onClose={onClose} size="card" zClassName="z-[60]">
+    <CenteredPopup onClose={onClose} zClassName="z-[60]">
       <div className="flex-1 overflow-y-auto px-5 pt-5 pb-6 min-h-0">
         {/* Event header */}
         <div className={`rounded-2xl p-5 mb-4 ${ownerColor.bg}`}>

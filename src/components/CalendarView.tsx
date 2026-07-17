@@ -40,10 +40,12 @@ const CATEGORY_ORDER: Record<string, number> = {
 };
 
 /** Commit when dragged past this fraction of width, or with enough velocity */
-const COMMIT_RATIO = 0.18;
-const COMMIT_VELOCITY = 400;
+const COMMIT_RATIO = 0.16;
+const COMMIT_VELOCITY = 320;
 /** Months rendered on each side of the center (5 panels total) */
 const WINDOW = 2;
+/** How strongly release velocity projects into month hops (symmetric both ways) */
+const VELOCITY_PROJECT = 0.34;
 
 function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   const map: Record<string, Event[]> = {};
@@ -193,20 +195,31 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         return;
       }
 
-      // Animate across neighbouring panels (capped by window), then commit full hop count
-      const visualHops = Math.max(-WINDOW, Math.min(WINDOW, hops));
-      const target = -visualHops * pageWidth;
+      // Chain one page at a time from *current* x — works equally forward and back,
+      // including when reversing mid-gesture (no absolute target that fights position).
+      const dir: 1 | -1 = hops > 0 ? 1 : -1;
+      let remaining = Math.min(WINDOW, Math.abs(hops));
 
-      animationControlsRef.current = animate(x, target, {
-        ...snapSpring,
-        onComplete: () => {
-          setCurrentDate((d) => (hops > 0 ? addMonths(d, hops) : subMonths(d, -hops)));
-          x.set(0);
-          animatingRef.current = false;
-          setPaging(false);
-          animationControlsRef.current = null;
-        },
-      });
+      const runHop = () => {
+        const target = dir > 0 ? -pageWidth : pageWidth;
+        animationControlsRef.current = animate(x, target, {
+          ...snapSpring,
+          onComplete: () => {
+            setCurrentDate((d) => (dir > 0 ? addMonths(d, 1) : subMonths(d, 1)));
+            x.set(0);
+            remaining -= 1;
+            if (remaining > 0) {
+              runHop();
+            } else {
+              animatingRef.current = false;
+              setPaging(false);
+              animationControlsRef.current = null;
+            }
+          },
+        });
+      };
+
+      runHop();
     },
     [pageWidth, setCurrentDate, x],
   );
@@ -226,17 +239,26 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const handlePanEnd = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
 
-    const projected = x.get() + info.velocity.x * 0.22;
+    const px = x.get();
+    const vx = info.velocity.x;
+    const projected = px + vx * VELOCITY_PROJECT;
     let hops = Math.round(-projected / pageWidth);
 
     if (hops === 0) {
-      const passed =
-        Math.abs(x.get()) > pageWidth * COMMIT_RATIO || Math.abs(info.velocity.x) > COMMIT_VELOCITY;
-      if (passed) {
-        hops = x.get() + info.velocity.x * 0.08 < 0 ? 1 : -1;
+      const flicked = Math.abs(vx) > COMMIT_VELOCITY;
+      const dragged = Math.abs(px) > pageWidth * COMMIT_RATIO;
+      if (flicked || dragged) {
+        // Prefer velocity when it's a clear flick; otherwise use drag position.
+        // Same rule both directions — avoids reverse flicks springing back to center.
+        if (flicked && Math.abs(vx) >= Math.abs(px) * 2.5) {
+          hops = vx < 0 ? 1 : -1;
+        } else {
+          hops = px < 0 ? 1 : -1;
+        }
       }
     }
 
+    hops = Math.max(-WINDOW, Math.min(WINDOW, hops));
     flingToHops(hops);
   };
 

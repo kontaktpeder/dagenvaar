@@ -5,17 +5,16 @@ import { cn } from '@/lib/utils';
 interface CenteredPopupProps {
   onClose: () => void;
   children: ReactNode;
-  /** card ≈ day preview; tall ≈ create/edit wizards */
-  size?: 'card' | 'tall';
+  /** Shared shell — one size for day/detail/create/edit/profile so stacking feels solid */
+  size?: 'sheet';
   className?: string;
   /** Higher z when stacked over another popup */
   zClassName?: string;
 }
 
-const sizeClass = {
-  card: 'max-w-sm h-[min(78dvh,580px)] max-h-[calc(100%-5rem)]',
-  tall: 'max-w-md h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]',
-} as const;
+/** One composition size for all centered modals */
+export const POPUP_SHELL =
+  'max-w-md w-full h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]';
 
 /**
  * Fixed centered card. Shell does not move with the keyboard —
@@ -25,7 +24,7 @@ const sizeClass = {
 const CenteredPopup = ({
   onClose,
   children,
-  size = 'card',
+  size: _size = 'sheet',
   className,
   zClassName = 'z-50',
 }: CenteredPopupProps) => {
@@ -48,8 +47,8 @@ const CenteredPopup = ({
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
         className={cn(
-          'relative z-10 w-full bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden',
-          sizeClass[size],
+          'relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden',
+          POPUP_SHELL,
           className,
         )}
         onClick={(e) => e.stopPropagation()}

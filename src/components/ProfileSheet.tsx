@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useRef, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
-import { Camera } from 'lucide-react';
+import { Camera, ChevronDown } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
 import CenteredPopup from '@/components/CenteredPopup';
@@ -40,11 +40,52 @@ const MemberAvatar = ({ member, size = 'md' }: { member: HouseholdMember; size?:
   );
 };
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-    {children}
-  </h3>
+/** Collapsible folder section inside profile */
+const ProfileFolder = ({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) => (
+  <div className="rounded-2xl border border-border/70 overflow-hidden">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-muted/50 transition-colors"
+      aria-expanded={open}
+    >
+      <span className="text-sm font-semibold">{title}</span>
+      <ChevronDown
+        size={18}
+        strokeWidth={2.25}
+        className={`text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+      />
+    </button>
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          key="body"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border/50">
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
 );
+
+type FolderKey = 'hjem' | 'innstillinger' | 'konto';
 
 const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -59,8 +100,17 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [uploadError, setUploadError] = useState('');
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+  const [openFolders, setOpenFolders] = useState<Record<FolderKey, boolean>>({
+    hjem: true,
+    innstillinger: false,
+    konto: false,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const toggleFolder = (key: FolderKey) => {
+    setOpenFolders((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const leaveHousehold = useMutation({
     mutationFn: async () => {
@@ -203,10 +253,10 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const isOwner = currentMember.role === 'owner';
 
   return (
-    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-8">
-        {/* Deg */}
-        <section className="text-center">
+    <CenteredPopup onClose={onClose} zClassName="z-[60]">
+      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-4 overscroll-contain">
+        {/* Deg — always visible header */}
+        <section className="text-center pb-2">
           <div className="relative w-16 h-16 mx-auto mb-3">
             <MemberAvatar member={currentMember} size="md" />
             <button
@@ -235,10 +285,8 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           <p className="text-sm text-muted-foreground">{household.name}</p>
         </section>
 
-        {/* Hjem */}
-        <section>
-          <SectionLabel>Hjem</SectionLabel>
-          <div className="space-y-2 mb-3">
+        <ProfileFolder title="Hjem" open={openFolders.hjem} onToggle={() => toggleFolder('hjem')}>
+          <div className="space-y-2">
             {members.map((m) => (
               <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
                 <MemberAvatar member={m} size="sm" />
@@ -251,7 +299,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           </div>
 
           {isOwner && (
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
               {!inviteCode ? (
                 <button
                   onClick={() => createInvite.mutate()}
@@ -284,18 +332,17 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               )}
             </div>
           )}
-        </section>
+        </ProfileFolder>
 
-        {/* Innstillinger */}
-        <section>
-          <SectionLabel>Innstillinger</SectionLabel>
+        <ProfileFolder
+          title="Innstillinger"
+          open={openFolders.innstillinger}
+          onToggle={() => toggleFolder('innstillinger')}
+        >
           <CategoryColorSettings member={currentMember} />
-        </section>
+        </ProfileFolder>
 
-        {/* Konto */}
-        <section className="space-y-2">
-          <SectionLabel>Konto</SectionLabel>
-
+        <ProfileFolder title="Konto" open={openFolders.konto} onToggle={() => toggleFolder('konto')}>
           <button
             onClick={handleSignOutClick}
             disabled={isSigningOut}
@@ -387,7 +434,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
           )}
 
-          <div className="pt-4 space-y-3 text-center text-xs text-muted-foreground">
+          <div className="pt-2 space-y-3 text-center text-xs text-muted-foreground">
             <div className="flex items-center justify-center gap-4">
               <a
                 href="https://pastelly.no/personvern"
@@ -406,7 +453,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
             <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
           </div>
-        </section>
+        </ProfileFolder>
       </div>
 
       <AnimatePresence>

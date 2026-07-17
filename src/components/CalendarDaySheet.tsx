@@ -9,6 +9,7 @@ import type { Event } from '@/hooks/useEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import ListView from '@/components/ListView';
+import CenteredPopup from '@/components/CenteredPopup';
 
 interface CalendarDaySheetProps {
   date: Date;
@@ -59,71 +60,51 @@ const CalendarDaySheet = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center px-5 py-10"
-      onClick={handleDismiss}
-    >
-      <div className="absolute inset-0 bg-foreground/25" aria-hidden />
+    <CenteredPopup onClose={handleDismiss} zClassName="z-50">
+      <div className="px-5 pt-5 pb-3 shrink-0">
+        <h2 className="text-lg font-bold capitalize">
+          {format(date, 'EEEE d. MMMM', { locale: nb })}
+        </h2>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className={`relative z-10 w-full max-w-sm bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden ${
-          showList
-            ? 'h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]'
-            : 'aspect-[4/5] max-h-[min(78dvh,580px)]'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 pt-5 pb-3 shrink-0">
-          <h2 className="text-lg font-bold capitalize">
-            {format(date, 'EEEE d. MMMM', { locale: nb })}
-          </h2>
-        </div>
-
-        <AnimatePresence mode="wait" initial={false}>
-          {showList ? (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 overflow-hidden"
-            >
-              <ListView
-                householdId={householdId}
-                members={members}
-                currentMemberId={currentMemberId}
-                initialDate={date}
-                embedded
-                highlight={highlight}
-                onEditEvent={onEditEvent}
-                onQuickEditEvent={onQuickEditEvent}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="preview"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 flex flex-col"
-            >
-              <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-2">
-                {events.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <p className="font-medium text-foreground">Dagen er tom</p>
-                    <p className="text-sm text-muted-foreground mt-1">Ingen aktiviteter planlagt</p>
-                  </div>
-                ) : (
-                  [...events]
-                    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
-                    .map((ev) => {
+      <AnimatePresence mode="wait" initial={false}>
+        {showList ? (
+          <motion.div
+            key="list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 overflow-hidden"
+          >
+            <ListView
+              householdId={householdId}
+              members={members}
+              currentMemberId={currentMemberId}
+              initialDate={date}
+              embedded
+              highlight={highlight}
+              onEditEvent={onEditEvent}
+              onQuickEditEvent={onQuickEditEvent}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="preview"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 flex flex-col"
+          >
+            <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-2">
+              {events.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="font-medium text-foreground">Dagen er tom</p>
+                  <p className="text-sm text-muted-foreground mt-1">Ingen aktiviteter planlagt</p>
+                </div>
+              ) : (
+                [...events]
+                  .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+                  .map((ev) => {
                     const member = getMember(ev.owner_member_id);
                     const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
                     const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
@@ -148,30 +129,29 @@ const CalendarDaySheet = ({
                       </button>
                     );
                   })
-                )}
-              </div>
+              )}
+            </div>
 
-              <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shrink-0 space-y-2 border-t border-border/60">
-                <button
-                  type="button"
-                  onClick={() => setShowList(true)}
-                  className="w-full rounded-2xl bg-primary text-primary-foreground py-3 font-semibold transition-all active:scale-95"
-                >
-                  Se liste
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onCreateForDate(date)}
-                  className="w-full rounded-2xl bg-green-200 text-green-900 py-3 font-semibold transition-all hover:bg-green-300 active:scale-95"
-                >
-                  Ny aktivitet
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
+            <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shrink-0 space-y-2 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() => setShowList(true)}
+                className="w-full rounded-2xl bg-primary text-primary-foreground py-3 font-semibold transition-all active:scale-95"
+              >
+                Se liste
+              </button>
+              <button
+                type="button"
+                onClick={() => onCreateForDate(date)}
+                className="w-full rounded-2xl bg-green-200 text-green-900 py-3 font-semibold transition-all hover:bg-green-300 active:scale-95"
+              >
+                Ny aktivitet
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </CenteredPopup>
   );
 };
 

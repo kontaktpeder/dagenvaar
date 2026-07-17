@@ -228,7 +228,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} size="tall" zClassName="z-[70]">
+    <CenteredPopup onClose={handleDismiss} zClassName="z-[70]">
       {/* Header — step progress only; backdrop = back */}
       <div className="flex items-center justify-center px-5 pt-4 pb-3 shrink-0">
         <div className="flex gap-1.5">
