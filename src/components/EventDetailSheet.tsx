@@ -7,6 +7,8 @@ import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface EventDetailSheetProps {
   event: Event;
@@ -44,9 +46,8 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
   const getMemberById = (id: string) => members.find((m) => m.id === id);
 
   return (
-    <CenteredPopup onClose={onClose} zClassName="z-[60]">
-      <div className="flex-1 overflow-y-auto px-5 pt-5 pb-6 min-h-0">
-        {/* Event header */}
+    <CenteredPopup onClose={onClose} size="hug" zClassName="z-[60]">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-5 pb-4 min-h-0 max-h-[min(52dvh,440px)]">
         <div className={`rounded-2xl p-5 mb-4 ${ownerColor.bg}`}>
           <h2 className="text-xl font-bold mb-1">{event.title}</h2>
           <p className="text-sm text-muted-foreground">
@@ -85,11 +86,10 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           })()}
         </div>
 
-        {/* Comments */}
-        <div className="mb-4">
+        <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Kommentarer</h3>
           {comments.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-3">
               Ingen kommentarer ennå
             </p>
           )}
@@ -102,7 +102,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
                   <div className={`w-8 h-8 rounded-full ${senderColor.bg} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                     {sender?.display_name?.charAt(0) || '?'}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">{sender?.display_name || 'Ukjent'}</span>
                       <span className="text-xs text-muted-foreground">
@@ -116,20 +116,23 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
             })}
           </div>
         </div>
+      </div>
 
-        {/* Add comment */}
-        <div className="flex gap-2 mb-4">
+      <PopupStickyFooter className="space-y-2">
+        <div className="flex gap-2">
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+            onFocus={scrollFocusIntoView}
             placeholder="Skriv en kommentar..."
-            className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 min-w-0 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
+            type="button"
             onClick={handleAddComment}
             disabled={!comment.trim()}
-            className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+            className="shrink-0 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40 active:scale-95"
           >
             Send
           </button>
@@ -137,8 +140,9 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
 
         {event.owner_member_id === currentMemberId && onQuickEdit && (
           <button
+            type="button"
             onClick={() => onQuickEdit(event)}
-            className="w-full rounded-xl bg-primary/15 hover:bg-primary/25 py-3 text-sm text-primary font-semibold transition-colors mb-2"
+            className="w-full rounded-2xl bg-primary/15 hover:bg-primary/25 py-3.5 text-sm text-primary font-semibold transition-colors active:scale-95"
           >
             Endre hendelse
           </button>
@@ -146,13 +150,14 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
 
         {event.owner_member_id === currentMemberId && (
           <button
+            type="button"
             onClick={handleDelete}
-            className="w-full rounded-xl border border-destructive/30 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-full rounded-2xl border border-destructive/30 py-3.5 text-sm text-destructive hover:bg-destructive/10 transition-colors active:scale-95"
           >
             Slett hendelse
           </button>
         )}
-      </div>
+      </PopupStickyFooter>
     </CenteredPopup>
   );
 };

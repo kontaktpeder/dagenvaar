@@ -228,7 +228,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} zClassName="z-[70]">
+    <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-[70]">
       {/* Header — step progress only; backdrop = back */}
       <div className="flex items-center justify-center px-5 pt-4 pb-3 shrink-0">
         <div className="flex gap-1.5">
@@ -584,12 +584,11 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         </AnimatePresence>
       </div>
 
-      {/* Bottom button */}
-      <PopupStickyFooter className="px-5 pt-3">
+      <PopupStickyFooter>
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
-          className="w-full rounded-2xl bg-green-200 text-green-900 py-4 font-semibold disabled:opacity-40 transition-all text-lg hover:bg-green-300 active:scale-95"
+          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300 active:scale-95"
         >
           {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse'}
         </button>

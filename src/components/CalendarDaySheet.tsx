@@ -10,6 +10,7 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import ListView from '@/components/ListView';
 import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
 
 interface CalendarDaySheetProps {
   date: Date;
@@ -60,7 +61,7 @@ const CalendarDaySheet = ({
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} zClassName="z-50">
+    <CenteredPopup onClose={handleDismiss} size={showList ? 'sheet' : 'hug'} zClassName="z-50">
       <div className="px-5 pt-5 pb-3 shrink-0">
         <h2 className="text-lg font-bold capitalize">
           {format(date, 'EEEE d. MMMM', { locale: nb })}
@@ -93,11 +94,11 @@ const CalendarDaySheet = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 min-h-0 flex flex-col"
+            className="flex flex-col min-h-0 flex-1"
           >
-            <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-2">
+            <div className="overflow-y-auto overscroll-contain px-5 pb-3 space-y-2 max-h-[min(42dvh,360px)]">
               {events.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="flex flex-col items-center justify-center py-8 text-center">
                   <p className="font-medium text-foreground">Dagen er tom</p>
                   <p className="text-sm text-muted-foreground mt-1">Ingen aktiviteter planlagt</p>
                 </div>
@@ -117,7 +118,7 @@ const CalendarDaySheet = ({
                         key={ev.id}
                         type="button"
                         onClick={() => onPickEvent(ev)}
-                        className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all active:scale-[0.98]`}
+                        className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all active:scale-95`}
                       >
                         <div className="flex items-center gap-2">
                           {Icon && <Icon size={14} className={visuals.iconColor} />}
@@ -132,22 +133,22 @@ const CalendarDaySheet = ({
               )}
             </div>
 
-            <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shrink-0 space-y-2 border-t border-border/60">
+            <PopupStickyFooter className="space-y-2">
               <button
                 type="button"
                 onClick={() => setShowList(true)}
-                className="w-full rounded-2xl bg-primary text-primary-foreground py-3 font-semibold transition-all active:scale-95"
+                className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold transition-all active:scale-95"
               >
                 Se liste
               </button>
               <button
                 type="button"
                 onClick={() => onCreateForDate(date)}
-                className="w-full rounded-2xl bg-green-200 text-green-900 py-3 font-semibold transition-all hover:bg-green-300 active:scale-95"
+                className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold transition-all hover:bg-green-300 active:scale-95"
               >
                 Ny aktivitet
               </button>
-            </div>
+            </PopupStickyFooter>
           </motion.div>
         )}
       </AnimatePresence>

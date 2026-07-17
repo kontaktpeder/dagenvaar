@@ -277,9 +277,13 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         year={year}
         onSelectMonth={(m) => {
           jumpToMonth(new Date(year, m, 1));
+          stopPagingAnim();
           setShowYear(false);
         }}
-        onBack={() => setShowYear(false)}
+        onBack={() => {
+          stopPagingAnim();
+          setShowYear(false);
+        }}
         onChangeYear={(y) => jumpToMonth(new Date(y, month, 1))}
       />
     );
@@ -314,7 +318,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: nb })}
                   gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
-                  onTitleClick={i === WINDOW ? () => setShowYear(true) : undefined}
+                  onTitleClick={i === WINDOW ? () => {
+                    stopPagingAnim();
+                    setShowYear(true);
+                  } : undefined}
                 />
               ))}
             </motion.div>

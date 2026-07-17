@@ -10,7 +10,8 @@ export function scrollElementIntoContainer(el: HTMLElement, opts?: { footerReser
 
     const parentRect = parent.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const footerReserve = opts?.footerReserve ?? 72;
+    // Footer CTAs ~56–72px; shell already lifts for keyboard
+    const footerReserve = opts?.footerReserve ?? 80;
     const topPad = 12;
     const visibleBottom = parentRect.bottom - footerReserve;
 

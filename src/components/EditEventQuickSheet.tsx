@@ -198,7 +198,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   );
 
   return (
-    <CenteredPopup onClose={onClose} zClassName="z-[70]">
+    <CenteredPopup onClose={onClose} size="sheet" zClassName="z-[70]">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
         <h2 className="text-lg font-bold">Rask redigering</h2>
       </div>
@@ -439,8 +439,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
 
         </div>
 
-        {/* Footer */}
-        <PopupStickyFooter className="px-5 pt-3 border-t border-border">
+        <PopupStickyFooter>
           <button
             onClick={handleSubmit}
             disabled={!canSave || updateEvent.isPending}
