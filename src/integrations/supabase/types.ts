@@ -14,6 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
+      entities: {
+        Row: {
+          created_at: string
+          id: string
+          importance: number
+          last_seen_at: string | null
+          metadata: Json
+          name: string
+          owner_context: Database["public"]["Enums"]["owner_context"]
+          slug: string
+          summary: string | null
+          type: Database["public"]["Enums"]["entity_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          importance?: number
+          last_seen_at?: string | null
+          metadata?: Json
+          name: string
+          owner_context?: Database["public"]["Enums"]["owner_context"]
+          slug: string
+          summary?: string | null
+          type: Database["public"]["Enums"]["entity_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          importance?: number
+          last_seen_at?: string | null
+          metadata?: Json
+          name?: string
+          owner_context?: Database["public"]["Enums"]["owner_context"]
+          slug?: string
+          summary?: string | null
+          type?: Database["public"]["Enums"]["entity_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      entity_relationships: {
+        Row: {
+          created_at: string
+          from_entity_id: string
+          id: string
+          kind: Database["public"]["Enums"]["entity_relationship_kind"]
+          metadata: Json
+          to_entity_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_entity_id: string
+          id?: string
+          kind?: Database["public"]["Enums"]["entity_relationship_kind"]
+          metadata?: Json
+          to_entity_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_entity_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["entity_relationship_kind"]
+          metadata?: Json
+          to_entity_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_relationships_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relationships_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_signals: {
+        Row: {
+          created_at: string
+          entity_id: string
+          external_ref: string
+          id: string
+          link_source: string
+          occurred_at: string | null
+          raw_signal_id: string | null
+          signal_type: string
+          snippet: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          external_ref: string
+          id?: string
+          link_source?: string
+          occurred_at?: string | null
+          raw_signal_id?: string | null
+          signal_type: string
+          snippet?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          external_ref?: string
+          id?: string
+          link_source?: string
+          occurred_at?: string | null
+          raw_signal_id?: string | null
+          signal_type?: string
+          snippet?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_signals_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_suggestions: {
+        Row: {
+          confidence: string
+          created_at: string
+          example_count: number
+          id: string
+          known_identity_id: string | null
+          metadata: Json
+          owner_context: Database["public"]["Enums"]["owner_context"] | null
+          proposed_name: string
+          proposed_type: Database["public"]["Enums"]["entity_type"]
+          raw_signal_id: string | null
+          reason: string
+          snoozed_until: string | null
+          status: string
+          suggestion_key: string
+          suggestion_reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence: string
+          created_at?: string
+          example_count?: number
+          id?: string
+          known_identity_id?: string | null
+          metadata?: Json
+          owner_context?: Database["public"]["Enums"]["owner_context"] | null
+          proposed_name: string
+          proposed_type: Database["public"]["Enums"]["entity_type"]
+          raw_signal_id?: string | null
+          reason: string
+          snoozed_until?: string | null
+          status?: string
+          suggestion_key: string
+          suggestion_reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          example_count?: number
+          id?: string
+          known_identity_id?: string | null
+          metadata?: Json
+          owner_context?: Database["public"]["Enums"]["owner_context"] | null
+          proposed_name?: string
+          proposed_type?: Database["public"]["Enums"]["entity_type"]
+          raw_signal_id?: string | null
+          reason?: string
+          snoozed_until?: string | null
+          status?: string
+          suggestion_key?: string
+          suggestion_reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_suggestions_known_identity_id_fkey"
+            columns: ["known_identity_id"]
+            isOneToOne: false
+            referencedRelation: "known_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_comments: {
         Row: {
           body: string
@@ -285,6 +493,74 @@ export type Database = {
         }
         Relationships: []
       }
+      known_identities: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          domain: string | null
+          email: string | null
+          entity_id: string | null
+          external_key: string
+          first_seen_at: string
+          handle: string | null
+          id: string
+          identity_type: string
+          ignored_at: string | null
+          last_seen_at: string
+          metadata: Json
+          provider: string
+          seen_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          domain?: string | null
+          email?: string | null
+          entity_id?: string | null
+          external_key: string
+          first_seen_at?: string
+          handle?: string | null
+          id?: string
+          identity_type: string
+          ignored_at?: string | null
+          last_seen_at?: string
+          metadata?: Json
+          provider: string
+          seen_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          domain?: string | null
+          email?: string | null
+          entity_id?: string | null
+          external_key?: string
+          first_seen_at?: string
+          handle?: string | null
+          id?: string
+          identity_type?: string
+          ignored_at?: string | null
+          last_seen_at?: string
+          metadata?: Json
+          provider?: string
+          seen_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "known_identities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_item_visible_members: {
         Row: {
           created_at: string
@@ -375,6 +651,99 @@ export type Database = {
           },
         ]
       }
+      raw_signals: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          external_thread_id: string | null
+          id: string
+          metadata: Json
+          occurred_at: string | null
+          parsed_at: string | null
+          raw_text: string
+          source: string
+          status: string
+          summary: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          external_thread_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string | null
+          parsed_at?: string | null
+          raw_text: string
+          source: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          external_thread_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string | null
+          parsed_at?: string | null
+          raw_text?: string
+          source?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      signal_identities: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          identity_id: string
+          identity_role: string
+          signal_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          identity_id: string
+          identity_role: string
+          signal_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          identity_id?: string
+          identity_role?: string
+          signal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_identities_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "known_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_identities_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "raw_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -441,7 +810,15 @@ export type Database = {
       leave_household: { Args: never; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      entity_relationship_kind:
+        | "works_on"
+        | "customer_of"
+        | "member_of"
+        | "owns"
+        | "blocked_by"
+        | "related_to"
+      entity_type: "person" | "company" | "project" | "goal" | "commitment"
+      owner_context: "personal" | "peder-enk" | "gold-of-sicily" | "unknown"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -568,6 +945,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      entity_relationship_kind: [
+        "works_on",
+        "customer_of",
+        "member_of",
+        "owns",
+        "blocked_by",
+        "related_to",
+      ],
+      entity_type: ["person", "company", "project", "goal", "commitment"],
+      owner_context: ["personal", "peder-enk", "gold-of-sicily", "unknown"],
+    },
   },
 } as const
