@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
@@ -101,12 +102,25 @@ const AuthPage = () => {
     mode === 'login' ? 'Logg inn' : mode === 'signup' ? 'Opprett konto' : 'Send lenke';
 
   return (
-    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+    <KeyboardAwareScreen
+      asForm
+      onSubmit={handleSubmit}
+      contentClassName="flex flex-col justify-center pb-6"
+      footer={
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300 disabled:opacity-60"
+        >
+          {busy ? 'Sender...' : submitLabel}
+        </button>
+      }
+    >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
         <h1 className="text-3xl font-bold text-center mb-2">{title}</h1>
         <p className="text-muted-foreground text-center mb-8">{subtitle}</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="E-post" required autoComplete="email" onFocus={scrollFocusIntoView}
@@ -122,19 +136,11 @@ const AuthPage = () => {
           )}
 
           {error && <p className="text-destructive text-sm text-center">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300 disabled:opacity-60"
-          >
-            {busy ? 'Sender...' : submitLabel}
-          </button>
-        </form>
+        </div>
 
         {mode === 'login' && (
           <p className="text-center mt-4 text-sm">
-            <button onClick={() => switchMode('forgot')} className="text-muted-foreground underline underline-offset-2">
+            <button type="button" onClick={() => switchMode('forgot')} className="text-muted-foreground underline underline-offset-2">
               Glemt passord?
             </button>
           </p>
@@ -143,18 +149,18 @@ const AuthPage = () => {
         <p className="text-center mt-6 text-sm text-muted-foreground">
           {mode === 'signup' ? (
             <>Har du allerede konto?{' '}
-              <button onClick={() => switchMode('login')} className="text-foreground font-medium underline underline-offset-2">Logg inn</button>
+              <button type="button" onClick={() => switchMode('login')} className="text-foreground font-medium underline underline-offset-2">Logg inn</button>
             </>
           ) : mode === 'forgot' ? (
-            <button onClick={() => switchMode('login')} className="text-foreground font-medium underline underline-offset-2">Tilbake til innlogging</button>
+            <button type="button" onClick={() => switchMode('login')} className="text-foreground font-medium underline underline-offset-2">Tilbake til innlogging</button>
           ) : (
             <>Har du ikke konto?{' '}
-              <button onClick={() => switchMode('signup')} className="text-foreground font-medium underline underline-offset-2">Opprett konto</button>
+              <button type="button" onClick={() => switchMode('signup')} className="text-foreground font-medium underline underline-offset-2">Opprett konto</button>
             </>
           )}
         </p>
       </motion.div>
-    </div>
+    </KeyboardAwareScreen>
   );
 };
 

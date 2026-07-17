@@ -13,6 +13,7 @@ import {
   subscribeRecoveryState,
 } from '@/lib/auth/recoveryState';
 import { shouldPromoteRecoveryPage } from '@/lib/auth/recoveryGating';
+import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 type PageState = 'checking' | 'ready' | 'submitting' | 'success' | 'error';
 
@@ -185,12 +186,25 @@ const AuthUpdatePassword = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+    <KeyboardAwareScreen
+      asForm
+      onSubmit={handleSubmit}
+      contentClassName="flex flex-col justify-center pb-6"
+      footer={
+        <button
+          type="submit"
+          disabled={state === 'submitting' || state === 'success'}
+          className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300 disabled:opacity-60"
+        >
+          {state === 'submitting' ? 'Lagrer...' : state === 'success' ? 'Ferdig ✓' : 'Lagre nytt passord'}
+        </button>
+      }
+    >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
         <h1 className="text-3xl font-bold text-center mb-2">Nytt passord 🔑</h1>
         <p className="text-muted-foreground text-center mb-8">Velg et nytt passord for kontoen din</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <input
             type="password"
             value={password}
@@ -214,16 +228,9 @@ const AuthUpdatePassword = () => {
             className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
           />
           {error && <p className="text-destructive text-sm text-center">{error}</p>}
-          <button
-            type="submit"
-            disabled={state === 'submitting' || state === 'success'}
-            className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300 disabled:opacity-60"
-          >
-            {state === 'submitting' ? 'Lagrer...' : state === 'success' ? 'Ferdig ✓' : 'Lagre nytt passord'}
-          </button>
-        </form>
+        </div>
       </motion.div>
-    </div>
+    </KeyboardAwareScreen>
   );
 };
 

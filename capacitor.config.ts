@@ -22,7 +22,8 @@ const config: CapacitorConfig = {
       backgroundColor: '#fbf9f6',
     },
     Keyboard: {
-      resize: 'native',
+      // App manages sticky CTAs via useKeyboardInset — avoid WebView resize fighting padding.
+      resize: 'none',
       resizeOnFullScreen: true,
     },
   },

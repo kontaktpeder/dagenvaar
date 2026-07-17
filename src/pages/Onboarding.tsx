@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { COLOR_TOKEN_OPTIONS } from '@/lib/colors';
+import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 interface OnboardingPageProps {
   onComplete: () => void;
@@ -73,12 +74,23 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-y-auto py-safe px-6 bg-background flex items-center justify-center">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+    <KeyboardAwareScreen
+      asForm
+      onSubmit={handleSubmit}
+      contentClassName="pb-6"
+      footer={
+        <button type="submit" disabled={isPending}
+          className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50">
+          {isPending
+            ? (mode === 'create' ? 'Oppretter...' : 'Kobler til...')
+            : (mode === 'create' ? 'Kom i gang ✨' : 'Bli med 🎉')}
+        </button>
+      }
+    >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
         <h1 className="text-3xl font-bold text-center mb-2">Velkommen! 🏡</h1>
         <p className="text-muted-foreground text-center mb-6">La oss sette opp hjemmet ditt</p>
 
-        {/* Mode toggle */}
         <div className="flex rounded-xl bg-muted p-1 mb-6">
           <button type="button" onClick={() => { setMode('create'); setError(''); }}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === 'create' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>
@@ -90,7 +102,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-5">
           <div>
             <label className="text-sm font-medium mb-2 block">Hva heter du?</label>
             <input type="text" onFocus={scrollFocusIntoView} value={displayName} onChange={(e) => setDisplayName(e.target.value)}
@@ -127,16 +139,9 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
           </div>
 
           {error && <p className="text-destructive text-sm text-center">{error}</p>}
-
-          <button type="submit" disabled={isPending}
-            className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50">
-            {isPending
-              ? (mode === 'create' ? 'Oppretter...' : 'Kobler til...')
-              : (mode === 'create' ? 'Kom i gang ✨' : 'Bli med 🎉')}
-          </button>
-        </form>
+        </div>
       </motion.div>
-    </div>
+    </KeyboardAwareScreen>
   );
 };
 
