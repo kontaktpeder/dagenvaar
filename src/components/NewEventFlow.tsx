@@ -13,6 +13,7 @@ import {
   timeRangeToDayParts,
 } from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import CenteredPopup from '@/components/CenteredPopup';
 
 interface NewEventFlowProps {
   householdId: string;
@@ -173,15 +174,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background flex flex-col"
-    >
+    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <button onClick={step > 1 ? () => setStep((s) => s - 1) : onClose} className="p-2 rounded-full hover:bg-muted">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+        <button type="button" onClick={step > 1 ? () => setStep((s) => s - 1) : onClose} className="p-2 rounded-full hover:bg-muted">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <div className="flex gap-1.5">
@@ -189,13 +185,13 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
-        <button onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto pb-8">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
@@ -456,16 +452,16 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       </div>
 
       {/* Bottom button */}
-      <div className="px-5 pb-8 pt-4">
+      <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shrink-0">
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
           className="w-full rounded-2xl bg-green-200 text-green-900 py-4 font-semibold disabled:opacity-40 transition-all text-lg hover:bg-green-300 active:scale-95"
         >
-          {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse ✨'}
+          {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse'}
         </button>
       </div>
-    </motion.div>
+    </CenteredPopup>
   );
 };
 

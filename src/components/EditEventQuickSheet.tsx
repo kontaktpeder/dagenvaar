@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
@@ -12,6 +11,7 @@ import {
 } from '@/lib/dayParts';
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import CenteredPopup from '@/components/CenteredPopup';
 
 interface EditEventQuickSheetProps {
   event: Event;
@@ -174,33 +174,15 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col"
-    >
-      <div className="absolute inset-0 bg-foreground/20" onClick={onClose} />
+    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[70]">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+        <h2 className="text-lg font-bold">Rask redigering</h2>
+        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
+      </div>
 
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="relative mt-auto bg-background rounded-t-3xl max-h-[92vh] flex flex-col"
-      >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-border" />
-        </div>
-
-        <div className="flex items-center justify-between px-5 pt-2 pb-3">
-          <h2 className="text-lg font-bold">Rask redigering</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5">
+      <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5 min-h-0">
           {/* Tittel */}
           <div>
             <SectionTitle>Tittel</SectionTitle>
@@ -422,17 +404,16 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 pt-3 pb-6 border-t border-border bg-background">
+        <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-border bg-background shrink-0">
           <button
             onClick={handleSubmit}
             disabled={!canSave || updateEvent.isPending}
             className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 hover:bg-green-300 active:scale-95 transition-all"
           >
-            {updateEvent.isPending ? 'Lagrer...' : 'Lagre ✨'}
+            {updateEvent.isPending ? 'Lagrer...' : 'Lagre'}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+    </CenteredPopup>
   );
 };
 
