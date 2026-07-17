@@ -188,7 +188,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             dragTransition={{ bounceStiffness: 0, bounceDamping: 100, power: 0 }}
             dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 auto-rows-[minmax(0,1fr)] px-3 flex-1 pt-1 pb-2 content-stretch touch-none overscroll-none will-change-transform min-h-0"
+            className="grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 flex-1 pt-1 pb-2 content-stretch touch-none overscroll-none will-change-transform min-h-0"
           >
             {days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
@@ -279,8 +279,41 @@ interface DayCellProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
-/** Max icons shown per day cell: 2 across × 3 rows */
-const MAX_VISIBLE_MARKS = 6;
+/** Max event marks shown before +N overflow */
+const MAX_VISIBLE_MARKS = 5;
+
+type EventRow = Event[];
+
+/** Pack events into rows: side-by-side only when same category (max 2 per row). */
+function packEventRows(events: Event[], maxMarks: number): { rows: EventRow[]; overflow: number } {
+  const sorted = [...events].sort((a, b) => {
+    const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
+    const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
+    if (aRank !== bRank) return aRank - bRank;
+    return (a.start_time || '').localeCompare(b.start_time || '');
+  });
+
+  const rows: EventRow[] = [];
+  let shown = 0;
+
+  for (const ev of sorted) {
+    if (shown >= maxMarks) break;
+    const cat = ev.category ?? 'other';
+    const last = rows[rows.length - 1];
+    if (
+      last &&
+      last.length < 2 &&
+      (last[0].category ?? 'other') === cat
+    ) {
+      last.push(ev);
+    } else {
+      rows.push([ev]);
+    }
+    shown += 1;
+  }
+
+  return { rows, overflow: events.length - shown };
+}
 
 const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlighted, monthTheme, members, highlight, onTap, onLongPress, getMemberForEvent }: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
@@ -292,14 +325,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
     onTap(day);
   };
 
-  const sortedEvents = [...dayEvents].sort((a, b) => {
-    const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
-    const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
-    if (aRank !== bRank) return aRank - bRank;
-    return (a.start_time || '').localeCompare(b.start_time || '');
-  });
-  const visibleEvents = sortedEvents.slice(0, MAX_VISIBLE_MARKS);
-  const overflowCount = dayEvents.length - visibleEvents.length;
+  const { rows, overflow } = packEventRows(dayEvents, MAX_VISIBLE_MARKS);
 
   const renderEventMark = (ev: Event) => {
     const member = getMemberForEvent(ev);
@@ -328,7 +354,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
+      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0.5 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
         !inMonth ? 'opacity-25' : ''
       } ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
       style={
@@ -355,14 +381,19 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       >
         {format(day, 'd')}
       </span>
-      {visibleEvents.length > 0 && (
-        <div className="mt-0.5 w-full px-0.5 flex flex-col items-center gap-px min-h-0 flex-1">
-          <div className="grid grid-cols-2 gap-px justify-items-center content-start w-full max-w-[2.25rem]">
-            {visibleEvents.map((ev) => renderEventMark(ev))}
-          </div>
-          {overflowCount > 0 && (
+      {rows.length > 0 && (
+        <div className="mt-0.5 w-full flex flex-col items-center gap-px min-h-0 flex-1">
+          {rows.map((row, i) => (
+            <div
+              key={row.map((e) => e.id).join('-') || i}
+              className={`flex items-center justify-center gap-px ${row.length > 1 ? 'flex-row' : 'flex-col'}`}
+            >
+              {row.map((ev) => renderEventMark(ev))}
+            </div>
+          ))}
+          {overflow > 0 && (
             <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0">
-              +{overflowCount}
+              +{overflow}
             </div>
           )}
         </div>
