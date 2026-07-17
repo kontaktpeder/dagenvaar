@@ -188,7 +188,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             dragTransition={{ bounceStiffness: 0, bounceDamping: 100, power: 0 }}
             dragSnapToOrigin
             onDragEnd={handleDragEnd}
-            className="grid grid-cols-7 px-3 flex-1 pt-1 content-stretch touch-none overscroll-none will-change-transform"
+            className="grid grid-cols-7 auto-rows-[minmax(0,1fr)] px-3 flex-1 pt-1 pb-2 content-stretch touch-none overscroll-none will-change-transform min-h-0"
           >
             {days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
@@ -279,6 +279,9 @@ interface DayCellProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
+/** Max icons shown per day cell: 2 across × 3 rows */
+const MAX_VISIBLE_MARKS = 6;
+
 const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlighted, monthTheme, members, highlight, onTap, onLongPress, getMemberForEvent }: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
     onLongPress: () => onLongPress(day),
@@ -289,11 +292,43 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
     onTap(day);
   };
 
+  const sortedEvents = [...dayEvents].sort((a, b) => {
+    const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
+    const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
+    if (aRank !== bRank) return aRank - bRank;
+    return (a.start_time || '').localeCompare(b.start_time || '');
+  });
+  const visibleEvents = sortedEvents.slice(0, MAX_VISIBLE_MARKS);
+  const overflowCount = dayEvents.length - visibleEvents.length;
+
+  const renderEventMark = (ev: Event) => {
+    const member = getMemberForEvent(ev);
+    const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+    const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
+    const evHighlighted = highlight && highlight.eventId === ev.id;
+    const Icon = meta?.Icon;
+    if (Icon) {
+      return (
+        <div key={ev.id} className={`flex items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
+          <Icon size={11} strokeWidth={2} className={visuals.iconColor} />
+        </div>
+      );
+    }
+    const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+    return (
+      <div
+        key={ev.id}
+        className={`w-2 h-2 rounded-full ${fallback.bg} ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        title={ev.title}
+      />
+    );
+  };
+
   return (
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-1 rounded-2xl transition-all duration-200 min-h-[56px] ${
+      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
         !inMonth ? 'opacity-25' : ''
       } ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
       style={
@@ -309,7 +344,7 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       }}
     >
       <span
-        className={`w-9 h-9 flex items-center justify-center rounded-full text-[15px] font-semibold transition-all duration-200 ${
+        className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-[14px] font-semibold transition-all duration-200 ${
           weekend && inMonth && !today ? 'opacity-60' : ''
         }`}
         style={
@@ -320,68 +355,18 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       >
         {format(day, 'd')}
       </span>
-      {dayEvents.length > 0 && (() => {
-        const topTwo = [...dayEvents]
-          .sort((a, b) => {
-            const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
-            const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
-            if (aRank !== bRank) return aRank - bRank;
-            return (a.start_time || '').localeCompare(b.start_time || '');
-          })
-          .slice(0, 2);
-
-        const sameCategoryIconRow =
-          topTwo.length === 2 &&
-          (topTwo[0].category ?? 'other') === (topTwo[1].category ?? 'other');
-
-        const renderEventMark = (ev: Event) => {
-          const member = getMemberForEvent(ev);
-          const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
-          const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
-          const evHighlighted = highlight && highlight.eventId === ev.id;
-          const Icon = meta?.Icon;
-          if (Icon) {
-            return (
-              <div key={ev.id} className={`flex shrink-0 items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
-                <Icon size={12} strokeWidth={2} className={visuals.iconColor} />
-              </div>
-            );
-          }
-          const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
-          const firstWord = ev.title.split(' ')[0] || ev.title;
-          return (
-            <div key={ev.id} className={`${fallback.bg} rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center truncate leading-tight max-w-full ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}>
-              {firstWord}
-            </div>
-          );
-        };
-
-        return (
-          <div className="mt-0.5 w-full px-0.5 flex flex-col gap-px items-center">
-            <div
-              className={
-                sameCategoryIconRow
-                  ? 'flex flex-row items-center justify-center gap-px'
-                  : 'flex flex-col gap-px w-full items-center'
-              }
-            >
-              {sameCategoryIconRow ? (
-                <>
-                  {renderEventMark(topTwo[0])}
-                  {renderEventMark(topTwo[1])}
-                </>
-              ) : (
-                topTwo.map((ev) => renderEventMark(ev))
-              )}
-            </div>
-            {dayEvents.length > 2 && (
-              <div className="text-[8px] text-muted-foreground text-center font-medium leading-none">
-                +{dayEvents.length - 2}
-              </div>
-            )}
+      {visibleEvents.length > 0 && (
+        <div className="mt-0.5 w-full px-0.5 flex flex-col items-center gap-px min-h-0 flex-1">
+          <div className="grid grid-cols-2 gap-px justify-items-center content-start w-full max-w-[2.25rem]">
+            {visibleEvents.map((ev) => renderEventMark(ev))}
           </div>
-        );
-      })()}
+          {overflowCount > 0 && (
+            <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0">
+              +{overflowCount}
+            </div>
+          )}
+        </div>
+      )}
     </button>
   );
 };
