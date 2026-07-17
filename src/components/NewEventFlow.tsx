@@ -35,7 +35,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [dayPartClickCount, setDayPartClickCount] = useState(1);
   const [startTime, setStartTime] = useState('12:00');
   const [endTime, setEndTime] = useState('18:00');
-  const [showTimeFields, setShowTimeFields] = useState(false);
+  const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>(null);
   const [otherLabel, setOtherLabel] = useState('');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
@@ -244,62 +244,74 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 </motion.div>
               )}
 
-              {/* Day part interval selection */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">Del av dagen</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {DAY_PART_ORDER.map((key, idx) => {
-                    const selected = isDayPartSelected(idx);
-                    return (
+              {/* Precise time — primary */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-sm font-medium mb-1 block">Fra</label>
+                    <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
+                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-sm font-medium mb-1 block">Til</label>
+                    <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {!showDayParts ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDayParts(true)}
+                    className="text-sm text-muted-foreground underline underline-offset-2"
+                  >
+                    Velg del av dagen
+                  </button>
+                ) : (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Del av dagen</label>
                       <button
-                        key={key}
-                        onClick={() => handleDayPartClick(idx)}
-                        className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-                          selected
-                            ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
-                            : 'bg-muted hover:bg-muted/80'
-                        }`}
+                        type="button"
+                        onClick={() => setShowDayParts(false)}
+                        className="text-xs text-muted-foreground underline underline-offset-2"
                       >
-                        {DAY_PART_LABELS[key]}
+                        Skjul
                       </button>
-                    );
-                  })}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {DAY_PART_ORDER.map((key, idx) => {
+                        const selected = isDayPartSelected(idx);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => handleDayPartClick(idx)}
+                            className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
+                              selected
+                                ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                                : 'bg-muted hover:bg-muted/80'
+                            }`}
+                          >
+                            {DAY_PART_LABELS[key]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Sted</label>
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Notat</label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                 </div>
               </div>
-
-              {!showTimeFields ? (
-                <button
-                  onClick={() => setShowTimeFields(true)}
-                  className="text-sm text-muted-foreground underline underline-offset-2"
-                >
-                  + Legg til klokkeslett
-                </button>
-              ) : (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="min-w-0">
-                      <label className="text-sm font-medium mb-1 block">Fra</label>
-                      <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
-                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <label className="text-sm font-medium mb-1 block">Til</label>
-                      <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Sted</label>
-                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Notat</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                  </div>
-                </motion.div>
-              )}
             </motion.div>
           )}
 

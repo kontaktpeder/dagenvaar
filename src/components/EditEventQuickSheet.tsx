@@ -48,7 +48,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   const [dayPartClickCount, setDayPartClickCount] = useState(initStartIdx === initEndIdx ? 1 : 2);
   const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
   const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
-  const [showTimeFields, setShowTimeFields] = useState(!!event.start_time);
+  const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory>((event.category as EventCategory) || 'other');
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
@@ -232,56 +232,68 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
             )}
           </div>
 
-          {/* Del av dagen */}
+          {/* Klokkeslett — primary */}
           <div>
-            <SectionTitle>Del av dagen</SectionTitle>
-            <div className="grid grid-cols-3 gap-2">
-              {DAY_PART_ORDER.map((key, idx) => (
-                <button
-                  key={key}
-                  onClick={() => handleDayPartClick(idx)}
-                  className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
-                    isDayPartSelected(idx)
-                      ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
-                      : 'bg-muted hover:bg-muted/80'
-                  }`}
-                >
-                  {DAY_PART_LABELS[key]}
-                </button>
-              ))}
+            <SectionTitle>Klokkeslett</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0">
+                <label className="text-xs text-muted-foreground mb-1 block">Fra</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
+                  className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="min-w-0">
+                <label className="text-xs text-muted-foreground mb-1 block">Til</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => handleEndTimeChange(e.target.value)}
+                  className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Klokkeslett */}
+          {/* Del av dagen — optional */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <SectionTitle>Klokkeslett</SectionTitle>
+            {!showDayParts ? (
               <button
-                onClick={() => setShowTimeFields((v) => !v)}
-                className="text-xs text-muted-foreground underline underline-offset-2 mb-2"
+                type="button"
+                onClick={() => setShowDayParts(true)}
+                className="text-sm text-muted-foreground underline underline-offset-2"
               >
-                {showTimeFields ? 'Skjul' : '+ Legg til'}
+                Velg del av dagen
               </button>
-            </div>
-            {showTimeFields && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="min-w-0">
-                  <label className="text-xs text-muted-foreground mb-1 block">Fra</label>
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => handleStartTimeChange(e.target.value)}
-                    className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <SectionTitle>Del av dagen</SectionTitle>
+                  <button
+                    type="button"
+                    onClick={() => setShowDayParts(false)}
+                    className="text-xs text-muted-foreground underline underline-offset-2 mb-2"
+                  >
+                    Skjul
+                  </button>
                 </div>
-                <div className="min-w-0">
-                  <label className="text-xs text-muted-foreground mb-1 block">Til</label>
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => handleEndTimeChange(e.target.value)}
-                    className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  {DAY_PART_ORDER.map((key, idx) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleDayPartClick(idx)}
+                      className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                        isDayPartSelected(idx)
+                          ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {DAY_PART_LABELS[key]}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

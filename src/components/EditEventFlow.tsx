@@ -54,7 +54,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const [dayPartClickCount, setDayPartClickCount] = useState(initStartIdx === initEndIdx ? 1 : 2);
   const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
   const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
-  const [showTimeFields, setShowTimeFields] = useState(!!event.start_time);
+  const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>((event.category as EventCategory) || null);
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
@@ -234,46 +234,54 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                 </motion.div>
               )}
 
-              <div>
-                <label className="text-sm font-medium mb-3 block">Del av dagen</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {DAY_PART_ORDER.map((key, idx) => (
-                    <button key={key} onClick={() => handleDayPartClick(idx)}
-                      className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${isDayPartSelected(idx) ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent' : 'bg-muted hover:bg-muted/80'}`}>
-                      {DAY_PART_LABELS[key]}
-                    </button>
-                  ))}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label className="text-sm font-medium mb-1 block">Fra</label>
+                    <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
+                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="text-sm font-medium mb-1 block">Til</label>
+                    <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {!showDayParts ? (
+                  <button type="button" onClick={() => setShowDayParts(true)} className="text-sm text-muted-foreground underline underline-offset-2">
+                    Velg del av dagen
+                  </button>
+                ) : (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Del av dagen</label>
+                      <button type="button" onClick={() => setShowDayParts(false)} className="text-xs text-muted-foreground underline underline-offset-2">
+                        Skjul
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {DAY_PART_ORDER.map((key, idx) => (
+                        <button key={key} type="button" onClick={() => handleDayPartClick(idx)}
+                          className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${isDayPartSelected(idx) ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent' : 'bg-muted hover:bg-muted/80'}`}>
+                          {DAY_PART_LABELS[key]}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Sted</label>
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Notat</label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                 </div>
               </div>
-
-              {!showTimeFields ? (
-                <button onClick={() => setShowTimeFields(true)} className="text-sm text-muted-foreground underline underline-offset-2">+ Legg til klokkeslett</button>
-              ) : (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="min-w-0">
-                      <label className="text-sm font-medium mb-1 block">Fra</label>
-                      <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
-                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <label className="text-sm font-medium mb-1 block">Til</label>
-                      <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Sted</label>
-                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Notat</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                  </div>
-                </motion.div>
-              )}
             </motion.div>
           )}
 
