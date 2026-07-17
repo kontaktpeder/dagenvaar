@@ -7,6 +7,7 @@ import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
+import CenteredPopup from '@/components/CenteredPopup';
 
 interface ProfileSheetProps {
   household: Household;
@@ -194,25 +195,8 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const isOwner = currentMember.role === 'owner';
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col"
-    >
-      <div className="absolute inset-0 bg-foreground/20" onClick={onClose} />
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="relative mt-auto bg-background rounded-t-3xl max-h-[70vh] overflow-y-auto"
-      >
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-border" />
-        </div>
-
-        <div className="px-5 pb-8 space-y-6">
+    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
+      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-6">
           {/* Profile with avatar upload */}
           <div className="text-center">
             <div className="relative w-16 h-16 mx-auto mb-3">
@@ -397,9 +381,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             </div>
             <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
           </div>
-        </div>
-
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {cropImageSrc && (
@@ -410,7 +392,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           />
         )}
       </AnimatePresence>
-    </motion.div>
+    </CenteredPopup>
   );
 };
 

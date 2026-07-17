@@ -187,9 +187,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
-        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-        </button>
+        <div className="w-9" aria-hidden />
       </div>
 
       {/* Content */}

@@ -242,29 +242,15 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             </motion.div>
           </div>
 
-          {/* Fixed chevrons over the peeking strip */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-5">
+          {!isOnCurrentMonth && (
             <button
               type="button"
-              onClick={() => navigate(-1)}
-              className="pointer-events-auto p-2 rounded-full hover:bg-white/15 active:scale-90 transition-all"
-              aria-label="Forrige måned"
+              onClick={goToToday}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 hover:bg-white/35 text-white text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all backdrop-blur-sm"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M12 15L7 10L12 5" className="stroke-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              I dag
             </button>
-            <button
-              type="button"
-              onClick={() => navigate(1)}
-              className="pointer-events-auto p-2 rounded-full hover:bg-white/15 active:scale-90 transition-all"
-              aria-label="Neste måned"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M8 5L13 10L8 15" className="stroke-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
+          )}
         </div>
 
         <div className="bg-transparent relative">
@@ -277,20 +263,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               </div>
             ))}
           </div>
-          {!isOnCurrentMonth && (() => {
-            const isPast = startOfMonth(currentDate) < startOfMonth(new Date());
-            const positionClass = isPast
-              ? 'left-1/2 -translate-x-1/2'
-              : 'right-3';
-            return (
-              <button
-                onClick={goToToday}
-                className={`absolute ${positionClass} top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full bg-muted/70 hover:bg-muted text-foreground/70 hover:text-foreground text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all`}
-              >
-                I dag
-              </button>
-            );
-          })()}
         </div>
 
         {/* Finger-following 3-month pager */}
@@ -314,6 +286,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               monthDate={prevDate}
               days={prevDays}
               eventsByDate={prevByDate}
+              neighbourEventsByDate={eventsByDate}
               monthTheme={getMonthTheme(prevDate)}
               members={members}
               highlight={highlight}
@@ -327,6 +300,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               monthDate={currentDate}
               days={days}
               eventsByDate={eventsByDate}
+              neighbourEventsByDate={{ ...prevByDate, ...nextByDate }}
               monthTheme={monthTheme}
               members={members}
               highlight={highlight}
@@ -340,6 +314,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               monthDate={nextDate}
               days={nextDays}
               eventsByDate={nextByDate}
+              neighbourEventsByDate={eventsByDate}
               monthTheme={getMonthTheme(nextDate)}
               members={members}
               highlight={highlight}
@@ -406,7 +381,7 @@ const MonthHeaderPanel = ({
   onTitleClick?: () => void;
 }) => (
   <div
-    className="h-full shrink-0 flex items-center justify-center px-14"
+    className="h-full shrink-0 flex items-center justify-center px-5"
     style={{
       width: width || '33.333%',
       background: gradient,
@@ -429,6 +404,8 @@ interface MonthPanelProps {
   monthDate: Date;
   days: Date[];
   eventsByDate: Record<string, Event[]>;
+  /** Events from adjacent months so padding days stay filled */
+  neighbourEventsByDate?: Record<string, Event[]>;
   monthTheme: ReturnType<typeof getMonthTheme>;
   members: HouseholdMember[];
   highlight: Highlight;
@@ -443,6 +420,7 @@ const MonthPanel = ({
   monthDate,
   days,
   eventsByDate,
+  neighbourEventsByDate,
   monthTheme,
   members,
   highlight,
@@ -459,13 +437,15 @@ const MonthPanel = ({
   >
     {days.map((day) => {
       const dateStr = format(day, 'yyyy-MM-dd');
+      const inMonth = isSameMonth(day, monthDate);
+      const dayEvents = eventsByDate[dateStr] || neighbourEventsByDate?.[dateStr] || [];
       return (
         <DayCell
           key={dateStr}
           day={day}
           dateStr={dateStr}
-          dayEvents={eventsByDate[dateStr] || []}
-          inMonth={isSameMonth(day, monthDate)}
+          dayEvents={dayEvents}
+          inMonth={inMonth}
           today={isToday(day)}
           weekend={isWeekend(day)}
           isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
@@ -575,23 +555,23 @@ const DayCell = ({ day, dateStr, dayEvents, inMonth, today, weekend, isHighlight
       {...longPressHandlers}
       onClick={handleClick}
       className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0.5 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
-        !inMonth ? 'opacity-25' : ''
-      } ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
+      }`}
       style={
-        !today && inMonth
+        !today
           ? { '--hover-bg': monthTheme.light } as React.CSSProperties
           : undefined
       }
       onMouseEnter={(e) => {
-        if (!today && inMonth) (e.currentTarget as HTMLElement).style.backgroundColor = monthTheme.light;
+        if (!today) (e.currentTarget as HTMLElement).style.backgroundColor = monthTheme.light;
       }}
       onMouseLeave={(e) => {
-        if (!today && inMonth) (e.currentTarget as HTMLElement).style.backgroundColor = '';
+        if (!today) (e.currentTarget as HTMLElement).style.backgroundColor = '';
       }}
     >
       <span
         className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-[14px] font-semibold transition-all duration-200 ${
-          weekend && inMonth && !today ? 'opacity-60' : ''
+          weekend && !today ? 'opacity-60' : ''
         }`}
         style={
           today

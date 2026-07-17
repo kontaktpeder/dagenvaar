@@ -179,9 +179,6 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
     <CenteredPopup onClose={onClose} size="tall" zClassName="z-[70]">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
         <h2 className="text-lg font-bold">Rask redigering</h2>
-        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5 min-h-0">
