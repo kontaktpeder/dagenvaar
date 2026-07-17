@@ -18,6 +18,7 @@ import type { Highlight } from '@/pages/Index';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import ViewHeader from '@/components/ViewHeader';
 import { useLongPress } from '@/hooks/useLongPress';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface ListViewProps {
   householdId: string;
@@ -249,6 +250,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+              onFocus={scrollFocusIntoView}
               placeholder="Legg til punkt..."
               className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
             />

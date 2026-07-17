@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 interface CenteredPopupProps {
   onClose: () => void;
@@ -14,15 +13,14 @@ interface CenteredPopupProps {
 }
 
 const sizeClass = {
-  card: 'max-w-sm',
-  tall: 'max-w-md',
+  card: 'max-w-sm h-[min(85dvh,640px)] max-h-[calc(100%-2rem)]',
+  tall: 'max-w-md h-[min(92dvh,760px)] max-h-[calc(100%-2rem)]',
 } as const;
 
-const sizeHeight = {
-  card: 'min(85dvh, 640px)',
-  tall: 'min(92dvh, 760px)',
-} as const;
-
+/**
+ * Fixed centered card. Shell does not move with the keyboard —
+ * sticky footers inside should use PopupStickyFooter for that.
+ */
 const CenteredPopup = ({
   onClose,
   children,
@@ -30,23 +28,12 @@ const CenteredPopup = ({
   className,
   zClassName = 'z-50',
 }: CenteredPopupProps) => {
-  const keyboardInset = useKeyboardInset();
-  const keyboardOpen = keyboardInset > 0;
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={cn(
-        'fixed inset-0 flex justify-center px-4',
-        keyboardOpen ? 'items-end' : 'items-center',
-        zClassName,
-      )}
-      style={{
-        paddingBottom: keyboardOpen ? keyboardInset : undefined,
-        transition: 'padding-bottom 180ms ease-out',
-      }}
+      className={cn('fixed inset-0 flex items-center justify-center px-4', zClassName)}
     >
       <div className="absolute inset-0 bg-foreground/25" onClick={onClose} />
 
@@ -56,16 +43,10 @@ const CenteredPopup = ({
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
         className={cn(
-          'relative z-10 w-full bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden my-2',
+          'relative z-10 w-full bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden',
           sizeClass[size],
           className,
         )}
-        style={{
-          height: sizeHeight[size],
-          maxHeight: keyboardOpen
-            ? `calc(100% - 0.5rem)`
-            : `min(${sizeHeight[size]}, calc(100% - 2rem))`,
-        }}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

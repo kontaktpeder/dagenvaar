@@ -63,14 +63,13 @@ const CalendarDaySheet = ({
       <div className="absolute inset-0 bg-foreground/25" onClick={onClose} />
 
       <motion.div
-        layout
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
         className={`relative z-10 w-full max-w-sm bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden ${
           showList
-            ? 'h-[min(92dvh,720px)]'
+            ? 'h-[min(92dvh,720px)] max-h-[calc(100%-2rem)]'
             : 'aspect-[4/5] max-h-[min(80dvh,640px)]'
         }`}
         onClick={(e) => e.stopPropagation()}

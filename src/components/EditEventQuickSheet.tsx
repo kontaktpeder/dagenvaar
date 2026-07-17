@@ -12,6 +12,8 @@ import {
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface EditEventQuickSheetProps {
   event: Event;
@@ -416,7 +418,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-border bg-background shrink-0">
+        <PopupStickyFooter className="px-5 pt-3 border-t border-border">
           <button
             onClick={handleSubmit}
             disabled={!canSave || updateEvent.isPending}
@@ -424,7 +426,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           >
             {updateEvent.isPending ? 'Lagrer...' : 'Lagre'}
           </button>
-        </div>
+        </PopupStickyFooter>
     </CenteredPopup>
   );
 };

@@ -14,6 +14,8 @@ import {
 } from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface NewEventFlowProps {
   householdId: string;
@@ -304,11 +306,13 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 <div>
                   <label className="text-sm font-medium mb-1 block">Sted</label>
                   <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
+                    onFocus={scrollFocusIntoView}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Notat</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
+                    onFocus={scrollFocusIntoView}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                 </div>
               </div>
@@ -370,6 +374,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
                 autoFocus
+                onFocus={scrollFocusIntoView}
                 className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </motion.div>
@@ -464,7 +469,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       </div>
 
       {/* Bottom button */}
-      <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shrink-0">
+      <PopupStickyFooter className="px-5 pt-3">
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
@@ -472,7 +477,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         >
           {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse'}
         </button>
-      </div>
+      </PopupStickyFooter>
     </CenteredPopup>
   );
 };

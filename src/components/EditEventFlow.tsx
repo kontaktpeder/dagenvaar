@@ -15,6 +15,8 @@ import {
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface EditEventFlowProps {
   event: Event;
@@ -274,11 +276,13 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                 <div>
                   <label className="text-sm font-medium mb-1 block">Sted</label>
                   <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
+                    onFocus={scrollFocusIntoView}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Notat</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
+                    onFocus={scrollFocusIntoView}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                 </div>
               </div>
@@ -400,7 +404,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
       </div>
 
       {/* Bottom button */}
-      <div className="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shrink-0">
+      <PopupStickyFooter className="px-5 pt-3">
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || updateEvent.isPending}
@@ -408,7 +412,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
         >
           {step < STEPS ? 'Neste' : updateEvent.isPending ? 'Lagrer...' : 'Lagre endringer'}
         </button>
-      </div>
+      </PopupStickyFooter>
     </CenteredPopup>
   );
 };

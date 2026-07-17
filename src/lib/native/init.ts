@@ -23,6 +23,14 @@ export async function initNative(): Promise<void> {
     /* not supported on android */
   }
 
+  try {
+    // Prevent iOS from scrolling the WebView/calendar when focusing inputs —
+    // popups handle their own inner scroll + sticky CTAs.
+    await Keyboard.setScroll({ isDisabled: true });
+  } catch {
+    /* older plugin / android */
+  }
+
   await initDeepLinks();
 
   try {
