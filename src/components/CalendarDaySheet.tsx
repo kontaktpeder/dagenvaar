@@ -40,6 +40,11 @@ const CalendarDaySheet = ({
   const [showList, setShowList] = useState(false);
   const getMember = (id: string) => members.find((m) => m.id === id);
 
+  const handleDismiss = () => {
+    if (showList) setShowList(false);
+    else onClose();
+  };
+
   const formatEventTime = (ev: Event) => {
     const dps = (ev as any).day_part_start as string | null;
     const parts: string[] = [];
@@ -59,7 +64,7 @@ const CalendarDaySheet = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center px-5 py-10"
-      onClick={onClose}
+      onClick={handleDismiss}
     >
       <div className="absolute inset-0 bg-foreground/25" aria-hidden />
 
@@ -76,15 +81,6 @@ const CalendarDaySheet = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-3 shrink-0">
-          {showList && (
-            <button
-              type="button"
-              onClick={() => setShowList(false)}
-              className="text-sm font-semibold text-muted-foreground mb-2 active:opacity-70"
-            >
-              ← Tilbake
-            </button>
-          )}
           <h2 className="text-lg font-bold capitalize">
             {format(date, 'EEEE d. MMMM', { locale: nb })}
           </h2>

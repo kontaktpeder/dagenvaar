@@ -29,6 +29,11 @@ interface EditEventFlowProps {
 
 const STEPS = 4;
 
+const FIELD =
+  'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
+const ADD_BTN =
+  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+
 const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, onSaved }: EditEventFlowProps) => {
   const updateEvent = useUpdateEvent();
 
@@ -55,7 +60,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   const [selectedDayParts, setSelectedDayParts] = useState<[number, number]>([initStartIdx, initEndIdx]);
   const [dayPartClickCount, setDayPartClickCount] = useState(initStartIdx === initEndIdx ? 1 : 2);
   const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
-  const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
+  const [endTime, setEndTime] = useState<string | null>(event.end_time?.slice(0, 5) || null);
   const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>((event.category as EventCategory) || null);
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
@@ -123,6 +128,10 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
       const newRange = timeRangeToDayParts(value, endTime);
       setSelectedDayParts(newRange);
       setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
+    } else if (value) {
+      const [idx] = timeRangeToDayParts(value, value);
+      setSelectedDayParts([idx, idx]);
+      setDayPartClickCount(1);
     }
   };
 
@@ -135,11 +144,29 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
     }
   };
 
+  const addOneHour = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    const total = ((h * 60 + (m || 0) + 60) % (24 * 60) + 24 * 60) % (24 * 60);
+    const nh = Math.floor(total / 60);
+    const nm = total % 60;
+    return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+  };
+
+  const handleAddHour = () => {
+    if (!endTime) setEndTime(addOneHour(startTime || '12:00'));
+    else setEndTime(addOneHour(endTime));
+  };
+
   const isDayPartSelected = (idx: number) => idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
 
   const handleAddDay = () => {
     if (!endDate) setEndDate(addDays(startDate, 1));
     else setEndDate(addDays(endDate, 1));
+  };
+
+  const handleDismiss = () => {
+    if (step > 1) setStep((s) => s - 1);
+    else onClose();
   };
 
   const handleSubmit = async () => {
@@ -153,7 +180,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           dayPartStart,
           dayPartEnd,
           startTime,
-          endTime,
+          endTime: endTime || '',
           category: category!,
           otherLabel,
           visibility,
@@ -188,22 +215,17 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   };
 
   return (
-    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-        <button type="button" onClick={step > 1 ? () => setStep((s) => s - 1) : onClose} className="p-2 rounded-full hover:bg-muted">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
+    <CenteredPopup onClose={handleDismiss} size="tall" zClassName="z-[70]">
+      <div className="flex items-center justify-center px-5 pt-4 pb-3 shrink-0">
         <div className="flex gap-1.5">
           {Array.from({ length: STEPS }).map((_, i) => (
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
-        <div className="w-9" aria-hidden />
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
@@ -214,46 +236,53 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                 <div className="flex gap-2">
                   <input type="date" value={format(startDate, 'yyyy-MM-dd')}
                     onChange={(e) => { const d = new Date(e.target.value + 'T12:00:00'); setStartDate(d); if (endDate && endDate <= d) setEndDate(null); }}
-                    className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <button onClick={handleAddDay} className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all">+1 dag</button>
+                    className={`flex-1 ${FIELD}`} />
+                  <button type="button" onClick={handleAddDay} className={ADD_BTN}>+1 dag</button>
                 </div>
               </div>
 
               {endDate && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium mb-2 block">Sluttdato</label>
-                      <input type="date" value={format(endDate, 'yyyy-MM-dd')} onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))} min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    <button onClick={() => setEndDate(null)} className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground">
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                    </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <label className="text-sm font-medium mb-2 block">Sluttdato</label>
+                    <input type="date" value={format(endDate, 'yyyy-MM-dd')} onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))} min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
+                      className={`w-full ${FIELD}`} />
                   </div>
-                </motion.div>
+                  <button type="button" onClick={() => setEndDate(null)} className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
               )}
 
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="min-w-0">
-                    <label className="text-sm font-medium mb-1 block">Fra</label>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Klokke</label>
+                  <div className="flex gap-2">
                     <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
-                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <label className="text-sm font-medium mb-1 block">Til</label>
-                    <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
-                      className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                      className={`flex-1 ${FIELD}`} />
+                    <button type="button" onClick={handleAddHour} className={ADD_BTN}>+1 time</button>
                   </div>
                 </div>
+
+                {endTime && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-sm font-medium mb-2 block">Slutttid</label>
+                      <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
+                        className={`w-full ${FIELD}`} />
+                    </div>
+                    <button type="button" onClick={() => setEndTime(null)} className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground">
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
+                )}
 
                 {!showDayParts ? (
                   <button type="button" onClick={() => setShowDayParts(true)} className="text-sm text-muted-foreground underline underline-offset-2">
                     Velg del av dagen
                   </button>
                 ) : (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium">Del av dagen</label>
                       <button type="button" onClick={() => setShowDayParts(false)} className="text-xs text-muted-foreground underline underline-offset-2">
@@ -268,20 +297,20 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                         </button>
                       ))}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 <div>
                   <label className="text-sm font-medium mb-1 block">Sted</label>
                   <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
                     onFocus={scrollFocusIntoView}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+                    className={`w-full ${FIELD}`} />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Notat</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
                     onFocus={scrollFocusIntoView}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                    className={`w-full ${FIELD} resize-none`} />
                 </div>
               </div>
             </motion.div>

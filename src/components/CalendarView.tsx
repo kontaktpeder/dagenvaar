@@ -374,11 +374,11 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             highlight={highlight}
             onClose={() => setDaySheetDate(null)}
             onPickEvent={(ev) => {
-              setDaySheetDate(null);
+              // Keep day sheet under detail — backdrop pops one level
               setDetailEvent(ev);
             }}
             onCreateForDate={(d) => {
-              setDaySheetDate(null);
+              // Keep day sheet under create flow
               onCreateEvent(d);
             }}
             onEditEvent={onEditEvent}
@@ -394,8 +394,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             members={members}
             currentMemberId={currentMemberId}
             onClose={() => setDetailEvent(null)}
-            onEdit={onEditEvent ? (ev) => { setDetailEvent(null); onEditEvent(ev); } : undefined}
-            onQuickEdit={onQuickEditEvent ? (ev) => { setDetailEvent(null); onQuickEditEvent(ev); } : undefined}
+            onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
+            onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
           />
         )}
       </AnimatePresence>

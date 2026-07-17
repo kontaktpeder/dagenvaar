@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -15,7 +15,15 @@ import {
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
-import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+
+/** Shared size for date/time inputs — equality = simplicity */
+const FIELD =
+  'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
+const ADD_BTN =
+  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+const CTA_BTN =
+  'rounded-xl bg-muted hover:bg-muted/80 px-4 py-3 text-sm font-medium transition-all';
 
 interface NewEventFlowProps {
   householdId: string;
@@ -47,6 +55,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const createEvent = useCreateEvent();
+  const locationRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   const addOneHour = (time: string) => {
     const [h, m] = time.split(':').map(Number);
@@ -55,6 +65,26 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
     const nm = total % 60;
     return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
   };
+
+  const handleDismiss = () => {
+    if (step > 1) setStep((s) => s - 1);
+    else onClose();
+  };
+
+  const openLocation = () => setShowLocation(true);
+  const openNotes = () => setShowNotes(true);
+
+  useEffect(() => {
+    if (!showLocation) return;
+    const t = window.setTimeout(() => focusFieldSoftly(locationRef.current), 40);
+    return () => window.clearTimeout(t);
+  }, [showLocation]);
+
+  useEffect(() => {
+    if (!showNotes) return;
+    const t = window.setTimeout(() => focusFieldSoftly(notesRef.current), 40);
+    return () => window.clearTimeout(t);
+  }, [showNotes]);
 
   const canProceed =
     step === 2 ? category !== null :
@@ -198,22 +228,18 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   return (
-    <CenteredPopup onClose={onClose} size="tall" zClassName="z-[60]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-        <button type="button" onClick={step > 1 ? () => setStep((s) => s - 1) : onClose} className="p-2 rounded-full hover:bg-muted">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
+    <CenteredPopup onClose={handleDismiss} size="tall" zClassName="z-[70]">
+      {/* Header — step progress only; backdrop = back */}
+      <div className="flex items-center justify-center px-5 pt-4 pb-3 shrink-0">
         <div className="flex gap-1.5">
           {Array.from({ length: STEPS }).map((_, i) => (
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
-        <div className="w-9" aria-hidden />
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
@@ -231,12 +257,9 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       setStartDate(newDate);
                       if (endDate && endDate <= newDate) setEndDate(null);
                     }}
-                    className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                    className={`flex-1 ${FIELD}`}
                   />
-                  <button
-                    onClick={handleAddDay}
-                    className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all"
-                  >
+                  <button type="button" onClick={handleAddDay} className={ADD_BTN}>
                     +1 dag
                   </button>
                 </div>
@@ -244,29 +267,28 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
               {/* End date (if multi-day) */}
               {endDate && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium mb-2 block">Sluttdato</label>
-                      <input
-                        type="date"
-                        value={format(endDate, 'yyyy-MM-dd')}
-                        onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))}
-                        min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setEndDate(null)}
-                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                    </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <label className="text-sm font-medium mb-2 block">Sluttdato</label>
+                    <input
+                      type="date"
+                      value={format(endDate, 'yyyy-MM-dd')}
+                      onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))}
+                      min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
+                      className={`w-full ${FIELD}`}
+                    />
                   </div>
-                </motion.div>
+                  <button
+                    type="button"
+                    onClick={() => setEndDate(null)}
+                    className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
               )}
 
-              {/* Precise time — primary (same pattern as +1 dag) */}
+              {/* Clock — same field size as date */}
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Klokke</label>
@@ -275,39 +297,33 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                       type="time"
                       value={startTime}
                       onChange={(e) => handleStartTimeChange(e.target.value)}
-                      className="flex-1 min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                      className={`flex-1 ${FIELD}`}
                     />
-                    <button
-                      type="button"
-                      onClick={handleAddHour}
-                      className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all"
-                    >
+                    <button type="button" onClick={handleAddHour} className={ADD_BTN}>
                       +1 time
                     </button>
                   </div>
                 </div>
 
                 {endTime && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <label className="text-sm font-medium mb-2 block">Slutttid</label>
-                        <input
-                          type="time"
-                          value={endTime}
-                          onChange={(e) => handleEndTimeChange(e.target.value)}
-                          className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setEndTime(null)}
-                        className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-sm font-medium mb-2 block">Slutttid</label>
+                      <input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => handleEndTimeChange(e.target.value)}
+                        className={`w-full ${FIELD}`}
+                      />
                     </div>
-                  </motion.div>
+                    <button
+                      type="button"
+                      onClick={() => setEndTime(null)}
+                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
                 )}
 
                 {!showDayParts ? (
@@ -319,7 +335,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                     Velg del av dagen
                   </button>
                 ) : (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium">Del av dagen</label>
                       <button
@@ -349,70 +365,71 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                         );
                       })}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
+              </div>
 
-                <div className="flex flex-wrap gap-2 pt-1">
+              {/* Optional details — closed by default, expand without layout thrash */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
                   {!showLocation && (
-                    <button
-                      type="button"
-                      onClick={() => setShowLocation(true)}
-                      className="rounded-xl bg-muted hover:bg-muted/80 px-4 py-2.5 text-sm font-medium transition-all"
-                    >
+                    <button type="button" onClick={openLocation} className={CTA_BTN}>
                       Velg sted
                     </button>
                   )}
                   {!showNotes && (
-                    <button
-                      type="button"
-                      onClick={() => setShowNotes(true)}
-                      className="rounded-xl bg-muted hover:bg-muted/80 px-4 py-2.5 text-sm font-medium transition-all"
-                    >
+                    <button type="button" onClick={openNotes} className={CTA_BTN}>
                       Skriv notat
                     </button>
                   )}
                 </div>
 
                 {showLocation && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <label className="text-sm font-medium mb-1 block">Sted</label>
-                        <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
-                          autoFocus
-                          onFocus={scrollFocusIntoView}
-                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setShowLocation(false); setLocation(''); }}
-                        className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-sm font-medium mb-1 block">Sted</label>
+                      <input
+                        ref={locationRef}
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Valgfritt"
+                        onFocus={scrollFocusIntoView}
+                        className={`w-full ${FIELD}`}
+                      />
                     </div>
-                  </motion.div>
+                    <button
+                      type="button"
+                      onClick={() => { setShowLocation(false); setLocation(''); }}
+                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
                 )}
 
                 {showNotes && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <label className="text-sm font-medium mb-1 block">Notat</label>
-                        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
-                          autoFocus
-                          onFocus={scrollFocusIntoView}
-                          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setShowNotes(false); setNotes(''); }}
-                        className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-sm font-medium mb-1 block">Notat</label>
+                      <textarea
+                        ref={notesRef}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Valgfritt"
+                        rows={2}
+                        onFocus={scrollFocusIntoView}
+                        className={`w-full ${FIELD} resize-none`}
+                      />
                     </div>
-                  </motion.div>
+                    <button
+                      type="button"
+                      onClick={() => { setShowNotes(false); setNotes(''); }}
+                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>

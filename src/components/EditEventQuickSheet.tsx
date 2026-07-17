@@ -25,6 +25,11 @@ interface EditEventQuickSheetProps {
   onOpenFullEdit?: (event: Event) => void;
 }
 
+const FIELD =
+  'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
+const ADD_BTN =
+  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
 
@@ -49,7 +54,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   const [selectedDayParts, setSelectedDayParts] = useState<[number, number]>([initStartIdx, initEndIdx]);
   const [dayPartClickCount, setDayPartClickCount] = useState(initStartIdx === initEndIdx ? 1 : 2);
   const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
-  const [endTime, setEndTime] = useState(event.end_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initEndIdx]].end);
+  const [endTime, setEndTime] = useState<string | null>(event.end_time?.slice(0, 5) || null);
   const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory>((event.category as EventCategory) || 'other');
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
@@ -110,6 +115,10 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
       const newRange = timeRangeToDayParts(value, endTime);
       setSelectedDayParts(newRange);
       setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
+    } else if (value) {
+      const [idx] = timeRangeToDayParts(value, value);
+      setSelectedDayParts([idx, idx]);
+      setDayPartClickCount(1);
     }
   };
 
@@ -120,6 +129,19 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
       setSelectedDayParts(newRange);
       setDayPartClickCount(newRange[0] === newRange[1] ? 1 : 2);
     }
+  };
+
+  const addOneHour = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    const total = ((h * 60 + (m || 0) + 60) % (24 * 60) + 24 * 60) % (24 * 60);
+    const nh = Math.floor(total / 60);
+    const nm = total % 60;
+    return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+  };
+
+  const handleAddHour = () => {
+    if (!endTime) setEndTime(addOneHour(startTime || '12:00'));
+    else setEndTime(addOneHour(endTime));
   };
 
   const isDayPartSelected = (idx: number) => idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
@@ -146,7 +168,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           dayPartStart,
           dayPartEnd,
           startTime,
-          endTime,
+          endTime: endTime || '',
           category,
           otherLabel,
           visibility,
@@ -206,12 +228,9 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
                   setStartDate(d);
                   if (endDate && endDate <= d) setEndDate(null);
                 }}
-                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`flex-1 ${FIELD}`}
               />
-              <button
-                onClick={handleAddDay}
-                className="rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap"
-              >
+              <button type="button" onClick={handleAddDay} className={ADD_BTN}>
                 +1 dag
               </button>
             </div>
@@ -222,38 +241,42 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
                   value={format(endDate, 'yyyy-MM-dd')}
                   onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))}
                   min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
-                  className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={`flex-1 ${FIELD}`}
                 />
-                <button onClick={() => setEndDate(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                <button type="button" onClick={() => setEndDate(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Klokkeslett — primary */}
-          <div>
-            <SectionTitle>Klokkeslett</SectionTitle>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="min-w-0">
-                <label className="text-xs text-muted-foreground mb-1 block">Fra</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => handleStartTimeChange(e.target.value)}
-                  className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div className="min-w-0">
-                <label className="text-xs text-muted-foreground mb-1 block">Til</label>
+          {/* Klokke — same size as date */}
+          <div className="space-y-3">
+            <SectionTitle>Klokke</SectionTitle>
+            <div className="flex gap-2">
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => handleStartTimeChange(e.target.value)}
+                className={`flex-1 ${FIELD}`}
+              />
+              <button type="button" onClick={handleAddHour} className={ADD_BTN}>
+                +1 time
+              </button>
+            </div>
+            {endTime && (
+              <div className="flex items-center gap-2">
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => handleEndTimeChange(e.target.value)}
-                  className="w-full min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-3 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={`flex-1 ${FIELD}`}
                 />
+                <button type="button" onClick={() => setEndTime(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Del av dagen — optional */}
@@ -307,7 +330,8 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Valgfritt"
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                onFocus={scrollFocusIntoView}
+                className={`w-full ${FIELD}`}
               />
             </div>
             <div>
@@ -317,7 +341,8 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Valgfritt"
                 rows={2}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                onFocus={scrollFocusIntoView}
+                className={`w-full ${FIELD} resize-none`}
               />
             </div>
           </div>

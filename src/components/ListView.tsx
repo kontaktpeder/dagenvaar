@@ -315,8 +315,8 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             members={members}
             currentMemberId={currentMemberId}
             onClose={() => setSelectedEvent(null)}
-            onEdit={onEditEvent ? (ev) => { setSelectedEvent(null); onEditEvent(ev); } : undefined}
-            onQuickEdit={onQuickEditEvent ? (ev) => { setSelectedEvent(null); onQuickEditEvent(ev); } : undefined}
+            onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
+            onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
           />
         )}
       </AnimatePresence>
