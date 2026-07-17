@@ -40,11 +40,10 @@ const CATEGORY_ORDER: Record<string, number> = {
 };
 
 /** Commit when dragged past this fraction of width, or with enough velocity */
-const COMMIT_RATIO = 0.22;
-const COMMIT_VELOCITY = 550;
-/** Extra months jumped per this much velocity beyond the first hop */
-const VELOCITY_PER_EXTRA_HOP = 900;
-const MAX_HOPS = 3;
+const COMMIT_RATIO = 0.18;
+const COMMIT_VELOCITY = 400;
+/** Months rendered on each side of the center (5 panels total) */
+const WINDOW = 2;
 
 function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   const map: Record<string, Event[]> = {};
@@ -88,23 +87,32 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const prevDate = useMemo(() => startOfMonth(subMonths(currentDate, 1)), [currentDate]);
-  const nextDate = useMemo(() => startOfMonth(addMonths(currentDate, 1)), [currentDate]);
 
-  // Prefetch neighbours so peek never looks empty
-  const { data: prevEvents = [] } = useEventsForMonth(householdId, prevDate.getFullYear(), prevDate.getMonth());
+  const stripOffsets = useMemo(() => Array.from({ length: WINDOW * 2 + 1 }, (_, i) => i - WINDOW), []);
+  const stripDates = useMemo(
+    () => stripOffsets.map((off) => startOfMonth(addMonths(currentDate, off))),
+    [currentDate, stripOffsets],
+  );
+
+  // Prefetch ±WINDOW so continuous swipe never peeks empty
+  const { data: eventsM2 = [] } = useEventsForMonth(householdId, stripDates[0].getFullYear(), stripDates[0].getMonth());
+  const { data: eventsM1 = [] } = useEventsForMonth(householdId, stripDates[1].getFullYear(), stripDates[1].getMonth());
   const { data: events = [] } = useEventsForMonth(householdId, year, month);
-  const { data: nextEvents = [] } = useEventsForMonth(householdId, nextDate.getFullYear(), nextDate.getMonth());
+  const { data: eventsP1 = [] } = useEventsForMonth(householdId, stripDates[3].getFullYear(), stripDates[3].getMonth());
+  const { data: eventsP2 = [] } = useEventsForMonth(householdId, stripDates[4].getFullYear(), stripDates[4].getMonth());
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
-  const prevByDate = useMemo(() => buildEventsByDate(prevEvents), [prevEvents]);
-  const eventsByDate = useMemo(() => buildEventsByDate(events), [events]);
-  const nextByDate = useMemo(() => buildEventsByDate(nextEvents), [nextEvents]);
+  const eventsByOffset = useMemo(
+    () => [eventsM2, eventsM1, events, eventsP1, eventsP2].map(buildEventsByDate),
+    [eventsM2, eventsM1, events, eventsP1, eventsP2],
+  );
+  const eventsByDate = eventsByOffset[WINDOW];
 
-  const prevDays = useMemo(() => buildMonthDays(prevDate), [prevDate]);
-  const days = useMemo(() => buildMonthDays(currentDate), [currentDate]);
-  const nextDays = useMemo(() => buildMonthDays(nextDate), [nextDate]);
+  const daysByOffset = useMemo(
+    () => stripDates.map(buildMonthDays),
+    [stripDates],
+  );
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [pageWidth, setPageWidth] = useState(0);
@@ -122,16 +130,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     return () => ro.disconnect();
   }, []);
 
-  // Reset strip when month changes externally (header / today)
-  useEffect(() => {
-    animationControlsRef.current?.stop();
-    animationControlsRef.current = null;
-    x.set(0);
-    animatingRef.current = false;
-    setPaging(false);
-  }, [year, month, x]);
-
-  const snapSpring = { type: 'spring' as const, stiffness: 560, damping: 44, mass: 0.45 };
+  const snapSpring = { type: 'spring' as const, stiffness: 420, damping: 38, mass: 0.55 };
+  const panStartXRef = useRef(0);
 
   const stopPagingAnim = useCallback(() => {
     animationControlsRef.current?.stop();
@@ -140,26 +140,67 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     setPaging(false);
   }, []);
 
-  const commitMonths = useCallback(
-    (dir: 1 | -1, hops: number) => {
-      if (!pageWidth) return;
-      const steps = Math.min(MAX_HOPS, Math.max(1, hops));
+  /** Jump without strip animation (today / year picker) */
+  const jumpToMonth = useCallback(
+    (date: Date) => {
       stopPagingAnim();
+      x.set(0);
+      setCurrentDate(startOfMonth(date));
+    },
+    [setCurrentDate, stopPagingAnim, x],
+  );
 
-      // Fast multi-hop: jump months immediately — avoids queued springs/remounts
-      if (steps >= 2) {
-        setCurrentDate((d) => (dir > 0 ? addMonths(d, steps) : subMonths(d, steps)));
-        x.set(0);
-        return;
+  /** Keep strip filled during pan: shift month + compensate pan origin so motion stays continuous */
+  const applyLiveRecenter = useCallback(
+    (nextX: number, panOrigin: { current: number }) => {
+      if (!pageWidth) return nextX;
+      let px = nextX;
+      let hops = 0;
+      while (px <= -pageWidth) {
+        px += pageWidth;
+        hops += 1;
+        panOrigin.current += pageWidth;
       }
+      while (px >= pageWidth) {
+        px -= pageWidth;
+        hops -= 1;
+        panOrigin.current -= pageWidth;
+      }
+      if (hops !== 0) {
+        setCurrentDate((d) => (hops > 0 ? addMonths(d, hops) : subMonths(d, -hops)));
+      }
+      return px;
+    },
+    [pageWidth, setCurrentDate],
+  );
+
+  const flingToHops = useCallback(
+    (hops: number) => {
+      if (!pageWidth) return;
 
       animatingRef.current = true;
       setPaging(true);
-      const target = dir > 0 ? -pageWidth : pageWidth;
+
+      if (hops === 0) {
+        animationControlsRef.current = animate(x, 0, {
+          ...snapSpring,
+          onComplete: () => {
+            animatingRef.current = false;
+            setPaging(false);
+            animationControlsRef.current = null;
+          },
+        });
+        return;
+      }
+
+      // Animate across neighbouring panels (capped by window), then commit full hop count
+      const visualHops = Math.max(-WINDOW, Math.min(WINDOW, hops));
+      const target = -visualHops * pageWidth;
+
       animationControlsRef.current = animate(x, target, {
         ...snapSpring,
         onComplete: () => {
-          setCurrentDate((d) => (dir > 0 ? addMonths(d, 1) : subMonths(d, 1)));
+          setCurrentDate((d) => (hops > 0 ? addMonths(d, hops) : subMonths(d, -hops)));
           x.set(0);
           animatingRef.current = false;
           setPaging(false);
@@ -167,50 +208,36 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         },
       });
     },
-    [pageWidth, setCurrentDate, stopPagingAnim, x],
+    [pageWidth, setCurrentDate, x],
   );
 
-  const navigate = useCallback(
-    (dir: number) => {
-      if (dir === 0) return;
-      commitMonths(dir > 0 ? 1 : -1, 1);
-    },
-    [commitMonths],
-  );
-
-  const hopsFromGesture = (dx: number, vx: number) => {
-    const dir: 1 | -1 = dx + vx * 0.08 < 0 ? 1 : -1;
-    const passed =
-      Math.abs(dx) > pageWidth * COMMIT_RATIO || Math.abs(vx) > COMMIT_VELOCITY;
-    if (!passed) return { dir, hops: 0 };
-
-    const distanceHops = Math.max(1, Math.round(Math.abs(dx) / pageWidth));
-    const velocityHops = 1 + Math.floor(Math.max(0, Math.abs(vx) - COMMIT_VELOCITY) / VELOCITY_PER_EXTRA_HOP);
-    const hops = Math.min(MAX_HOPS, Math.max(distanceHops, velocityHops));
-    return { dir, hops };
-  };
-
-  const handleDragStart = () => {
-    // Let the user interrupt an in-flight snap without waiting
+  const handlePanStart = () => {
     stopPagingAnim();
+    panStartXRef.current = x.get();
+    setPaging(true);
   };
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
+  const handlePan = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
-    const { dir, hops } = hopsFromGesture(info.offset.x, info.velocity.x);
+    const raw = panStartXRef.current + info.offset.x;
+    x.set(applyLiveRecenter(raw, panStartXRef));
+  };
 
-    if (hops > 0) {
-      commitMonths(dir, hops);
-    } else {
-      animatingRef.current = true;
-      animationControlsRef.current = animate(x, 0, {
-        ...snapSpring,
-        onComplete: () => {
-          animatingRef.current = false;
-          animationControlsRef.current = null;
-        },
-      });
+  const handlePanEnd = (_: unknown, info: PanInfo) => {
+    if (!pageWidth) return;
+
+    const projected = x.get() + info.velocity.x * 0.22;
+    let hops = Math.round(-projected / pageWidth);
+
+    if (hops === 0) {
+      const passed =
+        Math.abs(x.get()) > pageWidth * COMMIT_RATIO || Math.abs(info.velocity.x) > COMMIT_VELOCITY;
+      if (passed) {
+        hops = x.get() + info.velocity.x * 0.08 < 0 ? 1 : -1;
+      }
     }
+
+    flingToHops(hops);
   };
 
   const handleDayTap = (day: Date) => {
@@ -227,18 +254,18 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       <YearView
         year={year}
         onSelectMonth={(m) => {
-          setCurrentDate(new Date(year, m, 1));
+          jumpToMonth(new Date(year, m, 1));
           setShowYear(false);
         }}
         onBack={() => setShowYear(false)}
-        onChangeYear={(y) => setCurrentDate(new Date(y, month, 1))}
+        onChangeYear={(y) => jumpToMonth(new Date(y, month, 1))}
       />
     );
   }
 
   const isOnCurrentMonth = isSameMonth(currentDate, new Date());
   const goToToday = () => {
-    setCurrentDate(new Date());
+    jumpToMonth(new Date());
   };
 
   const daySheetEvents = daySheetDate
@@ -255,26 +282,19 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
                 x,
-                width: pageWidth ? pageWidth * 3 : '300%',
-                left: pageWidth ? -pageWidth : '-100%',
+                width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+                left: pageWidth ? -pageWidth * WINDOW : '-200%',
               }}
             >
-              <MonthHeaderPanel
-                width={pageWidth}
-                label={format(prevDate, 'MMMM yyyy', { locale: nb })}
-                gradient={getMonthTheme(prevDate).gradient}
-              />
-              <MonthHeaderPanel
-                width={pageWidth}
-                label={format(currentDate, 'MMMM yyyy', { locale: nb })}
-                gradient={monthTheme.gradient}
-                onTitleClick={() => setShowYear(true)}
-              />
-              <MonthHeaderPanel
-                width={pageWidth}
-                label={format(nextDate, 'MMMM yyyy', { locale: nb })}
-                gradient={getMonthTheme(nextDate).gradient}
-              />
+              {stripDates.map((date, i) => (
+                <MonthHeaderPanel
+                  key={`${date.getFullYear()}-${date.getMonth()}`}
+                  width={pageWidth}
+                  label={format(date, 'MMMM yyyy', { locale: nb })}
+                  gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
+                  onTitleClick={i === WINDOW ? () => setShowYear(true) : undefined}
+                />
+              ))}
             </motion.div>
           </div>
 
@@ -301,65 +321,44 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           </div>
         </div>
 
-        {/* Finger-following 3-month pager */}
-        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-y">
+        {/* Continuous infinite-feel month strip */}
+        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-none">
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
             style={{
               x,
-              width: pageWidth ? pageWidth * 3 : '300%',
-              left: pageWidth ? -pageWidth : '-100%',
+              width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+              left: pageWidth ? -pageWidth * WINDOW : '-200%',
+              touchAction: 'pan-x',
             }}
-            drag={!pageWidth ? false : 'x'}
-            dragDirectionLock
-            dragConstraints={pageWidth ? { left: -pageWidth, right: pageWidth } : { left: 0, right: 0 }}
-            dragElastic={0.12}
-            dragMomentum={false}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+            onPanStart={handlePanStart}
+            onPan={handlePan}
+            onPanEnd={handlePanEnd}
           >
-            <MonthPanel
-              width={pageWidth}
-              monthDate={prevDate}
-              days={prevDays}
-              eventsByDate={prevByDate}
-              neighbourEventsByDate={eventsByDate}
-              monthTheme={getMonthTheme(prevDate)}
-              members={members}
-              highlight={highlight}
-              interactive={false}
-              onTap={handleDayTap}
-              onLongPress={onCreateEvent}
-              getMemberForEvent={getMemberForEvent}
-            />
-            <MonthPanel
-              width={pageWidth}
-              monthDate={currentDate}
-              days={days}
-              eventsByDate={eventsByDate}
-              neighbourEventsByDate={{ ...prevByDate, ...nextByDate }}
-              monthTheme={monthTheme}
-              members={members}
-              highlight={highlight}
-              interactive={!paging}
-              onTap={handleDayTap}
-              onLongPress={onCreateEvent}
-              getMemberForEvent={getMemberForEvent}
-            />
-            <MonthPanel
-              width={pageWidth}
-              monthDate={nextDate}
-              days={nextDays}
-              eventsByDate={nextByDate}
-              neighbourEventsByDate={eventsByDate}
-              monthTheme={getMonthTheme(nextDate)}
-              members={members}
-              highlight={highlight}
-              interactive={false}
-              onTap={handleDayTap}
-              onLongPress={onCreateEvent}
-              getMemberForEvent={getMemberForEvent}
-            />
+            {stripDates.map((date, i) => {
+              const byDate = eventsByOffset[i];
+              const neighbour = {
+                ...(eventsByOffset[i - 1] || {}),
+                ...(eventsByOffset[i + 1] || {}),
+              };
+              return (
+                <MonthPanel
+                  key={`${date.getFullYear()}-${date.getMonth()}`}
+                  width={pageWidth}
+                  monthDate={date}
+                  days={daysByOffset[i]}
+                  eventsByDate={byDate}
+                  neighbourEventsByDate={neighbour}
+                  monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
+                  members={members}
+                  highlight={highlight}
+                  interactive={i === WINDOW && !paging}
+                  onTap={handleDayTap}
+                  onLongPress={onCreateEvent}
+                  getMemberForEvent={getMemberForEvent}
+                />
+              );
+            })}
           </motion.div>
         </div>
       </div>
