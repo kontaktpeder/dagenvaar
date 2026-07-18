@@ -580,6 +580,11 @@ interface DayCellProps {
 
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 4;
+/** Shared calendar mark size — single-day icons and multi-day rail icons */
+const CAL_ICON_SIZE = 11;
+const CAL_ICON_STROKE = 2;
+/** Rail height matches icon + 2px so all marks align */
+const SPAN_RAIL_H = 'h-[13px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
 function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; overflow: number } {
@@ -650,7 +655,7 @@ const DayCell = ({
     if (Icon) {
       return (
         <div key={ev.id} className={`flex items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
-          <Icon size={11} strokeWidth={2} className={visuals.iconColor} />
+          <Icon size={CAL_ICON_SIZE} strokeWidth={CAL_ICON_STROKE} className={visuals.iconColor} />
         </div>
       );
     }
@@ -702,7 +707,7 @@ const DayCell = ({
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
             const seg = spanByLane.get(lane);
             if (!seg) {
-              return <div key={`lane-${lane}`} className="h-3 w-full" aria-hidden />;
+              return <div key={`lane-${lane}`} className={`${SPAN_RAIL_H} w-full`} aria-hidden />;
             }
             const member = getMemberForEvent(seg.event);
             const visuals = resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
@@ -721,14 +726,18 @@ const DayCell = ({
               <div
                 key={seg.event.id}
                 title={seg.event.title}
-                className={`h-3 flex items-center ${bleed} ${visuals.softBg} ring-1 ring-inset ring-black/[0.04] ${
-                  seg.isStart ? 'rounded-l-full pl-0.5' : ''
+                className={`${SPAN_RAIL_H} flex items-center ${bleed} ${visuals.railBg} ${
+                  seg.isStart ? 'rounded-l-full pl-px' : ''
                 } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                   evHighlighted ? 'ring-1 ring-primary/60 animate-pulse' : ''
                 }`}
               >
                 {seg.isStart && Icon && (
-                  <Icon size={9} strokeWidth={2.25} className={`shrink-0 ${visuals.iconColor}`} />
+                  <Icon
+                    size={CAL_ICON_SIZE}
+                    strokeWidth={CAL_ICON_STROKE}
+                    className={`shrink-0 ${visuals.iconColor}`}
+                  />
                 )}
               </div>
             );
