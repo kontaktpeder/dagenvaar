@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Pastelly',
   webDir: 'dist',
   ios: {
-    contentInset: 'always',
+    // Web app owns safe-area via CSS — avoid double inset with env() padding
+    contentInset: 'never',
     // Let OneSignal own APNs callbacks (required for reliable iOS registration)
     handleApplicationNotifications: false,
   },

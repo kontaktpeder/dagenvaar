@@ -10,10 +10,11 @@ export async function initNative(): Promise<void> {
 
   try {
     await StatusBar.setStyle({ style: Style.Light });
+    // Draw under the status bar; CSS safe-area padding handles the inset once.
+    await StatusBar.setOverlaysWebView({ overlay: true });
     if (!isIOS()) {
       await StatusBar.setBackgroundColor({ color: '#fbf9f6' });
     }
-    await StatusBar.setOverlaysWebView({ overlay: false });
   } catch (err) {
     console.warn('StatusBar init failed', err);
   }

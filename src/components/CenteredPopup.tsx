@@ -1,5 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { motion, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  animate,
+  useDragControls,
+  type PanInfo,
+} from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { sheetCardVariants, sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
@@ -44,9 +51,8 @@ const returnTween = {
 };
 
 /**
- * Modal shell with Photos-style dismiss:
- * free drag (no constraint rubber-band) → fly straight off-screen → unmount.
- * Enter animation lives on an inner layer so it never fights drag x/y.
+ * Modal shell with Photos-style dismiss from the top handle only —
+ * so scrolling inside the card never flies the sheet away.
  */
 const CenteredPopup = ({
   onClose,
@@ -60,6 +66,7 @@ const CenteredPopup = ({
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
   const dismiss = onExit ?? onClose;
+  const dragControls = useDragControls();
 
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
@@ -87,12 +94,12 @@ const CenteredPopup = ({
   }, [keyboardOpen, dragX, dragY, flyingOut]);
 
   const framePad = {
-    paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
-    paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
-    paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+    paddingTop: 'max(0.35rem, env(safe-area-inset-top))',
+    paddingLeft: 'max(0.35rem, env(safe-area-inset-left))',
+    paddingRight: 'max(0.35rem, env(safe-area-inset-right))',
     paddingBottom: keyboardOpen
       ? `${Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
-      : 'max(0.75rem, env(safe-area-inset-bottom))',
+      : 'max(0.35rem, env(safe-area-inset-bottom))',
     transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
   } as const;
 
@@ -139,6 +146,8 @@ const CenteredPopup = ({
     void animate(dragY, 0, returnTween);
   };
 
+  const canDrag = !keyboardOpen && !flyingOut;
+
   return (
     <motion.div
       initial={false}
@@ -161,15 +170,15 @@ const CenteredPopup = ({
         className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
         style={framePad}
       >
-        {/* Drag layer: only x/y/scale — never shares y with enter variants */}
         <motion.div
-          drag={!keyboardOpen && !flyingOut}
+          drag={canDrag}
+          dragControls={dragControls}
+          dragListener={false}
           dragMomentum={false}
           dragElastic={0}
           onDragEnd={handleDragEnd}
           style={{ x: dragX, y: dragY, scale: cardScale }}
           className={cn(
-            // min-h-0 + max-h-full: flex centering must not let content force the card taller than the frame
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0 max-h-full',
             size === 'sheet' ? 'h-full' : 'h-auto',
           )}
@@ -186,6 +195,14 @@ const CenteredPopup = ({
               className,
             )}
           >
+            {/* Top strip starts dismiss — leave the ✕ tappable on the right */}
+            {canDrag && (
+              <div
+                className="absolute inset-x-0 top-0 z-[15] h-14 touch-none pr-14"
+                onPointerDown={(e) => dragControls.start(e)}
+                aria-hidden
+              />
+            )}
             {onExit && (
               <button
                 type="button"

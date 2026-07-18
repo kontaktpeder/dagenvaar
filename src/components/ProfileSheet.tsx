@@ -41,7 +41,7 @@ const MemberAvatar = ({ member, size = 'md' }: { member: HouseholdMember; size?:
   );
 };
 
-/** Collapsible folder section inside profile */
+/** Collapsible folder section inside profile — full-width, no nested “mini card” */
 const ProfileFolder = ({
   title,
   open,
@@ -53,16 +53,16 @@ const ProfileFolder = ({
   onToggle: () => void;
   children: ReactNode;
 }) => (
-  <div className="rounded-2xl border border-border/70 overflow-hidden">
+  <div className="shrink-0 border-b border-border/60 last:border-b-0">
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-muted/50 transition-colors"
+      className="w-full flex items-center justify-between gap-3 px-1 py-4 text-left"
       aria-expanded={open}
     >
-      <span className="text-sm font-semibold">{title}</span>
+      <span className="text-base font-semibold">{title}</span>
       <ChevronDown
-        size={18}
+        size={20}
         strokeWidth={2.25}
         className={`text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
       />
@@ -77,7 +77,7 @@ const ProfileFolder = ({
           transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
           className="overflow-hidden"
         >
-          <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border/50">
+          <div className="pb-5 pt-0 space-y-3">
             {children}
           </div>
         </motion.div>
@@ -110,7 +110,16 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const queryClient = useQueryClient();
 
   const toggleFolder = (key: FolderKey) => {
-    setOpenFolders((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenFolders((prev) => {
+      const nextOpen = !prev[key];
+      // One folder open at a time — keeps the sheet readable
+      return {
+        hjem: false,
+        innstillinger: false,
+        konto: false,
+        [key]: nextOpen,
+      };
+    });
   };
 
   const leaveHousehold = useMutation({
@@ -256,9 +265,9 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-touch px-5 pb-8 pt-5 pr-14">
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 pr-14 touch-pan-y">
           {/* Deg — always visible header */}
-          <section className="shrink-0 text-center pb-2">
+          <section className="shrink-0 text-center pb-4 border-b border-border/60 mb-1">
           <div className="relative w-16 h-16 mx-auto mb-3">
             <MemberAvatar member={currentMember} size="md" />
             <button

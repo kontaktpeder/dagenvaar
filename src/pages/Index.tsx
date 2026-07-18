@@ -110,8 +110,8 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
-      {/* Header — roomy insets so name + avatar don’t hug the screen edge */}
-      <header className="flex items-center justify-between gap-4 px-6 pt-[calc(env(safe-area-inset-top)+1.125rem)] pb-3">
+      {/* Header — single safe-area pad (native WebView is edge-to-edge) */}
+      <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
         <h1 className="text-xl font-bold tracking-tight truncate min-w-0">{household.name}</h1>
         <button
           onClick={() => setShowProfile(true)}
@@ -130,8 +130,8 @@ const Index = () => {
         </button>
       </header>
 
-      {/* Content */}
-      <main className="flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
+      {/* Content fills to the home indicator; calendar paints into the bottom */}
+      <main className="flex-1 min-h-0 overflow-hidden">
         <CalendarView
           householdId={household.id}
           members={members}
