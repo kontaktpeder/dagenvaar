@@ -28,12 +28,25 @@ interface CenteredPopupProps {
   onExit?: () => void;
 }
 
-const DISMISS_DIST = 110;
-const DISMISS_VEL = 850;
+const DISMISS_DIST = 100;
+const DISMISS_VEL = 700;
+
+const flyTween = {
+  type: 'tween' as const,
+  duration: 0.28,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+};
+
+const returnTween = {
+  type: 'tween' as const,
+  duration: 0.22,
+  ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
+};
 
 /**
- * Modal shell: safe-area padding hugs the card.
- * Drag any direction — on release past threshold the card flies off-screen (Photos-style), then unmounts.
+ * Modal shell with Photos-style dismiss:
+ * free drag (no constraint rubber-band) → fly straight off-screen → unmount.
+ * Enter animation lives on an inner layer so it never fights drag x/y.
  */
 const CenteredPopup = ({
   onClose,
@@ -52,10 +65,10 @@ const CenteredPopup = ({
   const dragY = useMotionValue(0);
   const dragProgress = useTransform([dragX, dragY], ([dx, dy]) => {
     const d = Math.hypot(Number(dx), Number(dy));
-    return Math.min(1, d / 180);
+    return Math.min(1, d / 160);
   });
   const backdropOpacity = useTransform(dragProgress, [0, 1], [backdrop === 'solid' ? 0.4 : 0, 0]);
-  const cardScale = useTransform(dragProgress, [0, 1], [1, 0.94]);
+  const cardScale = useTransform(dragProgress, [0, 1], [1, 0.96]);
 
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
@@ -67,6 +80,8 @@ const CenteredPopup = ({
 
   useEffect(() => {
     if (flyingOut) return;
+    dragX.stop();
+    dragY.stop();
     dragX.set(0);
     dragY.set(0);
   }, [keyboardOpen, dragX, dragY, flyingOut]);
@@ -83,21 +98,30 @@ const CenteredPopup = ({
 
   const flyOutThenDismiss = (info: PanInfo) => {
     setFlyingOut(true);
+    dragX.stop();
+    dragY.stop();
 
-    // Prefer throw direction from velocity when flicking; else from drag offset
-    const useVel = Math.hypot(info.velocity.x, info.velocity.y) > 400;
-    const vx = useVel ? info.velocity.x : info.offset.x;
-    const vy = useVel ? info.velocity.y : info.offset.y;
-    const len = Math.hypot(vx, vy) || 1;
-    const travel = Math.max(window.innerWidth, window.innerHeight) * 1.25;
-    const targetX = dragX.get() + (vx / len) * travel;
-    const targetY = dragY.get() + (vy / len) * travel;
+    const curX = dragX.get();
+    const curY = dragY.get();
 
-    const tween = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
+    const speed = Math.hypot(info.velocity.x, info.velocity.y);
+    const useVel = speed > 350;
+    let dirX = useVel ? info.velocity.x : info.offset.x;
+    let dirY = useVel ? info.velocity.y : info.offset.y;
+    const dirLen = Math.hypot(dirX, dirY);
+    if (dirLen < 1) {
+      dirX = 0;
+      dirY = 1;
+    } else {
+      dirX /= dirLen;
+      dirY /= dirLen;
+    }
+
+    const travel = Math.max(window.innerWidth, window.innerHeight) * 1.35;
 
     void Promise.all([
-      animate(dragX, targetX, tween),
-      animate(dragY, targetY, tween),
+      animate(dragX, curX + dirX * travel, flyTween),
+      animate(dragY, curY + dirY * travel, flyTween),
     ]).then(() => {
       dismiss();
     });
@@ -111,8 +135,8 @@ const CenteredPopup = ({
       flyOutThenDismiss(info);
       return;
     }
-    void animate(dragX, 0, { type: 'spring', stiffness: 420, damping: 36 });
-    void animate(dragY, 0, { type: 'spring', stiffness: 420, damping: 36 });
+    void animate(dragX, 0, returnTween);
+    void animate(dragY, 0, returnTween);
   };
 
   return (
@@ -137,38 +161,45 @@ const CenteredPopup = ({
         className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
         style={framePad}
       >
+        {/* Drag layer: only x/y/scale — never shares y with enter variants */}
         <motion.div
-          variants={sheetCardVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={sheetSpring}
           drag={!keyboardOpen && !flyingOut}
-          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-          dragElastic={0.92}
           dragMomentum={false}
+          dragElastic={0}
           onDragEnd={handleDragEnd}
           style={{ x: dragX, y: dragY, scale: cardScale }}
           className={cn(
-            'pointer-events-auto relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0 w-full max-w-md',
+            'pointer-events-auto relative z-10 w-full max-w-md min-h-0',
             size === 'sheet' ? 'h-full max-h-full' : 'h-auto max-h-full',
-            className,
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {onExit && (
-            <button
-              type="button"
-              onClick={onExit}
-              className="absolute top-3 right-3 z-20 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
-              aria-label="Lukk"
-            >
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          )}
-          {children}
+          <motion.div
+            variants={sheetCardVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={sheetSpring}
+            className={cn(
+              'relative bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0 w-full',
+              size === 'sheet' ? 'h-full max-h-full' : 'h-auto max-h-full',
+              className,
+            )}
+          >
+            {onExit && (
+              <button
+                type="button"
+                onClick={onExit}
+                className="absolute top-3 right-3 z-20 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
+                aria-label="Lukk"
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
+                  <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+            {children}
+          </motion.div>
         </motion.div>
       </div>
     </motion.div>
