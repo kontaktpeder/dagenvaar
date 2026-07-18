@@ -54,6 +54,10 @@ const COMMIT_VELOCITY = 320;
 const WINDOW = 2;
 /** How strongly release velocity projects into month hops (symmetric both ways) */
 const VELOCITY_PROJECT = 0.34;
+/** Ignore strip movement until finger travels this far horizontally (px) */
+const PAN_ACTIVATE_PX = 18;
+/** Treat gesture as vertical (block strip) when |dy| exceeds |dx| by this factor */
+const AXIS_LOCK_RATIO = 1.2;
 
 function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   const map: Record<string, Event[]> = {};
@@ -129,6 +133,11 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const x = useMotionValue(0);
   const animatingRef = useRef(false);
   const animationControlsRef = useRef<{ stop: () => void } | null>(null);
+  const panStartXRef = useRef(0);
+  /** pending = undecided, pan = horizontal swipe, blocked = tap/hold/vertical */
+  const panModeRef = useRef<'pending' | 'pan' | 'blocked'>('pending');
+  /** Set while a day long-press is active — keeps strip frozen */
+  const pressLockRef = useRef(false);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -140,13 +149,13 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     return () => ro.disconnect();
   }, []);
 
-  const panStartXRef = useRef(0);
-
   const stopPagingAnim = useCallback(() => {
     animationControlsRef.current?.stop();
     animationControlsRef.current = null;
-    animatingRef.current = false;
-    setPaging(false);
+    if (animatingRef.current) {
+      animatingRef.current = false;
+      setPaging(false);
+    }
   }, []);
 
   /** Jump without strip animation (today / year picker) */
@@ -159,29 +168,15 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     [setCurrentDate, stopPagingAnim, x],
   );
 
-  /** Keep strip filled during pan: shift month + compensate pan origin so motion stays continuous */
-  const applyLiveRecenter = useCallback(
-    (nextX: number, panOrigin: { current: number }) => {
-      if (!pageWidth) return nextX;
-      let px = nextX;
-      let hops = 0;
-      while (px <= -pageWidth) {
-        px += pageWidth;
-        hops += 1;
-        panOrigin.current += pageWidth;
-      }
-      while (px >= pageWidth) {
-        px -= pageWidth;
-        hops -= 1;
-        panOrigin.current -= pageWidth;
-      }
-      if (hops !== 0) {
-        setCurrentDate((d) => (hops > 0 ? addMonths(d, hops) : subMonths(d, -hops)));
-      }
-      return px;
-    },
-    [pageWidth, setCurrentDate],
-  );
+  const lockStripForPress = useCallback(() => {
+    pressLockRef.current = true;
+    panModeRef.current = 'blocked';
+    x.set(panStartXRef.current);
+  }, [x]);
+
+  const unlockStripForPress = useCallback(() => {
+    pressLockRef.current = false;
+  }, []);
 
   const flingToHops = useCallback(
     (hops: number) => {
@@ -222,17 +217,60 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const handlePanStart = () => {
     stopPagingAnim();
     panStartXRef.current = x.get();
-    // Do not setPaging here — it flips pointer-events-none on day cells mid-press/hold.
+    panModeRef.current = pressLockRef.current ? 'blocked' : 'pending';
   };
 
   const handlePan = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
-    const raw = panStartXRef.current + info.offset.x;
-    x.set(applyLiveRecenter(raw, panStartXRef));
+
+    // Freeze strip during day press/hold or after vertical-axis lock
+    if (pressLockRef.current || panModeRef.current === 'blocked') {
+      x.set(panStartXRef.current);
+      return;
+    }
+
+    const dx = info.offset.x;
+    const dy = info.offset.y;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+
+    if (panModeRef.current === 'pending') {
+      if (adx < PAN_ACTIVATE_PX && ady < PAN_ACTIVATE_PX) {
+        x.set(panStartXRef.current);
+        return;
+      }
+      // Vertical scroll intent — never move the month strip this gesture
+      if (ady >= PAN_ACTIVATE_PX && ady > adx * AXIS_LOCK_RATIO) {
+        panModeRef.current = 'blocked';
+        x.set(panStartXRef.current);
+        return;
+      }
+      // Need clear horizontal travel before following the finger
+      if (adx < PAN_ACTIVATE_PX) {
+        x.set(panStartXRef.current);
+        return;
+      }
+      panModeRef.current = 'pan';
+    }
+
+    // Visual-only drag — no setCurrentDate mid-gesture (avoids remount flicker)
+    const max = pageWidth * WINDOW;
+    const next = Math.max(-max, Math.min(max, panStartXRef.current + dx));
+    x.set(next);
   };
 
   const handlePanEnd = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
+
+    const wasPanning = panModeRef.current === 'pan' && !pressLockRef.current;
+    panModeRef.current = 'pending';
+
+    if (!wasPanning) {
+      // Tap / hold / vertical — settle to center if we interrupted a fling
+      if (Math.abs(x.get()) > 0.5) flingToHops(0);
+      else x.set(0);
+      return;
+    }
 
     const px = x.get();
     const vx = info.velocity.x;
@@ -243,8 +281,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       const flicked = Math.abs(vx) > COMMIT_VELOCITY;
       const dragged = Math.abs(px) > pageWidth * COMMIT_RATIO;
       if (flicked || dragged) {
-        // Prefer velocity when it's a clear flick; otherwise use drag position.
-        // Same rule both directions — avoids reverse flicks springing back to center.
         if (flicked && Math.abs(vx) >= Math.abs(px) * 2.5) {
           hops = vx < 0 ? 1 : -1;
         } else {
@@ -338,7 +374,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         </div>
 
         {/* Continuous infinite-feel month strip */}
-        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-x">
+        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-x select-none">
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
             style={{
@@ -346,6 +382,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
               width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
               left: pageWidth ? -pageWidth * WINDOW : '-200%',
               touchAction: 'pan-x',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
             onPanStart={showYear ? undefined : handlePanStart}
             onPan={showYear ? undefined : handlePan}
@@ -371,6 +409,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                   interactive={i === WINDOW && !paging}
                   onTap={handleDayTap}
                   onLongPress={onCreateEvent}
+                  onPressLock={lockStripForPress}
+                  onPressUnlock={unlockStripForPress}
                   getMemberForEvent={getMemberForEvent}
                 />
               );
@@ -488,6 +528,8 @@ interface MonthPanelProps {
   interactive: boolean;
   onTap: (day: Date) => void;
   onLongPress: (day: Date) => void;
+  onPressLock: () => void;
+  onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
@@ -503,6 +545,8 @@ const MonthPanel = ({
   interactive,
   onTap,
   onLongPress,
+  onPressLock,
+  onPressUnlock,
   getMemberForEvent,
 }: MonthPanelProps) => {
   const spanByDate = useMemo(
@@ -539,6 +583,8 @@ const MonthPanel = ({
             highlight={highlight}
             onTap={onTap}
             onLongPress={onLongPress}
+            onPressLock={onPressLock}
+            onPressUnlock={onPressUnlock}
             getMemberForEvent={getMemberForEvent}
           />
         );
@@ -563,6 +609,8 @@ interface DayCellProps {
   highlight: Highlight;
   onTap: (day: Date) => void;
   onLongPress: (day: Date) => void;
+  onPressLock: () => void;
+  onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
@@ -620,10 +668,16 @@ const DayCell = ({
   highlight,
   onTap,
   onLongPress,
+  onPressLock,
+  onPressUnlock,
   getMemberForEvent,
 }: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
-    onLongPress: () => onLongPress(day),
+    onLongPress: () => {
+      onPressLock();
+      onLongPress(day);
+    },
+    onDisarm: onPressUnlock,
   });
 
   const handleClick = () => {
