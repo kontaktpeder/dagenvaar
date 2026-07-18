@@ -1,0 +1,2 @@
+# Daily digest cron + "send now" (JWT) / batch (cron secret or service role)
+verify_jwt = false

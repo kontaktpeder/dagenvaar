@@ -7,6 +7,7 @@ import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import { Camera, ChevronDown } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
+import DailyDigestSettings from '@/components/DailyDigestSettings';
 import CenteredPopup from '@/components/CenteredPopup';
 
 interface ProfileSheetProps {
@@ -340,6 +341,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           open={openFolders.innstillinger}
           onToggle={() => toggleFolder('innstillinger')}
         >
+          <DailyDigestSettings member={currentMember} />
           <CategoryColorSettings member={currentMember} />
         </ProfileFolder>
 

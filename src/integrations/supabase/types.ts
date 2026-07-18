@@ -425,11 +425,15 @@ export type Database = {
           category_color_map: Json | null
           color_token: string
           created_at: string
+          daily_digest_enabled: boolean
+          daily_digest_last_sent_on: string | null
+          daily_digest_time: string
           display_name: string
           household_id: string
           id: string
           is_active: boolean
           role: string
+          timezone: string
           updated_at: string
           user_id: string
         }
@@ -438,11 +442,15 @@ export type Database = {
           category_color_map?: Json | null
           color_token?: string
           created_at?: string
+          daily_digest_enabled?: boolean
+          daily_digest_last_sent_on?: string | null
+          daily_digest_time?: string
           display_name: string
           household_id: string
           id?: string
           is_active?: boolean
           role?: string
+          timezone?: string
           updated_at?: string
           user_id: string
         }
@@ -451,11 +459,15 @@ export type Database = {
           category_color_map?: Json | null
           color_token?: string
           created_at?: string
+          daily_digest_enabled?: boolean
+          daily_digest_last_sent_on?: string | null
+          daily_digest_time?: string
           display_name?: string
           household_id?: string
           id?: string
           is_active?: boolean
           role?: string
+          timezone?: string
           updated_at?: string
           user_id?: string
         }

@@ -1,12 +1,33 @@
 import OneSignal from '@onesignal/capacitor-plugin';
 import { isNativePlatform } from './platform';
+import { setPendingOpenDay } from './pendingOpenDay';
 
 let initPromise: Promise<boolean> | null = null;
 let identifiedUserId: string | null = null;
+let clickListenerAttached = false;
 
 function appId(): string | undefined {
   const id = import.meta.env.VITE_ONESIGNAL_APP_ID;
   return typeof id === 'string' && id.trim() ? id.trim() : undefined;
+}
+
+function attachClickListener(): void {
+  if (clickListenerAttached) return;
+  clickListenerAttached = true;
+  try {
+    OneSignal.Notifications.addEventListener('click', (event) => {
+      const raw = event?.notification?.additionalData as Record<string, unknown> | undefined;
+      const date =
+        (typeof raw?.date === 'string' && raw.date) ||
+        (typeof raw?.event_date === 'string' && raw.event_date) ||
+        null;
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        setPendingOpenDay(date);
+      }
+    });
+  } catch (err) {
+    console.warn('[push] click listener failed', err);
+  }
 }
 
 async function ensureInitialized(): Promise<boolean> {
@@ -21,6 +42,7 @@ async function ensureInitialized(): Promise<boolean> {
     }
     try {
       await OneSignal.initialize(id);
+      attachClickListener();
       return true;
     } catch (err) {
       console.warn('[push] initialize failed', err);

@@ -21,6 +21,7 @@ import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
 import { fadeQuick } from '@/lib/motion';
+import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 
 interface CalendarViewProps {
   householdId: string;
@@ -108,6 +109,24 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
   const [detailEvent, setDetailEvent] = useState<Event | null>(null);
   const [paging, setPaging] = useState(false);
+
+  const openDayFromPush = useCallback(
+    (dateStr: string) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      if (!y || !m || !d) return;
+      const day = new Date(y, m - 1, d);
+      setCurrentDate(startOfMonth(day));
+      onSelectDate?.(day);
+      setDaySheetDate(day);
+    },
+    [onSelectDate, setCurrentDate],
+  );
+
+  useEffect(() => {
+    const pending = consumePendingOpenDay();
+    if (pending) openDayFromPush(pending);
+    return subscribePendingOpenDay(openDayFromPush);
+  }, [openDayFromPush]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
