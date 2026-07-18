@@ -65,9 +65,9 @@ const Index = () => {
 
   if (authLoading || ctxLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4 motion-reduce:animate-none" />
           <p className="text-muted-foreground">Laster...</p>
         </motion.div>
       </div>
@@ -109,14 +109,14 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
+    <div className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-2 pl-safe pr-safe">
 
         <h1 className="text-lg font-bold">{household.name}</h1>
         <button
           onClick={() => setShowProfile(true)}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden active:scale-95 transition-transform duration-100 touch-manipulation"
           style={
             !currentMember.avatar_url
               ? { backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))` }

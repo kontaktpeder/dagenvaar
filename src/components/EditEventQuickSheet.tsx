@@ -28,7 +28,7 @@ interface EditEventQuickSheetProps {
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 const ADD_BTN =
-  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
 
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
@@ -203,7 +203,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
         <h2 className="text-lg font-bold">Rask redigering</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5 min-h-0">
+      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4 space-y-5 min-h-0">
           {/* Tittel */}
           <div>
             <SectionTitle>Tittel</SectionTitle>

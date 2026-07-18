@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { fadeQuick, sheetCardVariants, sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
 interface CenteredPopupProps {
   onClose: () => void;
@@ -22,8 +23,8 @@ const sizeClass = {
 } as const;
 
 /**
- * Fixed centered card. Keyboard lifts the shell via overlay padding —
- * sheet height stays fixed so content does not violently collapse.
+ * Fixed centered card. Keyboard lifts via bottom padding (keeps items-center —
+ * no flex-alignment jump). Sheet height stays fixed so content does not collapse.
  */
 const CenteredPopup = ({
   onClose,
@@ -34,35 +35,38 @@ const CenteredPopup = ({
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
+  const bottomPad = keyboardOpen
+    ? Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)
+    : 40;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={cn(
-        'fixed inset-0 flex justify-center px-5',
-        keyboardOpen ? 'items-end' : 'items-center py-10',
-        zClassName,
-      )}
-      style={
-        keyboardOpen
-          ? {
-              paddingBottom: Math.min(keyboardInset + 8, window.innerHeight * 0.42),
-              paddingTop: 16,
-              transition: 'padding-bottom 160ms ease-out',
-            }
-          : undefined
-      }
+      transition={fadeQuick}
+      className={cn('fixed inset-0 flex items-center justify-center px-5 py-10', zClassName)}
+      style={{
+        paddingBottom: bottomPad,
+        transition: KEYBOARD_PAD_TRANSITION,
+      }}
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-foreground/40" aria-hidden />
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={fadeQuick}
+        className="absolute inset-0 bg-foreground/40"
+      />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.98 }}
-        transition={{ type: 'spring', damping: 32, stiffness: 380 }}
+        variants={sheetCardVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={sheetSpring}
         className={cn(
           'relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0',
           sizeClass[size],
@@ -71,7 +75,6 @@ const CenteredPopup = ({
         style={
           keyboardOpen
             ? {
-                // Cap height to space above keyboard — keep sheet tall, never collapse to content
                 height: size === 'sheet' ? `min(82dvh, calc(100dvh - ${keyboardInset + 36}px))` : undefined,
                 maxHeight: `calc(100dvh - ${keyboardInset + 36}px)`,
               }

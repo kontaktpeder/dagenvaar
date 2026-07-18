@@ -6,7 +6,7 @@ type Options = {
   moveTolerancePx?: number;
 };
 
-export function useLongPress({ onLongPress, ms = 520, moveTolerancePx = 10 }: Options) {
+export function useLongPress({ onLongPress, ms = 420, moveTolerancePx = 8 }: Options) {
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const firedRef = useRef(false);

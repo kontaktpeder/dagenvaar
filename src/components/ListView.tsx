@@ -143,13 +143,13 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           </div>
         </div>
 
-        <div className={`flex-1 overflow-y-auto px-5 space-y-2 ${embedded ? 'pb-6' : 'pb-32'}`}>
+        <div className={`flex-1 overflow-y-auto scroll-touch overscroll-contain px-5 space-y-2 ${embedded ? 'pb-6' : 'pb-32'}`}>
           {listItems.map((item) => (
             <motion.div
               key={item.id}
-              layout
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
               className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-soft"
             >
               <button

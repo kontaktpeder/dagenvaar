@@ -1,6 +1,7 @@
 import type { ReactNode, FormEventHandler } from 'react';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
 interface KeyboardAwareScreenProps {
   children: ReactNode;
@@ -34,7 +35,7 @@ const KeyboardAwareScreen = ({
     <>
       <div
         className={cn(
-          'flex-1 overflow-y-auto px-6 pt-[max(1.5rem,env(safe-area-inset-top))]',
+          'flex-1 overflow-y-auto overscroll-contain scroll-touch px-6 pt-[max(1.5rem,env(safe-area-inset-top))]',
           contentClassName,
         )}
       >
@@ -45,7 +46,7 @@ const KeyboardAwareScreen = ({
           className="shrink-0 px-6 pt-3 border-t border-border/60 bg-background"
           style={{
             paddingBottom: `max(1.25rem, calc(env(safe-area-inset-bottom) + ${keyboardInset}px))`,
-            transition: 'padding-bottom 180ms ease-out',
+            transition: KEYBOARD_PAD_TRANSITION,
           }}
         >
           {footer}

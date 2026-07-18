@@ -20,6 +20,7 @@ import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
+import { snapSpring } from '@/lib/motion';
 
 interface CalendarViewProps {
   householdId: string;
@@ -139,7 +140,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     return () => ro.disconnect();
   }, []);
 
-  const snapSpring = { type: 'spring' as const, stiffness: 420, damping: 38, mass: 0.55 };
   const panStartXRef = useRef(0);
 
   const stopPagingAnim = useCallback(() => {
@@ -190,7 +190,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       animatingRef.current = true;
       setPaging(true);
 
-      if (hops === 0) {
+      const clamped = Math.max(-WINDOW, Math.min(WINDOW, hops));
+
+      if (clamped === 0) {
         animationControlsRef.current = animate(x, 0, {
           ...snapSpring,
           onComplete: () => {
@@ -202,31 +204,17 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         return;
       }
 
-      // Chain one page at a time from *current* x — works equally forward and back,
-      // including when reversing mid-gesture (no absolute target that fights position).
-      const dir: 1 | -1 = hops > 0 ? 1 : -1;
-      let remaining = Math.min(WINDOW, Math.abs(hops));
-
-      const runHop = () => {
-        const target = dir > 0 ? -pageWidth : pageWidth;
-        animationControlsRef.current = animate(x, target, {
-          ...snapSpring,
-          onComplete: () => {
-            setCurrentDate((d) => (dir > 0 ? addMonths(d, 1) : subMonths(d, 1)));
-            x.set(0);
-            remaining -= 1;
-            if (remaining > 0) {
-              runHop();
-            } else {
-              animatingRef.current = false;
-              setPaging(false);
-              animationControlsRef.current = null;
-            }
-          },
-        });
-      };
-
-      runHop();
+      // Single spring to final offset — one settle, then one date commit (no hop hitch)
+      animationControlsRef.current = animate(x, -clamped * pageWidth, {
+        ...snapSpring,
+        onComplete: () => {
+          setCurrentDate((d) => addMonths(d, clamped));
+          x.set(0);
+          animatingRef.current = false;
+          setPaging(false);
+          animationControlsRef.current = null;
+        },
+      });
     },
     [pageWidth, setCurrentDate, x],
   );
@@ -330,7 +318,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 hover:bg-white/35 text-white text-[10px] font-semibold uppercase tracking-wider active:scale-95 transition-all backdrop-blur-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 active:bg-white/40 text-white text-[10px] font-semibold uppercase tracking-wider active:scale-[0.97] transition-transform duration-100 backdrop-blur-sm"
             >
               I dag
             </button>
@@ -350,7 +338,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         </div>
 
         {/* Continuous infinite-feel month strip */}
-        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-none">
+        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-x">
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
             style={{
@@ -395,10 +383,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           {showYear && (
             <motion.div
               key="year-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={snapSpring}
               className="absolute inset-0 z-30 bg-background flex flex-col"
             >
               <YearView
@@ -476,7 +464,7 @@ const MonthHeaderPanel = ({
     }}
   >
     {onTitleClick ? (
-      <button type="button" onClick={onTitleClick} className="text-center">
+      <button type="button" onClick={onTitleClick} className="text-center active:scale-[0.97] transition-transform duration-100">
         <h2 className="text-xl font-extrabold capitalize text-white tracking-wide">{label}</h2>
       </button>
     ) : (
@@ -659,7 +647,7 @@ const DayCell = ({
           key={ev.id}
           title={ev.title}
           className={`${MARK_CHIP} rounded-full flex items-center justify-center ${visuals.railBg} ${
-            evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''
+            evHighlighted ? 'ring-1 ring-primary/50 animate-highlight-once' : ''
           }`}
         >
           <Icon size={CAL_ICON_SIZE} strokeWidth={CAL_ICON_STROKE} className={visuals.iconColor} />
@@ -670,7 +658,7 @@ const DayCell = ({
     return (
       <div
         key={ev.id}
-        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''}`}
+        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/50 animate-highlight-once' : ''}`}
         title={ev.title}
       />
     );
@@ -680,23 +668,17 @@ const DayCell = ({
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-visible ${
-        isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
-      }`}
+      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl min-h-0 h-full overflow-visible touch-manipulation transition-[transform,background-color] duration-100 active:scale-[0.97] ${
+        isHighlighted ? 'ring-2 ring-primary/50 animate-highlight-once' : ''
+      } ${!today ? 'active:bg-[var(--cell-press)]' : ''}`}
       style={
         !today
-          ? { '--hover-bg': monthTheme.light } as React.CSSProperties
+          ? ({ '--cell-press': monthTheme.light } as React.CSSProperties)
           : undefined
       }
-      onMouseEnter={(e) => {
-        if (!today) (e.currentTarget as HTMLElement).style.backgroundColor = monthTheme.light;
-      }}
-      onMouseLeave={(e) => {
-        if (!today) (e.currentTarget as HTMLElement).style.backgroundColor = '';
-      }}
     >
       <span
-        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[13px] font-semibold transition-all duration-200 ${
+        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[13px] font-semibold ${
           weekend && !today ? 'opacity-60' : ''
         }`}
         style={
@@ -734,7 +716,7 @@ const DayCell = ({
                 key={seg.event.id}
                 title={seg.event.title}
                 className={`relative ${SPAN_RAIL_H} w-full flex items-center justify-center ${
-                  evHighlighted ? 'animate-pulse' : ''
+                  evHighlighted ? 'animate-highlight-once' : ''
                 }`}
               >
                 <div
@@ -800,7 +782,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         {year}
       </ViewHeader>
 
-      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start overflow-y-auto">
+      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start overflow-y-auto scroll-touch overscroll-contain">
         {months.map((m) => {
           const theme = getMonthTheme(new Date(year, m, 1));
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === m;

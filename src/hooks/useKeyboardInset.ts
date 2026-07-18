@@ -14,7 +14,11 @@ export function useKeyboardInset(): number {
     const handles: { remove: () => Promise<void> }[] = [];
 
     const setSafe = (value: number) => {
-      if (!cancelled) setInset(Math.max(0, Math.round(value)));
+      const next = Math.max(0, Math.round(value));
+      if (!cancelled) {
+        setInset(next);
+        document.documentElement.style.setProperty('--keyboard-inset', `${next}px`);
+      }
     };
 
     const fromVisualViewport = () => {
@@ -64,6 +68,7 @@ export function useKeyboardInset(): number {
 
     return () => {
       cancelled = true;
+      document.documentElement.style.setProperty('--keyboard-inset', '0px');
       vv?.removeEventListener('resize', syncViewport);
       vv?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);

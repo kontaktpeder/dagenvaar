@@ -16,14 +16,15 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { stepForward, stepSpring } from '@/lib/motion';
 
 /** Shared size for date/time inputs — equality = simplicity */
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 const ADD_BTN =
-  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
 const CTA_BTN =
-  'rounded-xl bg-muted hover:bg-muted/80 px-4 py-3 text-sm font-medium transition-all';
+  'rounded-xl bg-muted active:bg-muted/70 px-4 py-3 text-sm font-medium transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
 
 interface NewEventFlowProps {
   householdId: string;
@@ -256,7 +257,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <button
           type="button"
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground active:scale-90 transition-transform duration-100"
           aria-label="Lukk"
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -264,10 +265,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch">
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
 
               {/* Start date + add day button */}
@@ -461,7 +462,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
           )}
 
           {step === 2 && (
-            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step2" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Type hendelse</h2>
               <div className="flex flex-col gap-2">
                 {CATEGORY_OPTIONS.map((key) => {
@@ -491,7 +492,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 })}
               </div>
               {category === 'other' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} transition={stepSpring}>
                   <label className="text-sm font-medium mb-2 block">Egen kategori (valgfritt)</label>
                   <input
                     type="text"
@@ -507,7 +508,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
           )}
 
           {step === 3 && (
-            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step3" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Hva skal skje?</h2>
               <input
                 ref={titleRef}
@@ -521,7 +522,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
           )}
 
           {step === 4 && (
-            <motion.div key="step4" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step4" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Hvem kan se?</h2>
 
               <div className="space-y-3">

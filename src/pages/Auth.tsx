@@ -110,7 +110,7 @@ const AuthPage = () => {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-colors hover:bg-green-300 disabled:opacity-60"
+          className="w-full rounded-xl bg-green-200 py-3 font-semibold text-green-900 transition-[colors,transform] duration-100 active:scale-[0.97] active:bg-green-300 disabled:opacity-60 touch-manipulation"
         >
           {busy ? 'Sender...' : submitLabel}
         </button>

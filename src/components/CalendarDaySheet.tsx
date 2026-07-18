@@ -12,6 +12,7 @@ import type { Highlight } from '@/pages/Index';
 import ListView from '@/components/ListView';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { fadeQuick } from '@/lib/motion';
 
 interface CalendarDaySheetProps {
   date: Date;
@@ -73,9 +74,10 @@ const CalendarDaySheet = ({
         {showList ? (
           <motion.div
             key="list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={fadeQuick}
             className="flex-1 min-h-0 overflow-hidden"
           >
             <ListView
@@ -92,12 +94,13 @@ const CalendarDaySheet = ({
         ) : (
           <motion.div
             key="preview"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 12 }}
+            transition={fadeQuick}
             className="flex flex-col min-h-0 flex-1"
           >
-            <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-3 space-y-2 min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0">
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center">
                   <p className="font-medium text-foreground">Dagen er tom</p>

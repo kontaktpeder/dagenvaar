@@ -17,6 +17,7 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { stepForward, stepSpring } from '@/lib/motion';
 
 interface EditEventFlowProps {
   event: Event;
@@ -32,7 +33,7 @@ const STEPS = 4;
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 const ADD_BTN =
-  'shrink-0 rounded-xl bg-muted hover:bg-muted/80 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-all';
+  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
 
 const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, onSaved }: EditEventFlowProps) => {
   const updateEvent = useUpdateEvent();
@@ -234,10 +235,10 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch">
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
 
               <div>
@@ -326,7 +327,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           )}
 
           {step === 2 && (
-            <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step2" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Type hendelse</h2>
               <div className="flex flex-col gap-2">
                 {CATEGORY_OPTIONS.map((key) => {
@@ -347,7 +348,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                 })}
               </div>
               {category === 'other' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} transition={stepSpring}>
                   <label className="text-sm font-medium mb-2 block">Hva slags type er dette? (valgfritt)</label>
                   <input
                     type="text"
@@ -363,7 +364,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           )}
 
           {step === 3 && (
-            <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step3" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Hva skal skje?</h2>
               <input
                 type="text"
@@ -376,7 +377,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           )}
 
           {step === 4 && (
-            <motion.div key="step4" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
+            <motion.div key="step4" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Hvem kan se?</h2>
               <div className="space-y-3">
                 {[
