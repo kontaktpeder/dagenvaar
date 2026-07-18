@@ -253,8 +253,8 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const isOwner = currentMember.role === 'owner';
 
   return (
-    <CenteredPopup onClose={onClose} size="sheet" zClassName="z-[60]">
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pb-8 space-y-4 overscroll-contain scroll-touch">
+    <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
+      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pr-14 pb-8 space-y-4 overscroll-contain scroll-touch">
         {/* Deg — always visible header */}
         <section className="text-center pb-2">
           <div className="relative w-16 h-16 mx-auto mb-3">

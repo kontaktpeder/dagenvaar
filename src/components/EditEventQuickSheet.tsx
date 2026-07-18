@@ -198,8 +198,8 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   );
 
   return (
-    <CenteredPopup onClose={onClose} size="sheet" zClassName="z-[70]">
-      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+    <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[70]">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 pr-14 shrink-0">
         <h2 className="text-lg font-bold">Rask redigering</h2>
       </div>
 

@@ -257,7 +257,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <button
           type="button"
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground"
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
           aria-label="Lukk"
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>

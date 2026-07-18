@@ -9,28 +9,27 @@ interface CenteredPopupProps {
   children: ReactNode;
   /**
    * hug — shrinks to content (day preview, event detail)
-   * sheet — fixed tall shell (create/edit/profile/list)
+   * sheet — fills the safe frame (create/edit/profile/day)
    */
   size?: 'hug' | 'sheet';
   className?: string;
   /** Higher z when stacked over another popup */
   zClassName?: string;
   /**
-   * solid — backdrop fully on from first frame (default; no enter blink)
-   * none — no dim (rare; e.g. nested where parent already dims)
+   * solid — dim behind card (default)
+   * none — no dim (nested over an already-dimmed parent)
    */
   backdrop?: 'solid' | 'none';
+  /**
+   * Optional full-exit control (separate from backdrop, which may step back).
+   * Renders a large ✕ on the card, strictly inside its top-right corner.
+   */
+  onExit?: () => void;
 }
 
-const sizeClass = {
-  hug: 'max-w-md w-full h-auto max-h-[min(82dvh,680px)]',
-  sheet: 'max-w-md w-full h-[min(82dvh,680px)] max-h-[calc(100%-5rem)]',
-} as const;
-
 /**
- * Fixed centered card.
- * Backdrop is solid on enter (fade only on exit) so open never blinks.
- * Card slides a few px without opacity change.
+ * Modal shell: safe-area padding is the ONLY margin around the card.
+ * Card edges sit flush to that inset — backdrop tap zone = that ring, not a floating gap.
  */
 const CenteredPopup = ({
   onClose,
@@ -39,12 +38,10 @@ const CenteredPopup = ({
   className,
   zClassName = 'z-50',
   backdrop = 'solid',
+  onExit,
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
-  const bottomPad = keyboardOpen
-    ? Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)
-    : 40;
 
   const [padReady, setPadReady] = useState(false);
   useEffect(() => {
@@ -52,46 +49,64 @@ const CenteredPopup = ({
     return () => window.cancelAnimationFrame(id);
   }, []);
 
+  const framePad = {
+    paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+    paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+    paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+    paddingBottom: keyboardOpen
+      ? `${Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
+      : 'max(0.75rem, env(safe-area-inset-bottom))',
+    transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
+  } as const;
+
   return (
     <motion.div
       initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={fadeQuick}
-      className={cn('fixed inset-0 flex items-center justify-center px-5 py-10', zClassName)}
-      style={{
-        paddingBottom: bottomPad,
-        transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
-      }}
-      onClick={onClose}
+      className={cn('fixed inset-0', zClassName)}
     >
-      {backdrop !== 'none' && (
-        <div className="absolute inset-0 bg-foreground/40" aria-hidden />
-      )}
+      {/* Full-screen dismiss target — edge of card = edge of hit-test for “outside” */}
+      <div
+        className={cn('absolute inset-0', backdrop === 'solid' ? 'bg-foreground/40' : 'bg-transparent')}
+        onClick={onClose}
+        aria-hidden
+      />
 
-      <motion.div
-        variants={sheetCardVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={sheetSpring}
-        className={cn(
-          'relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0',
-          sizeClass[size],
-          className,
-        )}
-        style={
-          keyboardOpen
-            ? {
-                height: size === 'sheet' ? `min(82dvh, calc(100dvh - ${keyboardInset + 36}px))` : undefined,
-                maxHeight: `calc(100dvh - ${keyboardInset + 36}px)`,
-              }
-            : undefined
-        }
-        onClick={(e) => e.stopPropagation()}
+      {/* Safe frame: insets hug the card; card fills the frame */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        style={framePad}
       >
-        {children}
-      </motion.div>
+        <motion.div
+          variants={sheetCardVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={sheetSpring}
+          className={cn(
+            'pointer-events-auto relative z-10 bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0 w-full max-w-md',
+            size === 'sheet' ? 'h-full max-h-full' : 'h-auto max-h-full',
+            className,
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onExit && (
+            <button
+              type="button"
+              onClick={onExit}
+              className="absolute top-3 right-3 z-20 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
+              aria-label="Lukk"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
+                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+          {children}
+        </motion.div>
+      </div>
     </motion.div>
   );
 };
