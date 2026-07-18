@@ -338,10 +338,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         </div>
 
         <div className="bg-transparent relative">
-          <div className="grid grid-cols-7 px-3 py-3">
+          <div className="grid grid-cols-7 px-4 py-3.5">
             {WEEKDAYS.map((d, i) => (
-              <div key={d} className={`text-center text-[13px] font-bold uppercase tracking-wider ${
-                i >= 5 ? 'text-primary/60' : 'text-foreground/50'
+              <div key={d} className={`text-center text-[12px] font-semibold uppercase tracking-[0.12em] ${
+                i >= 5 ? 'text-primary/50' : 'text-foreground/40'
               }`}>
                 {d}
               </div>
@@ -524,7 +524,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-0.5 gap-y-0.5 px-3 pt-1 pb-2 content-stretch h-full min-h-0 shrink-0 ${
+      className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-1 gap-y-1 px-4 pt-1.5 pb-4 content-stretch h-full min-h-0 shrink-0 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -680,7 +680,7 @@ const DayCell = ({
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-visible ${
+      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-visible ${
         isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
       }`}
       style={
@@ -696,7 +696,7 @@ const DayCell = ({
       }}
     >
       <span
-        className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-[14px] font-semibold transition-all duration-200 ${
+        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[13px] font-semibold transition-all duration-200 ${
           weekend && !today ? 'opacity-60' : ''
         }`}
         style={
@@ -710,7 +710,7 @@ const DayCell = ({
 
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
-        <div className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1]">
+        <div className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1]">
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
             const seg = spanByLane.get(lane);
             if (!seg) {
@@ -722,9 +722,9 @@ const DayCell = ({
             const Icon = meta?.Icon;
             const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
-            // Bridge gap-x-0.5; absolute so start icon can stay centered under the date
+            // Bridge gap-x-1 (4px); absolute so start icon can stay centered under the date
             let railPos = 'left-0 right-0';
-            if (seg.isStart && seg.isEnd) railPos = 'left-px right-px';
+            if (seg.isStart && seg.isEnd) railPos = 'left-0.5 right-0.5';
             else if (seg.isStart) railPos = 'left-0 right-[-2px]';
             else if (seg.isEnd) railPos = 'left-[-2px] right-0';
             else railPos = 'left-[-2px] right-[-2px]';
@@ -763,17 +763,17 @@ const DayCell = ({
       )}
 
       {rows.length > 0 && (
-        <div className="mt-0.5 w-full flex flex-col items-center gap-px min-h-0 flex-1 px-0.5">
+        <div className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5">
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}
-              className={`flex items-center justify-center gap-px ${row.length > 1 ? 'flex-row' : 'flex-col'}`}
+              className={`flex items-center justify-center gap-0.5 ${row.length > 1 ? 'flex-row' : 'flex-col'}`}
             >
               {row.map((ev) => renderEventMark(ev))}
             </div>
           ))}
           {overflow > 0 && (
-            <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0">
+            <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0 mt-0.5">
               +{overflow}
             </div>
           )}
