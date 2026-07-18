@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
@@ -23,8 +23,9 @@ const sizeClass = {
 } as const;
 
 /**
- * Fixed centered card. Keyboard lifts via bottom padding (keeps items-center —
- * no flex-alignment jump). Sheet height stays fixed so content does not collapse.
+ * Fixed centered card.
+ * Enter: dim backdrop only — card stays fully opaque (no opacity blink).
+ * Exit: short fade. Keyboard lifts via padding without fighting the enter spring.
  */
 const CenteredPopup = ({
   onClose,
@@ -39,16 +40,23 @@ const CenteredPopup = ({
     ? Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)
     : 40;
 
+  // Avoid padding CSS transition on first paint (looks like a blink under the sheet)
+  const [padReady, setPadReady] = useState(false);
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setPadReady(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={fadeQuick}
       className={cn('fixed inset-0 flex items-center justify-center px-5 py-10', zClassName)}
       style={{
         paddingBottom: bottomPad,
-        transition: KEYBOARD_PAD_TRANSITION,
+        transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
       }}
       onClick={onClose}
     >

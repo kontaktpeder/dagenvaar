@@ -8,12 +8,12 @@ export const snapSpring: Transition = {
   mass: 0.7,
 };
 
-/** Modal / sheet card enter */
+/** Modal / sheet card enter — damped so it doesn’t overshoot/blink */
 export const sheetSpring: Transition = {
   type: 'spring',
-  stiffness: 420,
-  damping: 36,
-  mass: 0.8,
+  stiffness: 380,
+  damping: 42,
+  mass: 0.85,
 };
 
 /** Wizard step push/pop */
@@ -37,9 +37,10 @@ export const stepForward = {
 } as const;
 
 export const sheetCardVariants: Variants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 6 },
+  // Opaque from first frame — opacity fade on open reads as a blink on iOS
+  initial: { y: 10 },
+  animate: { y: 0 },
+  exit: { y: 6 },
 };
 
 /** iOS-ish keyboard pad easing (CSS) */

@@ -294,8 +294,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   };
 
   const handleDayTap = (day: Date) => {
+    // Paint sheet first; defer parent date update so calendar doesn't re-render mid-open
     setDaySheetDate(day);
-    onSelectDate(day);
+    requestAnimationFrame(() => onSelectDate(day));
   };
 
   const getMemberForEvent = (event: Event) => {
