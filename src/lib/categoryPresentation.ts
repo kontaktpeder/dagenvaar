@@ -25,14 +25,14 @@ type Visuals = {
 };
 
 const TOKEN_TO_TW: Record<CategoryColorToken, Visuals> = {
-  pink:   { iconColor: 'text-pink-500',   dotColor: 'bg-pink-500',   softBg: 'bg-pink-100',   chipBg: 'bg-pink-100',   railBg: 'bg-pink-500/45' },
-  blue:   { iconColor: 'text-blue-500',   dotColor: 'bg-blue-500',   softBg: 'bg-blue-100',   chipBg: 'bg-blue-100',   railBg: 'bg-blue-500/45' },
-  purple: { iconColor: 'text-purple-500', dotColor: 'bg-purple-500', softBg: 'bg-purple-100', chipBg: 'bg-purple-100', railBg: 'bg-purple-500/45' },
-  amber:  { iconColor: 'text-amber-500',  dotColor: 'bg-amber-500',  softBg: 'bg-amber-100',  chipBg: 'bg-amber-100',  railBg: 'bg-amber-500/45' },
-  orange: { iconColor: 'text-orange-500', dotColor: 'bg-orange-500', softBg: 'bg-orange-100', chipBg: 'bg-orange-100', railBg: 'bg-orange-500/45' },
-  green:  { iconColor: 'text-green-500',  dotColor: 'bg-green-500',  softBg: 'bg-green-100',  chipBg: 'bg-green-100',  railBg: 'bg-green-500/45' },
-  teal:   { iconColor: 'text-teal-500',   dotColor: 'bg-teal-500',   softBg: 'bg-teal-100',   chipBg: 'bg-teal-100',   railBg: 'bg-teal-500/45' },
-  red:    { iconColor: 'text-red-500',    dotColor: 'bg-red-500',    softBg: 'bg-red-100',    chipBg: 'bg-red-100',    railBg: 'bg-red-500/45' },
+  pink:   { iconColor: 'text-pink-500',   dotColor: 'bg-pink-500',   softBg: 'bg-pink-100',   chipBg: 'bg-pink-100',   railBg: 'bg-pink-200' },
+  blue:   { iconColor: 'text-blue-500',   dotColor: 'bg-blue-500',   softBg: 'bg-blue-100',   chipBg: 'bg-blue-100',   railBg: 'bg-blue-200' },
+  purple: { iconColor: 'text-purple-500', dotColor: 'bg-purple-500', softBg: 'bg-purple-100', chipBg: 'bg-purple-100', railBg: 'bg-purple-200' },
+  amber:  { iconColor: 'text-amber-500',  dotColor: 'bg-amber-500',  softBg: 'bg-amber-100',  chipBg: 'bg-amber-100',  railBg: 'bg-amber-200' },
+  orange: { iconColor: 'text-orange-500', dotColor: 'bg-orange-500', softBg: 'bg-orange-100', chipBg: 'bg-orange-100', railBg: 'bg-orange-200' },
+  green:  { iconColor: 'text-green-500',  dotColor: 'bg-green-500',  softBg: 'bg-green-100',  chipBg: 'bg-green-100',  railBg: 'bg-green-200' },
+  teal:   { iconColor: 'text-teal-500',   dotColor: 'bg-teal-500',   softBg: 'bg-teal-100',   chipBg: 'bg-teal-100',   railBg: 'bg-teal-200' },
+  red:    { iconColor: 'text-red-500',    dotColor: 'bg-red-500',    softBg: 'bg-red-100',    chipBg: 'bg-red-100',    railBg: 'bg-red-200' },
 };
 
 const OTHER_NEUTRAL: Visuals = {
@@ -40,7 +40,7 @@ const OTHER_NEUTRAL: Visuals = {
   dotColor: 'bg-muted-foreground',
   softBg: 'bg-muted',
   chipBg: 'bg-muted',
-  railBg: 'bg-muted-foreground/35',
+  railBg: 'bg-muted',
 };
 
 export const COLOR_TOKEN_OPTIONS: CategoryColorToken[] = ['pink', 'blue', 'purple', 'amber', 'orange', 'green', 'teal', 'red'];

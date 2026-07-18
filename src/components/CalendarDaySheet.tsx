@@ -123,7 +123,11 @@ const CalendarDaySheet = ({
                         className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all active:scale-95`}
                       >
                         <div className="flex items-center gap-2">
-                          {Icon && <Icon size={14} className={visuals.iconColor} />}
+                          {Icon && (
+                            <span className={`shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ${visuals.railBg}`}>
+                              <Icon size={12} strokeWidth={2} className={visuals.iconColor} />
+                            </span>
+                          )}
                           <span className="font-semibold text-sm truncate">{ev.title}</span>
                         </div>
                         {multiLabel && (

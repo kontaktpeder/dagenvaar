@@ -1,18 +1,13 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { getMonthTheme } from '@/lib/monthTheme';
 import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
 import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
-import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
-import {
-  AXIS_START, AXIS_END, AXIS_SPAN,
-  DAY_PART_AXIS_RANGES, TIMELINE_SEGMENTS,
-  parseTimeToAxisHour,
-} from '@/lib/dayParts';
+import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import EventDetailSheet from '@/components/EventDetailSheet';
@@ -32,29 +27,6 @@ interface ListViewProps {
   /** Compact mode inside day dialog — fixed date, no day header/swipe */
   embedded?: boolean;
 }
-
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-
-const getFallbackRange = (event: Event): [number, number] => {
-  const dps = (event as any).day_part_start as string | null;
-  const dpe = (event as any).day_part_end as string | null;
-  const single = event.day_part as string | null;
-
-  if (dps && dpe && DAY_PART_AXIS_RANGES[dps] && DAY_PART_AXIS_RANGES[dpe]) {
-    return [DAY_PART_AXIS_RANGES[dps][0], DAY_PART_AXIS_RANGES[dpe][1]];
-  }
-  if (dps && DAY_PART_AXIS_RANGES[dps]) return DAY_PART_AXIS_RANGES[dps];
-  if (single && DAY_PART_AXIS_RANGES[single]) return DAY_PART_AXIS_RANGES[single];
-  return DAY_PART_AXIS_RANGES.afternoon;
-};
-
-type TimelineEvent = {
-  event: Event;
-  start: number;
-  end: number;
-  leftPct: number;
-  widthPct: number;
-};
 
 const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, onQuickEditEvent, highlight, embedded = false }: ListViewProps) => {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
@@ -77,45 +49,6 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     if (!embedded) onDateChange?.(selectedDate);
   }, [selectedDate, onDateChange, embedded]);
 
-  const timelineEvents = useMemo<TimelineEvent[]>(() => {
-    return events
-      .map((event) => {
-        const explicitStart = parseTimeToAxisHour(event.start_time);
-        const explicitEnd = parseTimeToAxisHour(event.end_time);
-
-        let start: number;
-        let end: number;
-
-        if (explicitStart != null && explicitEnd != null) {
-          start = explicitStart;
-          end = explicitEnd <= explicitStart ? explicitStart + 1 : explicitEnd;
-        } else if (explicitStart != null) {
-          start = explicitStart;
-          end = Math.min(explicitStart + 1, AXIS_END);
-        } else if (explicitEnd != null) {
-          end = explicitEnd;
-          start = Math.max(explicitEnd - 1, AXIS_START);
-        } else {
-          const [fallbackStart, fallbackEnd] = getFallbackRange(event);
-          start = fallbackStart;
-          end = fallbackEnd;
-        }
-
-        start = clamp(start, AXIS_START, AXIS_END);
-        end = clamp(end, AXIS_START, AXIS_END);
-        if (end <= start) end = Math.min(AXIS_END, start + 0.5);
-
-        const leftPct = ((start - AXIS_START) / AXIS_SPAN) * 100;
-        const widthPct = ((end - start) / AXIS_SPAN) * 100;
-
-        return { event, start, end, leftPct, widthPct };
-      })
-      .sort((a, b) => {
-        if (a.start !== b.start) return a.start - b.start;
-        return (b.end - b.start) - (a.end - a.start);
-      });
-  }, [events]);
-
   const handleSwipe = (_: any, info: PanInfo) => {
     if (Math.abs(info.offset.x) > 50) {
       setSelectedDate((d) => (info.offset.x < 0 ? addDays(d, 1) : subDays(d, 1)));
@@ -136,14 +69,9 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
 
   const getMemberForEvent = (event: Event) => members.find((m) => m.id === event.owner_member_id);
 
-  const segmentPositions = useMemo(() => {
-    return TIMELINE_SEGMENTS.map((seg) => {
-      const [s, e] = DAY_PART_AXIS_RANGES[seg.key];
-      const leftPct = ((s - AXIS_START) / AXIS_SPAN) * 100;
-      const widthPct = ((e - s) / AXIS_SPAN) * 100;
-      return { ...seg, leftPct, widthPct };
-    });
-  }, []);
+  const sortedEvents = [...events].sort((a, b) =>
+    (a.start_time || '').localeCompare(b.start_time || ''),
+  );
 
   return (
     <>
@@ -169,80 +97,31 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           </ViewHeader>
         )}
 
-        {/* Timeline panel */}
-        <div className={`sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 pb-3 ${embedded ? 'pt-1' : 'pt-3'}`}>
-          {/* Time-of-day color strip behind the time labels */}
-          <div className="relative mb-2 h-7 rounded-lg overflow-hidden">
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(to right, hsl(205, 75%, 78%) 0%, hsl(205, 75%, 78%) 12.5%, hsl(25, 88%, 72%) 25%, hsl(48, 92%, 72%) 37.5%, hsl(48, 92%, 72%) 62.5%, hsl(18, 70%, 60%) 75%, hsl(232, 35%, 32%) 87.5%, hsl(232, 38%, 24%) 100%)',
-              }}
-            />
-            {/* Sharp vertical separators on the strip */}
-            {segmentPositions.slice(1).map((seg) => (
-              <div
-                key={`sep-${seg.key}`}
-                className="absolute top-0 bottom-0 w-px bg-foreground/30 pointer-events-none"
-                style={{ left: `${seg.leftPct}%` }}
-              />
-            ))}
-            {/* Time labels — dark on light segments, light on night segment */}
-            <div className="absolute inset-0 flex">
-              {segmentPositions.map((seg) => {
-                const isDark = seg.key === 'night';
-                return (
-                  <div key={seg.key} className="text-center flex items-center justify-center" style={{ width: `${seg.widthPct}%` }}>
-                    <span
-                      className={`text-[10px] font-bold tracking-wider ${isDark ? 'text-white' : 'text-foreground/85'}`}
-                      style={{ textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 1px rgba(255,255,255,0.6)' }}
-                    >
-                      {seg.label}
-                    </span>
-                  </div>
-                );
-              })}
+        {/* Events — simple list, no day-part timeline */}
+        <div className={`px-4 space-y-2 ${embedded ? 'pt-1 pb-2' : 'pt-3 pb-2'}`}>
+          {sortedEvents.length === 0 ? (
+            <div className="py-2 flex items-center justify-center">
+              <span className="text-xs text-muted-foreground/50">Ingen aktiviteter</span>
             </div>
-          </div>
-
-          <div className="relative space-y-2">
-            {/* Subtle vertical guide lines extending below the time strip */}
-            {segmentPositions.slice(1).map((seg) => (
-              <div
-                key={`guide-${seg.key}`}
-                className="absolute top-0 bottom-0 w-px bg-foreground/10 pointer-events-none"
-                style={{ left: `${seg.leftPct}%` }}
+          ) : (
+            sortedEvents.map((ev) => (
+              <EventRow
+                key={ev.id}
+                event={ev}
+                currentMemberId={currentMemberId}
+                highlight={highlight}
+                onTap={(e) => setSelectedEvent(e)}
+                onLongPress={(e) => onEditEvent?.(e)}
+                getMemberForEvent={getMemberForEvent}
               />
-            ))}
-
-            {timelineEvents.length === 0 ? (
-              <div className="py-3 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground/50">Ingen hendelser</span>
-              </div>
-            ) : (
-              timelineEvents.map((t) => (
-                <TimelineBar
-                  key={t.event.id}
-                  t={t}
-                  members={members}
-                  currentMemberId={currentMemberId}
-                  highlight={highlight}
-                  onTap={(ev) => setSelectedEvent(ev)}
-                  onLongPress={(ev) => onEditEvent?.(ev)}
-                  getMemberForEvent={getMemberForEvent}
-                />
-              ))
-            )}
-          </div>
+            ))
+          )}
         </div>
 
-        {/* Separator */}
-        <div className="px-5 mb-3 mt-3">
-          <div className="h-px bg-border" />
+        <div className="px-5 mb-3 mt-1">
+          <div className="h-px bg-border/60" />
         </div>
 
-        {/* Add item input */}
         <div className="px-5 mb-4">
           <div className="flex gap-2">
             <input
@@ -264,7 +143,6 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           </div>
         </div>
 
-        {/* List items */}
         <div className={`flex-1 overflow-y-auto px-5 space-y-2 ${embedded ? 'pb-6' : 'pb-32'}`}>
           {listItems.map((item) => (
             <motion.div
@@ -324,11 +202,8 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
   );
 };
 
-/* ---------- TimelineBar with long-press ---------- */
-
-interface TimelineBarProps {
-  t: TimelineEvent;
-  members: HouseholdMember[];
+interface EventRowProps {
+  event: Event;
   currentMemberId: string;
   highlight: Highlight;
   onTap: (event: Event) => void;
@@ -336,45 +211,39 @@ interface TimelineBarProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
-const TimelineBar = ({ t, members, currentMemberId, highlight, onTap, onLongPress, getMemberForEvent }: TimelineBarProps) => {
+const EventRow = ({ event, currentMemberId, highlight, onTap, onLongPress, getMemberForEvent }: EventRowProps) => {
   const { longPressHandlers, didFire } = useLongPress({
     onLongPress: () => {
-      if (t.event.owner_member_id === currentMemberId) {
-        onLongPress(t.event);
-      }
+      if (event.owner_member_id === currentMemberId) onLongPress(event);
     },
   });
 
-  const handleClick = () => {
-    if (didFire()) return;
-    onTap(t.event);
-  };
-
-  const member = getMemberForEvent(t.event);
-  const visuals = resolveCategoryVisuals(t.event.category, getMemberColorMap(member));
-  const fallback = member ? getMemberColor(member.color_token).bg : 'bg-muted/40';
-  const barBg = visuals.softBg ?? fallback;
-  const isHighlighted = highlight && highlight.eventId === t.event.id;
-  const meta = EVENT_CATEGORY_META[(t.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+  const member = getMemberForEvent(event);
+  const visuals = resolveCategoryVisuals(event.category, getMemberColorMap(member));
+  const meta = EVENT_CATEGORY_META[(event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
   const Icon = meta?.Icon;
-  const barWidthPct = Math.max(t.widthPct, 0.04);
+  const isHighlighted = highlight && highlight.eventId === event.id;
+  const multiLabel = formatMultiDayLabel(event);
 
   return (
-    <div className="relative h-7">
-      <button
-        type="button"
-        {...longPressHandlers}
-        onClick={handleClick}
-        title={t.event.title}
-        aria-label={t.event.title}
-        className={`absolute top-0 h-7 rounded-xl overflow-hidden ${barBg} flex items-center justify-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:ring-2 focus-visible:ring-primary ${isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
-        style={{ left: `${t.leftPct}%`, width: `${barWidthPct}%` }}
-      >
-        {Icon && (
-          <Icon size={14} strokeWidth={2.25} className={`${visuals.iconColor} shrink-0 pointer-events-none`} />
+    <button
+      type="button"
+      {...longPressHandlers}
+      onClick={() => { if (!didFire()) onTap(event); }}
+      className={`w-full text-left rounded-xl p-3 flex items-center gap-2.5 transition-all active:scale-[0.98] ${visuals.softBg} ${
+        isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
+      }`}
+    >
+      <span className={`shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ${visuals.railBg}`}>
+        {Icon && <Icon size={12} strokeWidth={2} className={visuals.iconColor} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="font-semibold text-sm block truncate">{event.title}</span>
+        {multiLabel && (
+          <span className="text-xs text-muted-foreground block mt-0.5">{multiLabel}</span>
         )}
-      </button>
-    </div>
+      </span>
+    </button>
   );
 };
 

@@ -583,8 +583,9 @@ const MAX_VISIBLE_MARKS = 4;
 /** Shared calendar mark size — single-day icons and multi-day rail icons */
 const CAL_ICON_SIZE = 11;
 const CAL_ICON_STROKE = 2;
-/** Rail height matches icon + 2px so all marks align */
-const SPAN_RAIL_H = 'h-[13px]';
+/** Chip / rail height — same for one-day pills and multi-day spans */
+const MARK_CHIP = 'w-[15px] h-[15px]';
+const SPAN_RAIL_H = 'h-[15px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
 function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; overflow: number } {
@@ -654,7 +655,13 @@ const DayCell = ({
     const Icon = meta?.Icon;
     if (Icon) {
       return (
-        <div key={ev.id} className={`flex items-center justify-center ${evHighlighted ? 'animate-pulse' : ''}`}>
+        <div
+          key={ev.id}
+          title={ev.title}
+          className={`${MARK_CHIP} rounded-full flex items-center justify-center ${visuals.railBg} ${
+            evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''
+          }`}
+        >
           <Icon size={CAL_ICON_SIZE} strokeWidth={CAL_ICON_STROKE} className={visuals.iconColor} />
         </div>
       );
@@ -663,7 +670,7 @@ const DayCell = ({
     return (
       <div
         key={ev.id}
-        className={`w-2 h-2 rounded-full ${fallback.bg} ${evHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''}`}
+        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''}`}
         title={ev.title}
       />
     );
@@ -727,17 +734,19 @@ const DayCell = ({
                 key={seg.event.id}
                 title={seg.event.title}
                 className={`${SPAN_RAIL_H} flex items-center ${bleed} ${visuals.railBg} ${
-                  seg.isStart ? 'rounded-l-full pl-px' : ''
+                  seg.isStart ? 'rounded-l-full' : ''
                 } ${seg.isEnd ? 'rounded-r-full' : ''} ${
-                  evHighlighted ? 'ring-1 ring-primary/60 animate-pulse' : ''
+                  evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''
                 }`}
               >
                 {seg.isStart && Icon && (
-                  <Icon
-                    size={CAL_ICON_SIZE}
-                    strokeWidth={CAL_ICON_STROKE}
-                    className={`shrink-0 ${visuals.iconColor}`}
-                  />
+                  <span className={`${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}>
+                    <Icon
+                      size={CAL_ICON_SIZE}
+                      strokeWidth={CAL_ICON_STROKE}
+                      className={visuals.iconColor}
+                    />
+                  </span>
                 )}
               </div>
             );
