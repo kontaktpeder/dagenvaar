@@ -254,9 +254,10 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-5 pr-14 pb-8 space-y-4 overscroll-contain scroll-touch">
-        {/* Deg — always visible header */}
-        <section className="text-center pb-2">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-touch px-5 pb-8 pt-5 pr-14">
+          {/* Deg — always visible header */}
+          <section className="shrink-0 text-center pb-2">
           <div className="relative w-16 h-16 mx-auto mb-3">
             <MemberAvatar member={currentMember} size="md" />
             <button
@@ -454,6 +455,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
           </div>
         </ProfileFolder>
+        </div>
       </div>
 
       <AnimatePresence>

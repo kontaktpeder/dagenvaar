@@ -169,8 +169,9 @@ const CenteredPopup = ({
           onDragEnd={handleDragEnd}
           style={{ x: dragX, y: dragY, scale: cardScale }}
           className={cn(
-            'pointer-events-auto relative z-10 w-full max-w-md min-h-0',
-            size === 'sheet' ? 'h-full max-h-full' : 'h-auto max-h-full',
+            // min-h-0 + max-h-full: flex centering must not let content force the card taller than the frame
+            'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0 max-h-full',
+            size === 'sheet' ? 'h-full' : 'h-auto',
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -181,8 +182,7 @@ const CenteredPopup = ({
             exit="exit"
             transition={sheetSpring}
             className={cn(
-              'relative bg-background rounded-3xl shadow-soft-lg flex flex-col overflow-hidden min-h-0 w-full',
-              size === 'sheet' ? 'h-full max-h-full' : 'h-auto max-h-full',
+              'relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl bg-background shadow-soft-lg',
               className,
             )}
           >
