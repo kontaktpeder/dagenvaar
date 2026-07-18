@@ -20,7 +20,7 @@ import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
-import { snapSpring, fadeQuick } from '@/lib/motion';
+import { fadeQuick } from '@/lib/motion';
 
 interface CalendarViewProps {
   householdId: string;
@@ -48,16 +48,26 @@ const CATEGORY_ORDER: Record<string, number> = {
 };
 
 /** Commit when dragged past this fraction of width, or with enough velocity */
-const COMMIT_RATIO = 0.16;
-const COMMIT_VELOCITY = 320;
+const COMMIT_RATIO = 0.18;
+const COMMIT_VELOCITY = 380;
 /** Months rendered on each side of the center (5 panels total) */
 const WINDOW = 2;
-/** One gesture = at most one month — never project into multi-hop */
+/** One gesture = at most one month */
 const MAX_HOPS_PER_SWIPE = 1;
+/** Soft resistance past one page (rubber-band) — avoids hard edge blink */
+const RUBBER = 0.28;
 /** Ignore strip movement until finger travels this far horizontally (px) */
 const PAN_ACTIVATE_PX = 18;
 /** Treat gesture as vertical (block strip) when |dy| exceeds |dx| by this factor */
 const AXIS_LOCK_RATIO = 1.2;
+
+/** Diminishing travel past ±limit so the strip never hard-stops / blinks at the edge */
+function rubberBand(offset: number, limit: number): number {
+  const sign = offset < 0 ? -1 : 1;
+  const abs = Math.abs(offset);
+  if (abs <= limit) return offset;
+  return sign * (limit + (abs - limit) * RUBBER);
+}
 
 function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   const map: Record<string, Event[]> = {};
@@ -182,14 +192,20 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     (hops: number) => {
       if (!pageWidth) return;
 
+      const clamped = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
       animatingRef.current = true;
+      // Don't flip pointer-events mid-settle — that remounts cells and blinks at the edge
       setPaging(true);
 
-      const clamped = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
+      const settle = {
+        type: 'tween' as const,
+        duration: 0.28,
+        ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
+      };
 
       if (clamped === 0) {
         animationControlsRef.current = animate(x, 0, {
-          ...snapSpring,
+          ...settle,
           onComplete: () => {
             animatingRef.current = false;
             setPaging(false);
@@ -199,9 +215,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         return;
       }
 
-      // Single spring to final offset — one settle, then one date commit (no hop hitch)
+      // Animate to exact one page, then recenter instantly (new center == old neighbor)
       animationControlsRef.current = animate(x, -clamped * pageWidth, {
-        ...snapSpring,
+        ...settle,
         onComplete: () => {
           setCurrentDate((d) => addMonths(d, clamped));
           x.set(0);
@@ -223,7 +239,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const handlePan = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
 
-    // Freeze strip during day press/hold or after vertical-axis lock
     if (pressLockRef.current || panModeRef.current === 'blocked') {
       x.set(panStartXRef.current);
       return;
@@ -239,13 +254,11 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         x.set(panStartXRef.current);
         return;
       }
-      // Vertical scroll intent — never move the month strip this gesture
       if (ady >= PAN_ACTIVATE_PX && ady > adx * AXIS_LOCK_RATIO) {
         panModeRef.current = 'blocked';
         x.set(panStartXRef.current);
         return;
       }
-      // Need clear horizontal travel before following the finger
       if (adx < PAN_ACTIVATE_PX) {
         x.set(panStartXRef.current);
         return;
@@ -253,10 +266,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       panModeRef.current = 'pan';
     }
 
-    // Visual drag capped to one page — hard swipe cannot peek two months ahead
-    const max = pageWidth;
-    const next = Math.max(-max, Math.min(max, panStartXRef.current + dx));
-    x.set(next);
+    // Follow finger within ±1 page; soft rubber past that (no hard blink wall)
+    const raw = panStartXRef.current + dx;
+    x.set(rubberBand(raw, pageWidth));
   };
 
   const handlePanEnd = (_: unknown, info: PanInfo) => {
@@ -266,7 +278,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     panModeRef.current = 'pending';
 
     if (!wasPanning) {
-      // Tap / hold / vertical — settle to center if we interrupted a fling
       if (Math.abs(x.get()) > 0.5) flingToHops(0);
       else x.set(0);
       return;
@@ -279,15 +290,13 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     const flicked = Math.abs(vx) > COMMIT_VELOCITY;
     const dragged = Math.abs(px) > pageWidth * COMMIT_RATIO;
     if (flicked || dragged) {
-      // Direction from drag position when clear; else from velocity
-      if (Math.abs(px) > pageWidth * 0.08) {
+      if (Math.abs(px) > pageWidth * 0.06) {
         hops = px < 0 ? 1 : -1;
       } else {
         hops = vx < 0 ? 1 : -1;
       }
     }
 
-    // Always one month max per swipe
     hops = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
     flingToHops(hops);
   };
@@ -406,7 +415,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                   monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
                   members={members}
                   highlight={highlight}
-                  interactive={i === WINDOW && !paging}
+                  interactive={i === WINDOW}
                   onTap={handleDayTap}
                   onLongPress={onCreateEvent}
                   onPressLock={lockStripForPress}
