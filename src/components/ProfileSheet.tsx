@@ -265,20 +265,23 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 pr-14 touch-pan-y">
+        <div
+          data-sheet-scroll
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-touch touch-pan-y px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        >
           {/* Deg — always visible header */}
-          <section className="shrink-0 text-center pb-4 border-b border-border/60 mb-1">
-          <div className="relative w-16 h-16 mx-auto mb-3">
-            <MemberAvatar member={currentMember} size="md" />
+          <section className="shrink-0 text-center pt-2 pb-5">
+          <div className="relative w-20 h-20 mx-auto mb-3">
+            <MemberAvatar member={currentMember} size="lg" />
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadAvatar.isPending}
-              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-transform hover:scale-110 disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md transition-transform hover:scale-110 disabled:opacity-50"
             >
               {uploadAvatar.isPending ? (
                 <div className="w-3.5 h-3.5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
               ) : (
-                <Camera size={14} strokeWidth={2.5} />
+                <Camera size={15} strokeWidth={2.5} />
               )}
             </button>
             <input
@@ -292,14 +295,15 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           {uploadError && (
             <p className="text-destructive text-xs mb-2">{uploadError}</p>
           )}
-          <h2 className="text-xl font-bold">{currentMember.display_name}</h2>
-          <p className="text-sm text-muted-foreground">{household.name}</p>
+          <h2 className="text-2xl font-bold">{currentMember.display_name}</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">{household.name}</p>
         </section>
 
+        <div className="rounded-2xl bg-muted/40 px-4 mb-2">
         <ProfileFolder title="Hjem" open={openFolders.hjem} onToggle={() => toggleFolder('hjem')}>
           <div className="space-y-2">
             {members.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-xl bg-muted p-3">
+              <div key={m.id} className="flex items-center gap-3 rounded-xl bg-background p-3">
                 <MemberAvatar member={m} size="sm" />
                 <div>
                   <p className="font-medium text-sm">{m.display_name}</p>
@@ -320,7 +324,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
                   {createInvite.isPending ? 'Oppretter...' : 'Inviter medlem'}
                 </button>
               ) : (
-                <div className="rounded-xl bg-muted p-4 space-y-3">
+                <div className="rounded-xl bg-background p-4 space-y-3">
                   <p className="text-sm font-medium text-center">Invitasjonskode</p>
                   <p className="text-2xl font-bold text-center tracking-widest">{inviteCode}</p>
                   {inviteExpiry && (
@@ -358,7 +362,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           <button
             onClick={handleSignOutClick}
             disabled={isSigningOut}
-            className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-xl border border-border bg-background py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSigningOut ? 'Logger ut...' : 'Logg ut'}
           </button>
@@ -466,6 +470,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
           </div>
         </ProfileFolder>
+        </div>
         </div>
       </div>
 

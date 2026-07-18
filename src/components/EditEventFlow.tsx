@@ -216,22 +216,13 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-[70]">
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-        <div className="w-9" aria-hidden />
+    <CenteredPopup onClose={handleDismiss} onExit={onClose} size="sheet" zClassName="z-[70]">
+      <div className="flex items-center justify-center px-5 pt-1 pb-3 shrink-0">
         <div className="flex gap-1.5">
           {Array.from({ length: STEPS }).map((_, i) => (
             <div key={i} className={`w-8 h-1.5 rounded-full transition-colors ${i < step ? 'bg-calendar-accent' : 'bg-border'}`} />
           ))}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
-          aria-label="Lukk"
-        >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-        </button>
       </div>
 
       {/* Content */}

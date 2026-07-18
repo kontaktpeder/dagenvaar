@@ -50,7 +50,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="hug" zClassName="z-[60]" backdrop="none">
-      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pt-5 pr-14 pb-4 min-h-0 max-h-full">
+      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pt-2 pb-4 min-h-0 max-h-full">
         <div className={`rounded-2xl p-5 mb-4 ${ownerColor.bg}`}>
           <h2 className="text-xl font-bold mb-1">{event.title}</h2>
           <p className="text-sm text-muted-foreground">
