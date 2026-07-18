@@ -20,7 +20,7 @@ import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
-import { snapSpring } from '@/lib/motion';
+import { snapSpring, fadeQuick } from '@/lib/motion';
 
 interface CalendarViewProps {
   householdId: string;
@@ -424,10 +424,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           {showYear && (
             <motion.div
               key="year-overlay"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={snapSpring}
+              initial={{ y: 6 }}
+              animate={{ y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={fadeQuick}
               className="absolute inset-0 z-30 bg-background flex flex-col"
             >
               <YearView
@@ -505,7 +505,7 @@ const MonthHeaderPanel = ({
     }}
   >
     {onTitleClick ? (
-      <button type="button" onClick={onTitleClick} className="text-center active:opacity-80">
+      <button type="button" onClick={onTitleClick} className="text-center">
         <h2 className="text-xl font-extrabold capitalize text-white tracking-wide">{label}</h2>
       </button>
     ) : (

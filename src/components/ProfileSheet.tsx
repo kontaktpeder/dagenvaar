@@ -70,10 +70,10 @@ const ProfileFolder = ({
       {open && (
         <motion.div
           key="body"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ height: 0 }}
+          animate={{ height: 'auto' }}
+          exit={{ height: 0 }}
+          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
           className="overflow-hidden"
         >
           <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border/50">

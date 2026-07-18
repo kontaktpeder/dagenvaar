@@ -245,7 +245,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   };
 
   return (
-    <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-[70]">
+    <CenteredPopup onClose={handleDismiss} size="sheet" zClassName="z-[70]" backdrop="solid">
       {/* Header: X closes entire flow; backdrop = step back */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
         <div className="w-9" aria-hidden />
@@ -266,7 +266,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
       {/* Content */}
       <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
@@ -492,7 +492,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                 })}
               </div>
               {category === 'other' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} transition={stepSpring}>
+                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} transition={stepSpring} className="overflow-hidden">
                   <label className="text-sm font-medium mb-2 block">Egen kategori (valgfritt)</label>
                   <input
                     type="text"

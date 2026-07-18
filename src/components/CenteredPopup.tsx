@@ -15,6 +15,11 @@ interface CenteredPopupProps {
   className?: string;
   /** Higher z when stacked over another popup */
   zClassName?: string;
+  /**
+   * solid — backdrop fully on from first frame (default; no enter blink)
+   * none — no dim (rare; e.g. nested where parent already dims)
+   */
+  backdrop?: 'solid' | 'none';
 }
 
 const sizeClass = {
@@ -24,8 +29,8 @@ const sizeClass = {
 
 /**
  * Fixed centered card.
- * Enter: dim backdrop only — card stays fully opaque (no opacity blink).
- * Exit: short fade. Keyboard lifts via padding without fighting the enter spring.
+ * Backdrop is solid on enter (fade only on exit) so open never blinks.
+ * Card slides a few px without opacity change.
  */
 const CenteredPopup = ({
   onClose,
@@ -33,6 +38,7 @@ const CenteredPopup = ({
   size = 'sheet',
   className,
   zClassName = 'z-50',
+  backdrop = 'solid',
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
@@ -40,7 +46,6 @@ const CenteredPopup = ({
     ? Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)
     : 40;
 
-  // Avoid padding CSS transition on first paint (looks like a blink under the sheet)
   const [padReady, setPadReady] = useState(false);
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setPadReady(true));
@@ -49,7 +54,7 @@ const CenteredPopup = ({
 
   return (
     <motion.div
-      initial={{ opacity: 1 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={fadeQuick}
@@ -60,14 +65,9 @@ const CenteredPopup = ({
       }}
       onClick={onClose}
     >
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={fadeQuick}
-        className="absolute inset-0 bg-foreground/40"
-      />
+      {backdrop !== 'none' && (
+        <div className="absolute inset-0 bg-foreground/40" aria-hidden />
+      )}
 
       <motion.div
         variants={sheetCardVariants}

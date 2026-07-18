@@ -25,9 +25,10 @@ const AvatarCropModal = ({ imageSrc, onCropDone, onCancel }: AvatarCropModalProp
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
       className="fixed inset-0 z-[60] flex flex-col bg-foreground/90"
     >
       {/* Crop area */}

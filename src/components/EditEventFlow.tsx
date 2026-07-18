@@ -236,7 +236,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
 
       {/* Content */}
       <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Når?</h2>
@@ -348,7 +348,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                 })}
               </div>
               {category === 'other' && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} transition={stepSpring}>
+                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} transition={stepSpring} className="overflow-hidden">
                   <label className="text-sm font-medium mb-2 block">Hva slags type er dette? (valgfritt)</label>
                   <input
                     type="text"

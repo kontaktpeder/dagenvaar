@@ -4,43 +4,40 @@ import type { Transition, Variants } from 'framer-motion';
 export const snapSpring: Transition = {
   type: 'spring',
   stiffness: 380,
-  damping: 40,
-  mass: 0.7,
-};
-
-/** Modal / sheet card enter — damped so it doesn’t overshoot/blink */
-export const sheetSpring: Transition = {
-  type: 'spring',
-  stiffness: 380,
   damping: 42,
-  mass: 0.85,
-};
-
-/** Wizard step push/pop */
-export const stepSpring: Transition = {
-  type: 'spring',
-  stiffness: 380,
-  damping: 34,
   mass: 0.75,
 };
 
+/** Modal / sheet card enter — no opacity; tiny slide only */
+export const sheetSpring: Transition = {
+  type: 'tween',
+  duration: 0.2,
+  ease: [0.32, 0.72, 0, 1],
+};
+
+/** Wizard step push/pop — no opacity fade (avoids blank flash with mode=wait) */
+export const stepSpring: Transition = {
+  type: 'tween',
+  duration: 0.2,
+  ease: [0.32, 0.72, 0, 1],
+};
+
 export const fadeQuick: Transition = {
-  duration: 0.18,
+  duration: 0.15,
   ease: [0.32, 0.72, 0, 1],
 };
 
 export const stepForward = {
-  initial: { x: 24, opacity: 0 },
-  animate: { x: 0, opacity: 1 },
-  exit: { x: -24, opacity: 0 },
+  initial: { x: 20 },
+  animate: { x: 0 },
+  exit: { x: -16 },
   transition: stepSpring,
 } as const;
 
 export const sheetCardVariants: Variants = {
-  // Opaque from first frame — opacity fade on open reads as a blink on iOS
-  initial: { y: 10 },
+  initial: { y: 8 },
   animate: { y: 0 },
-  exit: { y: 6 },
+  exit: { y: 4 },
 };
 
 /** iOS-ish keyboard pad easing (CSS) */

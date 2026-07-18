@@ -147,9 +147,6 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
           {listItems.map((item) => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18 }}
               className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-soft"
             >
               <button
