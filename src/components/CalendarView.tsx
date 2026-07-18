@@ -701,8 +701,8 @@ const DayCell = ({
   getMemberForEvent,
 }: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
+    onRecognize: onPressLock,
     onLongPress: () => {
-      onPressLock();
       onLongPress(day);
     },
     onDisarm: onPressUnlock,
