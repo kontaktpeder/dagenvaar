@@ -3,6 +3,8 @@ import { hapticLight } from '@/lib/native/haptics';
 
 type Options = {
   onLongPress: () => void;
+  /** Fires when the hold threshold is met (before finger-up). Use for lock side effects. */
+  onRecognize?: () => void;
   ms?: number;
   moveTolerancePx?: number;
   /** Called when pointer is released / cancelled after arming */
@@ -11,11 +13,17 @@ type Options = {
 
 /**
  * Long-press without transform flicker.
- * - Haptic when the hold is recognized
- * - Action runs on finger-up so a newly opened modal doesn't get a text selection
- *   under the still-pressed finger (e.g. time input "00")
+ * - Haptic + onRecognize when the hold is recognized
+ * - onLongPress runs on finger-up so a newly opened modal doesn't get a text
+ *   selection under the still-pressed finger (e.g. time input "00")
  */
-export function useLongPress({ onLongPress, ms = 450, moveTolerancePx = 14, onDisarm }: Options) {
+export function useLongPress({
+  onLongPress,
+  onRecognize,
+  ms = 450,
+  moveTolerancePx = 14,
+  onDisarm,
+}: Options) {
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const firedRef = useRef(false);
@@ -47,10 +55,11 @@ export function useLongPress({ onLongPress, ms = 450, moveTolerancePx = 14, onDi
         timerRef.current = null;
         firedRef.current = true;
         pendingActionRef.current = true;
+        onRecognize?.();
         void hapticLight();
       }, ms);
     },
-    [ms],
+    [ms, onRecognize],
   );
 
   const onPointerMove = useCallback(
@@ -68,7 +77,6 @@ export function useLongPress({ onLongPress, ms = 450, moveTolerancePx = 14, onDi
     pendingActionRef.current = false;
     disarm();
     if (shouldRun) {
-      // After the finger is up — avoids selecting inputs under the touch
       window.setTimeout(() => onLongPress(), 0);
     }
   }, [disarm, onLongPress]);
