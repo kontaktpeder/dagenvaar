@@ -22,9 +22,9 @@ import { stepForward, stepSpring } from '@/lib/motion';
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 const ADD_BTN =
-  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
+  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 const CTA_BTN =
-  'rounded-xl bg-muted active:bg-muted/70 px-4 py-3 text-sm font-medium transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
+  'rounded-xl bg-muted active:bg-muted/70 px-4 py-3 text-sm font-medium transition-colors';
 
 interface NewEventFlowProps {
   householdId: string;
@@ -257,7 +257,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <button
           type="button"
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground active:scale-90 transition-transform duration-100"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground"
           aria-label="Lukk"
         >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -613,7 +613,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         <button
           onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
-          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300 active:scale-95"
+          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
         >
           {step < STEPS ? 'Neste' : createEvent.isPending ? 'Lagrer...' : 'Opprett hendelse'}
         </button>

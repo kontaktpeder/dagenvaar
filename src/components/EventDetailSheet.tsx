@@ -133,7 +133,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
             type="button"
             onClick={handleAddComment}
             disabled={!comment.trim()}
-            className="shrink-0 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40 active:scale-95"
+            className="shrink-0 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
             Send
           </button>
@@ -143,7 +143,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           <button
             type="button"
             onClick={() => onQuickEdit(event)}
-            className="w-full rounded-2xl bg-primary/15 hover:bg-primary/25 py-3.5 text-sm text-primary font-semibold transition-colors active:scale-95"
+            className="w-full rounded-2xl bg-primary/15 hover:bg-primary/25 py-3.5 text-sm text-primary font-semibold transition-colors"
           >
             Endre hendelse
           </button>
@@ -153,7 +153,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           <button
             type="button"
             onClick={handleDelete}
-            className="w-full rounded-2xl border border-destructive/30 py-3.5 text-sm text-destructive hover:bg-destructive/10 transition-colors active:scale-95"
+            className="w-full rounded-2xl border border-destructive/30 py-3.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
           >
             Slett hendelse
           </button>

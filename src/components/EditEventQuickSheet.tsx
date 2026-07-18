@@ -28,7 +28,7 @@ interface EditEventQuickSheetProps {
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 const ADD_BTN =
-  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-[colors,transform] duration-100 active:scale-[0.97] touch-manipulation';
+  'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
@@ -443,7 +443,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           <button
             onClick={handleSubmit}
             disabled={!canSave || updateEvent.isPending}
-            className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 hover:bg-green-300 active:scale-95 transition-all"
+            className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 hover:bg-green-300 transition-all"
           >
             {updateEvent.isPending ? 'Lagrer...' : 'Lagre'}
           </button>

@@ -6,7 +6,11 @@ type Options = {
   moveTolerancePx?: number;
 };
 
-export function useLongPress({ onLongPress, ms = 420, moveTolerancePx = 8 }: Options) {
+/**
+ * Long-press without transform/active flicker.
+ * Avoids pointerleave cancel (fires spuriously on iOS during hold).
+ */
+export function useLongPress({ onLongPress, ms = 420, moveTolerancePx = 12 }: Options) {
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const firedRef = useRef(false);
@@ -43,7 +47,6 @@ export function useLongPress({ onLongPress, ms = 420, moveTolerancePx = 8 }: Opt
 
   const onPointerUp = useCallback(() => clear(), [clear]);
   const onPointerCancel = useCallback(() => clear(), [clear]);
-  const onPointerLeave = useCallback(() => clear(), [clear]);
 
   return {
     longPressHandlers: {
@@ -51,7 +54,6 @@ export function useLongPress({ onLongPress, ms = 420, moveTolerancePx = 8 }: Opt
       onPointerMove,
       onPointerUp,
       onPointerCancel,
-      onPointerLeave,
     },
     /** true after the long-press callback has fired (reset on next pointerdown) */
     didFire: () => firedRef.current,

@@ -37,9 +37,9 @@ export const stepForward = {
 } as const;
 
 export const sheetCardVariants: Variants = {
-  initial: { opacity: 0, scale: 0.96, y: 10 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.96, y: 8 },
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 6 },
 };
 
 /** iOS-ish keyboard pad easing (CSS) */

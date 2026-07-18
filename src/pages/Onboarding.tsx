@@ -80,7 +80,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
       contentClassName="pb-6"
       footer={
         <button type="submit" disabled={isPending}
-          className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-[colors,transform,opacity] duration-100 active:scale-[0.97] active:opacity-90 disabled:opacity-50 touch-manipulation">
+          className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors active:opacity-90 disabled:opacity-50">
           {isPending
             ? (mode === 'create' ? 'Oppretter...' : 'Kobler til...')
             : (mode === 'create' ? 'Kom i gang ✨' : 'Bli med 🎉')}

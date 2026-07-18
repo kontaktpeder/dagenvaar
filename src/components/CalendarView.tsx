@@ -222,7 +222,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const handlePanStart = () => {
     stopPagingAnim();
     panStartXRef.current = x.get();
-    setPaging(true);
+    // Do not setPaging here — it flips pointer-events-none on day cells mid-press/hold.
   };
 
   const handlePan = (_: unknown, info: PanInfo) => {
@@ -318,7 +318,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 active:bg-white/40 text-white text-[10px] font-semibold uppercase tracking-wider active:scale-[0.97] transition-transform duration-100 backdrop-blur-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 active:bg-white/40 text-white text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm"
             >
               I dag
             </button>
@@ -464,7 +464,7 @@ const MonthHeaderPanel = ({
     }}
   >
     {onTitleClick ? (
-      <button type="button" onClick={onTitleClick} className="text-center active:scale-[0.97] transition-transform duration-100">
+      <button type="button" onClick={onTitleClick} className="text-center active:opacity-80">
         <h2 className="text-xl font-extrabold capitalize text-white tracking-wide">{label}</h2>
       </button>
     ) : (
@@ -615,7 +615,7 @@ const DayCell = ({
   today,
   weekend,
   isHighlighted,
-  monthTheme,
+  monthTheme: _monthTheme,
   members: _members,
   highlight,
   onTap,
@@ -647,7 +647,7 @@ const DayCell = ({
           key={ev.id}
           title={ev.title}
           className={`${MARK_CHIP} rounded-full flex items-center justify-center ${visuals.railBg} ${
-            evHighlighted ? 'ring-1 ring-primary/50 animate-highlight-once' : ''
+            evHighlighted ? 'ring-1 ring-primary/40' : ''
           }`}
         >
           <Icon size={CAL_ICON_SIZE} strokeWidth={CAL_ICON_STROKE} className={visuals.iconColor} />
@@ -658,7 +658,7 @@ const DayCell = ({
     return (
       <div
         key={ev.id}
-        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/50 animate-highlight-once' : ''}`}
+        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
         title={ev.title}
       />
     );
@@ -668,14 +668,9 @@ const DayCell = ({
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl min-h-0 h-full overflow-visible touch-manipulation transition-[transform,background-color] duration-100 active:scale-[0.97] ${
-        isHighlighted ? 'ring-2 ring-primary/50 animate-highlight-once' : ''
-      } ${!today ? 'active:bg-[var(--cell-press)]' : ''}`}
-      style={
-        !today
-          ? ({ '--cell-press': monthTheme.light } as React.CSSProperties)
-          : undefined
-      }
+      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
+        isHighlighted ? 'ring-2 ring-primary/40' : ''
+      }`}
     >
       <span
         className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[13px] font-semibold ${
@@ -715,16 +710,14 @@ const DayCell = ({
               <div
                 key={seg.event.id}
                 title={seg.event.title}
-                className={`relative ${SPAN_RAIL_H} w-full flex items-center justify-center ${
-                  evHighlighted ? 'animate-highlight-once' : ''
-                }`}
+                className={`relative ${SPAN_RAIL_H} w-full flex items-center justify-center`}
               >
                 <div
                   aria-hidden
                   className={`absolute inset-y-0 ${railPos} ${visuals.railBg} ${
                     seg.isStart ? 'rounded-l-full' : ''
                   } ${seg.isEnd ? 'rounded-r-full' : ''} ${
-                    evHighlighted ? 'ring-1 ring-primary/50' : ''
+                    evHighlighted ? 'ring-1 ring-primary/40' : ''
                   }`}
                 />
                 {seg.isStart && Icon && (
@@ -791,7 +784,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
               key={m}
               type="button"
               onClick={() => onSelectMonth(m)}
-              className={`rounded-2xl py-4 text-center transition-all duration-200 active:scale-95 ${
+              className={`rounded-2xl py-4 text-center transition-all duration-200 ${
                 isCurrentMonth ? 'ring-2 ring-offset-2' : ''
               }`}
               style={{

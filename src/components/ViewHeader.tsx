@@ -26,7 +26,7 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
         style={isCalendar ? calendarStyle : undefined}
       >
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={onPrev} className={`p-2 rounded-full ${hoverBg} active:scale-90 transition-all`}>
+          <button onClick={onPrev} className={`p-2 rounded-full ${hoverBg} transition-all`}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M12 15L7 10L12 5" className={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -41,7 +41,7 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
               </p>
             )}
           </button>
-          <button onClick={onNext} className={`p-2 rounded-full ${hoverBg} active:scale-90 transition-all`}>
+          <button onClick={onNext} className={`p-2 rounded-full ${hoverBg} transition-all`}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M8 5L13 10L8 15" className={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

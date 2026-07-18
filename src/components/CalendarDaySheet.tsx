@@ -123,7 +123,7 @@ const CalendarDaySheet = ({
                         key={ev.id}
                         type="button"
                         onClick={() => onPickEvent(ev)}
-                        className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all active:scale-95`}
+                        className={`w-full text-left rounded-xl p-3 ${visuals.softBg ?? color.bg} transition-all`}
                       >
                         <div className="flex items-center gap-2">
                           {Icon && (
@@ -149,14 +149,14 @@ const CalendarDaySheet = ({
               <button
                 type="button"
                 onClick={() => setShowList(true)}
-                className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold transition-all active:scale-95"
+                className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold transition-all"
               >
                 Se liste
               </button>
               <button
                 type="button"
                 onClick={() => onCreateForDate(date)}
-                className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold transition-all hover:bg-green-300 active:scale-95"
+                className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold transition-all hover:bg-green-300"
               >
                 Ny aktivitet
               </button>

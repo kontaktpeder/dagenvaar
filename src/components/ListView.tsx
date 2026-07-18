@@ -230,8 +230,8 @@ const EventRow = ({ event, currentMemberId, highlight, onTap, onLongPress, getMe
       type="button"
       {...longPressHandlers}
       onClick={() => { if (!didFire()) onTap(event); }}
-      className={`w-full text-left rounded-xl p-3 flex items-center gap-2.5 transition-all active:scale-[0.98] ${visuals.softBg} ${
-        isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
+      className={`w-full text-left rounded-xl p-3 flex items-center gap-2.5 ${visuals.softBg} ${
+        isHighlighted ? 'ring-2 ring-primary/40' : ''
       }`}
     >
       <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${visuals.railBg}`}>
