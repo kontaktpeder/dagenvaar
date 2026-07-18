@@ -234,7 +234,7 @@ const EventRow = ({ event, currentMemberId, highlight, onTap, onLongPress, getMe
         isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
       }`}
     >
-      <span className={`shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ${visuals.railBg}`}>
+      <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${visuals.railBg}`}>
         {Icon && <Icon size={12} strokeWidth={2} className={visuals.iconColor} />}
       </span>
       <span className="min-w-0 flex-1">

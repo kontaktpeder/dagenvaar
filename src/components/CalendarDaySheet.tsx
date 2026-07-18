@@ -124,7 +124,7 @@ const CalendarDaySheet = ({
                       >
                         <div className="flex items-center gap-2">
                           {Icon && (
-                            <span className={`shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center ${visuals.railBg}`}>
+                            <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${visuals.railBg}`}>
                               <Icon size={12} strokeWidth={2} className={visuals.iconColor} />
                             </span>
                           )}

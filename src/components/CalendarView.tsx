@@ -583,9 +583,9 @@ const MAX_VISIBLE_MARKS = 4;
 /** Shared calendar mark size — single-day icons and multi-day rail icons */
 const CAL_ICON_SIZE = 11;
 const CAL_ICON_STROKE = 2;
-/** Chip / rail height — same for one-day pills and multi-day spans */
-const MARK_CHIP = 'w-[15px] h-[15px]';
-const SPAN_RAIL_H = 'h-[15px]';
+/** Chip / rail — roomy pastell bak ikonet; samme høyde for endags og flerdagers */
+const MARK_CHIP = 'w-[17px] h-[17px]';
+const SPAN_RAIL_H = 'h-[17px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
 function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; overflow: number } {
@@ -708,7 +708,7 @@ const DayCell = ({
         {format(day, 'd')}
       </span>
 
-      {/* Pastel multi-day rails — stacked lanes; icon only on start day */}
+      {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
         <div className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1]">
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
@@ -722,25 +722,33 @@ const DayCell = ({
             const Icon = meta?.Icon;
             const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
-            // Bridge gap-x-0.5 (2px) so rails look continuous across days
-            let bleed = 'w-full';
-            if (seg.isStart && seg.isEnd) bleed = 'w-[calc(100%-2px)] mx-px';
-            else if (seg.isStart) bleed = 'w-[calc(100%+2px)] mr-[-2px]';
-            else if (seg.isEnd) bleed = 'w-[calc(100%+2px)] ml-[-2px]';
-            else bleed = 'w-[calc(100%+4px)] -mx-0.5';
+            // Bridge gap-x-0.5; absolute so start icon can stay centered under the date
+            let railPos = 'left-0 right-0';
+            if (seg.isStart && seg.isEnd) railPos = 'left-px right-px';
+            else if (seg.isStart) railPos = 'left-0 right-[-2px]';
+            else if (seg.isEnd) railPos = 'left-[-2px] right-0';
+            else railPos = 'left-[-2px] right-[-2px]';
 
             return (
               <div
                 key={seg.event.id}
                 title={seg.event.title}
-                className={`${SPAN_RAIL_H} flex items-center ${bleed} ${visuals.railBg} ${
-                  seg.isStart ? 'rounded-l-full' : ''
-                } ${seg.isEnd ? 'rounded-r-full' : ''} ${
-                  evHighlighted ? 'ring-1 ring-primary/50 animate-pulse' : ''
+                className={`relative ${SPAN_RAIL_H} w-full flex items-center justify-center ${
+                  evHighlighted ? 'animate-pulse' : ''
                 }`}
               >
+                <div
+                  aria-hidden
+                  className={`absolute inset-y-0 ${railPos} ${visuals.railBg} ${
+                    seg.isStart ? 'rounded-l-full' : ''
+                  } ${seg.isEnd ? 'rounded-r-full' : ''} ${
+                    evHighlighted ? 'ring-1 ring-primary/50' : ''
+                  }`}
+                />
                 {seg.isStart && Icon && (
-                  <span className={`${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}>
+                  <span
+                    className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}
+                  >
                     <Icon
                       size={CAL_ICON_SIZE}
                       strokeWidth={CAL_ICON_STROKE}
