@@ -33,7 +33,7 @@ const DISMISS_VEL = 850;
 
 /**
  * Modal shell: safe-area padding hugs the card.
- * Drag the card any direction (Photos-style) to dismiss.
+ * Drag any direction — on release past threshold the card flies off-screen (Photos-style), then unmounts.
  */
 const CenteredPopup = ({
   onClose,
@@ -58,16 +58,18 @@ const CenteredPopup = ({
   const cardScale = useTransform(dragProgress, [0, 1], [1, 0.94]);
 
   const [padReady, setPadReady] = useState(false);
+  const [flyingOut, setFlyingOut] = useState(false);
+
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setPadReady(true));
     return () => window.cancelAnimationFrame(id);
   }, []);
 
-  // Reset drag when remounting / keyboard opens
   useEffect(() => {
+    if (flyingOut) return;
     dragX.set(0);
     dragY.set(0);
-  }, [keyboardOpen, dragX, dragY]);
+  }, [keyboardOpen, dragX, dragY, flyingOut]);
 
   const framePad = {
     paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
@@ -79,14 +81,36 @@ const CenteredPopup = ({
     transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
   } as const;
 
+  const flyOutThenDismiss = (info: PanInfo) => {
+    setFlyingOut(true);
+
+    // Prefer throw direction from velocity when flicking; else from drag offset
+    const useVel = Math.hypot(info.velocity.x, info.velocity.y) > 400;
+    const vx = useVel ? info.velocity.x : info.offset.x;
+    const vy = useVel ? info.velocity.y : info.offset.y;
+    const len = Math.hypot(vx, vy) || 1;
+    const travel = Math.max(window.innerWidth, window.innerHeight) * 1.25;
+    const targetX = dragX.get() + (vx / len) * travel;
+    const targetY = dragY.get() + (vy / len) * travel;
+
+    const tween = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
+
+    void Promise.all([
+      animate(dragX, targetX, tween),
+      animate(dragY, targetY, tween),
+    ]).then(() => {
+      dismiss();
+    });
+  };
+
   const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (flyingOut) return;
     const dist = Math.hypot(info.offset.x, info.offset.y);
     const vel = Math.hypot(info.velocity.x, info.velocity.y);
     if (dist >= DISMISS_DIST || vel >= DISMISS_VEL) {
-      dismiss();
+      flyOutThenDismiss(info);
       return;
     }
-    // Spring back if not dismissed
     void animate(dragX, 0, { type: 'spring', stiffness: 420, damping: 36 });
     void animate(dragY, 0, { type: 'spring', stiffness: 420, damping: 36 });
   };
@@ -105,12 +129,12 @@ const CenteredPopup = ({
           backgroundColor: backdrop === 'solid' ? 'hsl(var(--foreground))' : 'transparent',
           opacity: backdrop === 'solid' ? backdropOpacity : 0,
         }}
-        onClick={onClose}
+        onClick={flyingOut ? undefined : onClose}
         aria-hidden
       />
 
       <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
         style={framePad}
       >
         <motion.div
@@ -119,7 +143,7 @@ const CenteredPopup = ({
           animate="animate"
           exit="exit"
           transition={sheetSpring}
-          drag={!keyboardOpen}
+          drag={!keyboardOpen && !flyingOut}
           dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
           dragElastic={0.92}
           dragMomentum={false}
