@@ -35,6 +35,8 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
       event_id: event.id,
       sender_member_id: currentMemberId,
       body: comment.trim(),
+      household_id: event.household_id,
+      event_title: event.title,
     });
     setComment('');
   };

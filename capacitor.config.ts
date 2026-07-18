@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   ios: {
     contentInset: 'always',
+    // Let OneSignal own APNs callbacks (required for reliable iOS registration)
+    handleApplicationNotifications: false,
   },
   android: {
     allowMixedContent: false,

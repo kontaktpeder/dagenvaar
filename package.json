@@ -11,11 +11,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cap:sync": "npm run build && npx cap sync",
-    "cap:ios": "npm run build && npx cap sync ios && npx cap open ios",
-    "cap:android": "npm run build && npx cap sync android && npx cap open android",
-    "cap:run:ios": "npm run build && npx cap sync ios && npx cap run ios",
-    "cap:run:android": "npm run build && npx cap sync android && npx cap run android"
+    "cap:sync": "ONESIGNAL_DISABLE_LOCATION=true npm run build && ONESIGNAL_DISABLE_LOCATION=true npx cap sync",
+    "cap:ios": "ONESIGNAL_DISABLE_LOCATION=true npm run build && ONESIGNAL_DISABLE_LOCATION=true npx cap sync ios && npx cap open ios",
+    "cap:android": "ONESIGNAL_DISABLE_LOCATION=true npm run build && ONESIGNAL_DISABLE_LOCATION=true npx cap sync android && npx cap open android",
+    "cap:run:ios": "ONESIGNAL_DISABLE_LOCATION=true npm run build && ONESIGNAL_DISABLE_LOCATION=true npx cap sync ios && ONESIGNAL_DISABLE_LOCATION=true npx cap run ios",
+    "cap:run:android": "ONESIGNAL_DISABLE_LOCATION=true npm run build && ONESIGNAL_DISABLE_LOCATION=true npx cap sync android && ONESIGNAL_DISABLE_LOCATION=true npx cap run android"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
@@ -25,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "^3.10.0",
+    "@onesignal/capacitor-plugin": "^1.1.4",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

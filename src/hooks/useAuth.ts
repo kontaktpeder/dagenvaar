@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
 import { clearPendingRecoveryIntent } from '@/lib/auth/recoveryState';
+import { clearPushUser, identifyPushUser } from '@/lib/native/push';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -15,6 +16,11 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user?.id) {
+          void identifyPushUser(session.user.id);
+        } else {
+          void clearPushUser();
+        }
       }
     );
 
@@ -22,6 +28,9 @@ export function useAuth() {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user?.id) {
+        void identifyPushUser(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -43,6 +52,7 @@ export function useAuth() {
 
   const signOut = async () => {
     clearPendingRecoveryIntent();
+    await clearPushUser();
     const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) throw error;
   };

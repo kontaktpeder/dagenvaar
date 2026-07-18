@@ -3,6 +3,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { Keyboard } from '@capacitor/keyboard';
 import { isNativePlatform, isIOS } from './platform';
 import { initDeepLinks } from './deepLinks';
+import { initPush } from './push';
 
 export async function initNative(): Promise<void> {
   if (!isNativePlatform()) return;
@@ -32,6 +33,7 @@ export async function initNative(): Promise<void> {
   }
 
   await initDeepLinks();
+  await initPush();
 
   try {
     await SplashScreen.hide({ fadeOutDuration: 250 });

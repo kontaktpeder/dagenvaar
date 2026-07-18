@@ -1,0 +1,5 @@
+# Notify household partners via OneSignal
+# Secrets (Dashboard → Edge Functions → Secrets, or `supabase secrets set`):
+#   ONESIGNAL_APP_ID
+#   ONESIGNAL_REST_API_KEY
+verify_jwt = true

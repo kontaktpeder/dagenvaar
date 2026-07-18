@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyPartners } from '@/lib/notifyPartners';
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 
 export type Event = Tables<'events'>;
@@ -98,8 +99,17 @@ export function useCreateEvent() {
       if (error) throw error;
       return data as Event;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      if (created?.household_id && created?.title) {
+        notifyPartners({
+          householdId: created.household_id,
+          kind: 'event_created',
+          title: 'Ny aktivitet',
+          body: created.title,
+          eventId: created.id,
+        });
+      }
     },
   });
 }
@@ -112,8 +122,17 @@ export function useUpdateEvent() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      if (updated?.household_id && updated?.title) {
+        notifyPartners({
+          householdId: updated.household_id,
+          kind: 'event_updated',
+          title: 'Aktivitet oppdatert',
+          body: updated.title,
+          eventId: updated.id,
+        });
+      }
     },
   });
 }
@@ -150,13 +169,37 @@ export function useEventComments(eventId: string | undefined) {
 export function useAddComment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (comment: { event_id: string; sender_member_id: string; body: string }) => {
-      const { data, error } = await supabase.from('event_comments').insert(comment).select().single();
+    mutationFn: async (comment: {
+      event_id: string;
+      sender_member_id: string;
+      body: string;
+      household_id: string;
+      event_title?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('event_comments')
+        .insert({
+          event_id: comment.event_id,
+          sender_member_id: comment.sender_member_id,
+          body: comment.body,
+        })
+        .select()
+        .single();
       if (error) throw error;
-      return data;
+      return { comment: data, meta: comment };
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['eventComments', vars.event_id] });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['eventComments', result.meta.event_id] });
+      const preview = result.meta.body.trim().slice(0, 80);
+      notifyPartners({
+        householdId: result.meta.household_id,
+        kind: 'comment_added',
+        title: 'Ny kommentar',
+        body: result.meta.event_title
+          ? `${result.meta.event_title}: ${preview}`
+          : preview,
+        eventId: result.meta.event_id,
+      });
     },
   });
 }
