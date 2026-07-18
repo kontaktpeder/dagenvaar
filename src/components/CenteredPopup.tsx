@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
-import { fadeQuick, sheetCardVariants, sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
+import { sheetCardVariants, sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
 interface CenteredPopupProps {
   onClose: () => void;
@@ -63,8 +63,8 @@ const CenteredPopup = ({
     <motion.div
       initial={false}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={fadeQuick}
+      exit={{ opacity: 1 }}
+      transition={{ duration: 0 }}
       className={cn('fixed inset-0', zClassName)}
     >
       {/* Full-screen dismiss target — edge of card = edge of hit-test for “outside” */}

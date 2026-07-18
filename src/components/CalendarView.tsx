@@ -52,8 +52,8 @@ const COMMIT_RATIO = 0.16;
 const COMMIT_VELOCITY = 320;
 /** Months rendered on each side of the center (5 panels total) */
 const WINDOW = 2;
-/** How strongly release velocity projects into month hops (symmetric both ways) */
-const VELOCITY_PROJECT = 0.34;
+/** One gesture = at most one month — never project into multi-hop */
+const MAX_HOPS_PER_SWIPE = 1;
 /** Ignore strip movement until finger travels this far horizontally (px) */
 const PAN_ACTIVATE_PX = 18;
 /** Treat gesture as vertical (block strip) when |dy| exceeds |dx| by this factor */
@@ -185,7 +185,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       animatingRef.current = true;
       setPaging(true);
 
-      const clamped = Math.max(-WINDOW, Math.min(WINDOW, hops));
+      const clamped = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
 
       if (clamped === 0) {
         animationControlsRef.current = animate(x, 0, {
@@ -253,8 +253,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       panModeRef.current = 'pan';
     }
 
-    // Visual-only drag — no setCurrentDate mid-gesture (avoids remount flicker)
-    const max = pageWidth * WINDOW;
+    // Visual drag capped to one page — hard swipe cannot peek two months ahead
+    const max = pageWidth;
     const next = Math.max(-max, Math.min(max, panStartXRef.current + dx));
     x.set(next);
   };
@@ -274,22 +274,21 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
 
     const px = x.get();
     const vx = info.velocity.x;
-    const projected = px + vx * VELOCITY_PROJECT;
-    let hops = Math.round(-projected / pageWidth);
+    let hops = 0;
 
-    if (hops === 0) {
-      const flicked = Math.abs(vx) > COMMIT_VELOCITY;
-      const dragged = Math.abs(px) > pageWidth * COMMIT_RATIO;
-      if (flicked || dragged) {
-        if (flicked && Math.abs(vx) >= Math.abs(px) * 2.5) {
-          hops = vx < 0 ? 1 : -1;
-        } else {
-          hops = px < 0 ? 1 : -1;
-        }
+    const flicked = Math.abs(vx) > COMMIT_VELOCITY;
+    const dragged = Math.abs(px) > pageWidth * COMMIT_RATIO;
+    if (flicked || dragged) {
+      // Direction from drag position when clear; else from velocity
+      if (Math.abs(px) > pageWidth * 0.08) {
+        hops = px < 0 ? 1 : -1;
+      } else {
+        hops = vx < 0 ? 1 : -1;
       }
     }
 
-    hops = Math.max(-WINDOW, Math.min(WINDOW, hops));
+    // Always one month max per swipe
+    hops = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
     flingToHops(hops);
   };
 
