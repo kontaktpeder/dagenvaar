@@ -668,7 +668,7 @@ const DayCell = ({
     <button
       {...longPressHandlers}
       onClick={handleClick}
-      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-hidden ${
+      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl transition-all duration-200 min-h-0 h-full overflow-visible ${
         isHighlighted ? 'ring-2 ring-primary/50 animate-pulse' : ''
       }`}
       style={
@@ -696,27 +696,41 @@ const DayCell = ({
         {format(day, 'd')}
       </span>
 
-      {/* Multi-day stripes — always stacked by lane, never side-by-side */}
+      {/* Pastel multi-day rails — stacked lanes; icon only on start day */}
       {laneCount > 0 && (
-        <div className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0">
+        <div className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1]">
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
             const seg = spanByLane.get(lane);
             if (!seg) {
-              return <div key={`lane-${lane}`} className="h-1.5 w-full" aria-hidden />;
+              return <div key={`lane-${lane}`} className="h-3 w-full" aria-hidden />;
             }
             const member = getMemberForEvent(seg.event);
             const visuals = resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
+            const meta = EVENT_CATEGORY_META[(seg.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+            const Icon = meta?.Icon;
             const evHighlighted = highlight && highlight.eventId === seg.event.id;
+
+            // Bridge gap-x-0.5 (2px) so rails look continuous across days
+            let bleed = 'w-full';
+            if (seg.isStart && seg.isEnd) bleed = 'w-[calc(100%-2px)] mx-px';
+            else if (seg.isStart) bleed = 'w-[calc(100%+2px)] mr-[-2px]';
+            else if (seg.isEnd) bleed = 'w-[calc(100%+2px)] ml-[-2px]';
+            else bleed = 'w-[calc(100%+4px)] -mx-0.5';
+
             return (
               <div
                 key={seg.event.id}
                 title={seg.event.title}
-                className={`h-1.5 w-[calc(100%+2px)] -mx-px ${visuals.dotColor} ${
-                  seg.isStart ? 'rounded-l-full' : ''
+                className={`h-3 flex items-center ${bleed} ${visuals.softBg} ring-1 ring-inset ring-black/[0.04] ${
+                  seg.isStart ? 'rounded-l-full pl-0.5' : ''
                 } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                   evHighlighted ? 'ring-1 ring-primary/60 animate-pulse' : ''
                 }`}
-              />
+              >
+                {seg.isStart && Icon && (
+                  <Icon size={9} strokeWidth={2.25} className={`shrink-0 ${visuals.iconColor}`} />
+                )}
+              </div>
             );
           })}
         </div>
