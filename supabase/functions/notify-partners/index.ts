@@ -43,35 +43,43 @@ Deno.serve(async (req) => {
 
     const payload = (await req.json()) as Body;
     const householdId = payload.household_id?.trim();
-    const title = payload.title?.trim();
-    const body = payload.body?.trim();
+    const kind = payload.kind?.trim() || null;
+    let title = payload.title?.trim();
+    let body = payload.body?.trim();
     if (!householdId || !title || !body) {
       return json({ error: 'household_id, title and body are required' }, 400);
     }
 
-    // Confirm caller belongs to this household, then find partners
     const { data: self, error: selfError } = await supabase
       .from('household_members')
       .select('id, display_name')
       .eq('household_id', householdId)
       .eq('user_id', user.id)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (selfError || !self) {
       return json({ error: 'Not a member of this household' }, 403);
     }
 
+    // Comment pushes: make sender clear on the lock screen
+    if (kind === 'comment_added' && self.display_name) {
+      title = 'Ny kommentar';
+      body = `${self.display_name}: ${body}`;
+    }
+
     const { data: partners, error: partnersError } = await supabase
       .from('household_members')
       .select('user_id')
       .eq('household_id', householdId)
+      .eq('is_active', true)
       .neq('user_id', user.id);
 
     if (partnersError) {
       return json({ error: partnersError.message }, 500);
     }
 
-    const externalIds = (partners ?? []).map((p) => p.user_id).filter(Boolean);
+    const externalIds = [...new Set((partners ?? []).map((p) => p.user_id).filter(Boolean))];
     if (externalIds.length === 0) {
       return json({ ok: true, sent: 0, reason: 'no_partners' });
     }
@@ -89,7 +97,7 @@ Deno.serve(async (req) => {
         headings: { en: title, nb: title },
         contents: { en: body, nb: body },
         data: {
-          kind: payload.kind ?? null,
+          kind,
           household_id: householdId,
           event_id: payload.event_id ?? null,
         },
@@ -100,6 +108,19 @@ Deno.serve(async (req) => {
     if (!osRes.ok) {
       console.error('OneSignal error', osRes.status, osJson);
       return json({ error: 'OneSignal send failed', detail: osJson }, 502);
+    }
+
+    // OneSignal often returns 200 with empty id when nobody is subscribed yet
+    const onesignalId = typeof osJson?.id === 'string' ? osJson.id : '';
+    if (!onesignalId) {
+      console.warn('OneSignal accepted request but no recipients', osJson);
+      return json({
+        ok: true,
+        sent: 0,
+        reason: 'no_subscribed_devices',
+        targets: externalIds.length,
+        onesignal: osJson,
+      });
     }
 
     return json({ ok: true, sent: externalIds.length, onesignal: osJson });
