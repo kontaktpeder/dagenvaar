@@ -13,9 +13,18 @@ export type AuthCallbackKind = 'signup' | 'recovery' | 'magic_link' | 'unknown';
 
 export type AuthCallbackResult =
   | { ok: true; kind: AuthCallbackKind }
-  | { ok: false; error: string };
+  | { ok: false; error: string; action?: 'login' };
 
-export type AuthCallbackType = 'code' | 'token' | 'recovery' | 'unknown';
+export type AuthCallbackType = 'code' | 'token' | 'token_hash' | 'recovery' | 'unknown';
+
+const PKCE_VERIFIER_RE = /code verifier|pkce/i;
+
+export function isPkceVerifierError(message: string | null | undefined): boolean {
+  return !!message && PKCE_VERIFIER_RE.test(message);
+}
+
+const PKCE_CROSS_BROWSER_ERROR =
+  'Lenken åpnet i nettleseren, ikke i Pastelly fra hjemskjermen. Åpne Pastelly fra hjemskjermen, gå til innlogging, og logg inn med e-post og passord. Kontoen er som regel allerede aktivert.';
 
 const NATIVE_SCHEME = 'pastelly:';
 const NATIVE_HOST = 'auth';
@@ -157,9 +166,33 @@ export function parseAuthCallbackType(url: string): AuthCallbackType {
   if (query.get('type') === 'recovery' || hash.get('type') === 'recovery') {
     return 'recovery';
   }
+  // token_hash works across browsers (no PKCE verifier in localStorage).
+  if (query.get('token_hash') || hash.get('token_hash')) return 'token_hash';
   if (query.get('code')) return 'code';
   if (hash.get('access_token') && hash.get('refresh_token')) return 'token';
   return 'unknown';
+}
+
+type OtpType = 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change' | 'email';
+
+function resolveOtpType(raw: string | null, treatAsRecovery: boolean): OtpType {
+  if (treatAsRecovery) return 'recovery';
+  switch (raw) {
+    case 'recovery':
+      return 'recovery';
+    case 'invite':
+      return 'invite';
+    case 'magiclink':
+    case 'magic_link':
+      return 'magiclink';
+    case 'email_change':
+      return 'email_change';
+    case 'email':
+      return 'email';
+    case 'signup':
+    default:
+      return 'signup';
+  }
 }
 
 export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackResult> {
@@ -195,7 +228,39 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     startRecoveryFlow();
   }
 
-  // 1. PKCE code first
+  // 1. token_hash + type — works when link opens in another browser/app (Gmail, etc.)
+  const tokenHash = query.get('token_hash') ?? hash.get('token_hash');
+  if (tokenHash) {
+    const otpType = resolveOtpType(explicitType, treatAsRecovery);
+    const dedupKey = `token_hash:${tokenHash.slice(-24)}`;
+    let kind: AuthCallbackKind =
+      otpType === 'recovery' ? 'recovery' : otpType === 'magiclink' ? 'magic_link' : 'signup';
+    if (hasSeen(dedupKey)) {
+      logAuthDiagnostic('callback:dedup_token_hash');
+      return dedupResultForKind(kind);
+    }
+    logAuthDiagnostic('callback:verify_otp_start', { otpType });
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: otpType,
+    });
+    if (error) {
+      logAuthDiagnostic('callback:verify_otp_error');
+      return { ok: false, error: error.message, action: 'login' };
+    }
+    markSeen(dedupKey);
+    logAuthDiagnostic('callback:verify_otp_ok');
+    if (otpType === 'recovery' || treatAsRecovery || getRecoveryState().isRecoveryFlow) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      kind = 'recovery';
+    }
+    return { ok: true, kind };
+  }
+
+  // 2. PKCE code (same-browser signup / native deep link)
   const code = query.get('code');
   if (code) {
     const dedupKey = `code:${code}`;
@@ -209,7 +274,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       logAuthDiagnostic('callback:exchange_error');
-      return { ok: false, error: error.message };
+      if (isPkceVerifierError(error.message)) {
+        return { ok: false, error: PKCE_CROSS_BROWSER_ERROR, action: 'login' };
+      }
+      return { ok: false, error: error.message, action: 'login' };
     }
     markSeen(dedupKey);
     logAuthDiagnostic('callback:exchange_ok');
@@ -224,7 +292,7 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     return { ok: true, kind };
   }
 
-  // 2. Hash tokens fallback (implicit flow)
+  // 3. Hash tokens fallback (implicit flow)
   const access_token = hash.get('access_token');
   const refresh_token = hash.get('refresh_token');
   if (access_token && refresh_token) {

@@ -7,6 +7,7 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const ranRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginHint, setLoginHint] = useState(false);
 
   useEffect(() => {
     if (ranRef.current) return;
@@ -16,6 +17,7 @@ const AuthCallback = () => {
       const result = await handleAuthCallbackUrl(window.location.href);
       if (result.ok === false) {
         setError(result.error);
+        setLoginHint(result.action === 'login');
         return;
       }
       if (result.kind === 'recovery') {
@@ -35,14 +37,22 @@ const AuthCallback = () => {
           className="w-full max-w-sm text-center"
         >
           <p className="text-5xl mb-4">⚠️</p>
-          <h1 className="text-2xl font-bold mb-2">Innlogging feilet</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {loginHint ? 'Nesten ferdig' : 'Innlogging feilet'}
+          </h1>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/', { replace: true })}
-            className="rounded-xl bg-green-200 px-4 py-2 font-semibold text-green-900"
-          >
-            Tilbake
-          </button>
+          {loginHint ? (
+            <p className="text-sm font-medium text-foreground">
+              Åpne Pastelly fra hjemskjermen for å logge inn.
+            </p>
+          ) : (
+            <button
+              onClick={() => navigate('/', { replace: true })}
+              className="rounded-xl bg-green-200 px-4 py-2 font-semibold text-green-900"
+            >
+              Tilbake
+            </button>
+          )}
         </motion.div>
       </div>
     );

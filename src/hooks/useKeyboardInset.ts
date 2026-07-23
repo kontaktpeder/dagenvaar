@@ -12,6 +12,8 @@ export function useKeyboardInset(): number {
   useEffect(() => {
     let cancelled = false;
     const handles: { remove: () => Promise<void> }[] = [];
+    let focusOutTimerA = 0;
+    let focusOutTimerB = 0;
 
     const setSafe = (value: number) => {
       const next = Math.max(0, Math.round(value));
@@ -24,7 +26,9 @@ export function useKeyboardInset(): number {
     const fromVisualViewport = () => {
       const vv = window.visualViewport;
       if (!vv) return 0;
-      return Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      // Ignore tiny gaps (browser chrome); treat near-full viewport as closed.
+      const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      return overlap < 48 ? 0 : overlap;
     };
 
     const syncViewport = () => setSafe(fromVisualViewport());
@@ -35,6 +39,14 @@ export function useKeyboardInset(): number {
       vv.addEventListener('scroll', syncViewport);
     }
     window.addEventListener('resize', syncViewport);
+
+    const onFocusOut = () => {
+      // iOS PWA sometimes leaves a stale offset after blur; re-sync twice.
+      window.clearTimeout(focusOutTimerA);
+      window.clearTimeout(focusOutTimerB);
+      focusOutTimerA = window.setTimeout(syncViewport, 120);
+      focusOutTimerB = window.setTimeout(syncViewport, 320);
+    };
 
     if (isNativePlatform()) {
       void Keyboard.addListener('keyboardWillShow', (info) => {
@@ -64,6 +76,7 @@ export function useKeyboardInset(): number {
       });
     } else {
       syncViewport();
+      document.addEventListener('focusout', onFocusOut);
     }
 
     return () => {
@@ -72,6 +85,9 @@ export function useKeyboardInset(): number {
       vv?.removeEventListener('resize', syncViewport);
       vv?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
+      document.removeEventListener('focusout', onFocusOut);
+      window.clearTimeout(focusOutTimerA);
+      window.clearTimeout(focusOutTimerB);
       handles.forEach((h) => void h.remove());
     };
   }, []);

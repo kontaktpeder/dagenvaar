@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const exchangeMock = vi.fn();
 const setSessionMock = vi.fn();
 const getSessionMock = vi.fn();
+const verifyOtpMock = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -10,6 +11,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       exchangeCodeForSession: (...args: unknown[]) => exchangeMock(...args),
       setSession: (...args: unknown[]) => setSessionMock(...args),
       getSession: (...args: unknown[]) => getSessionMock(...args),
+      verifyOtp: (...args: unknown[]) => verifyOtpMock(...args),
     },
   },
 }));
@@ -18,6 +20,7 @@ import {
   isValidAuthCallbackUrl,
   parseAuthCallbackType,
   handleAuthCallbackUrl,
+  isPkceVerifierError,
 } from './handleAuthCallbackUrl';
 
 const DEDUP_KEY = 'pastelly:auth-callback-seen';
@@ -56,8 +59,21 @@ describe('parseAuthCallbackType', () => {
     expect(parseAuthCallbackType('pastelly://auth/callback#type=recovery&access_token=a&refresh_token=b')).toBe('recovery');
   });
 
+  it('detects token_hash', () => {
+    expect(parseAuthCallbackType('https://pastelly.no/auth/callback?token_hash=abc&type=signup')).toBe(
+      'token_hash',
+    );
+  });
+
   it('returns unknown when no params', () => {
     expect(parseAuthCallbackType('https://pastelly.no/auth/callback')).toBe('unknown');
+  });
+});
+
+describe('isPkceVerifierError', () => {
+  it('matches verifier messages', () => {
+    expect(isPkceVerifierError('PKCE code verifier not found in storage')).toBe(true);
+    expect(isPkceVerifierError('boom')).toBe(false);
   });
 });
 
@@ -68,6 +84,7 @@ describe('handleAuthCallbackUrl dedup semantics', () => {
     exchangeMock.mockReset();
     setSessionMock.mockReset();
     getSessionMock.mockReset();
+    verifyOtpMock.mockReset();
   });
 
   it('does NOT mark dedup when exchangeCodeForSession fails', async () => {
@@ -205,6 +222,41 @@ describe('handleAuthCallbackUrl recovery state', () => {
     await handleAuthCallbackUrl('pastelly://auth/callback?code=abc');
     window.removeEventListener('pastelly:recovery-navigate', spy);
     expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe('handleAuthCallbackUrl PKCE + token_hash', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+    exchangeMock.mockReset();
+    setSessionMock.mockReset();
+    getSessionMock.mockReset();
+    verifyOtpMock.mockReset();
+  });
+
+  it('maps missing PKCE verifier to login hint', async () => {
+    exchangeMock.mockResolvedValue({
+      error: { message: 'PKCE code verifier not found in storage. This can happen if...' },
+    });
+    const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=abc123');
+    expect(result.ok).toBe(false);
+    if (result.ok === false) {
+      expect(result.action).toBe('login');
+      expect(result.error).toMatch(/hjemskjermen/i);
+    }
+  });
+
+  it('verifies token_hash via verifyOtp', async () => {
+    verifyOtpMock.mockResolvedValue({ error: null });
+    const result = await handleAuthCallbackUrl(
+      'https://pastelly.no/auth/callback?token_hash=th_abc123456789&type=signup',
+    );
+    expect(verifyOtpMock).toHaveBeenCalledWith({
+      token_hash: 'th_abc123456789',
+      type: 'signup',
+    });
+    expect(result).toEqual({ ok: true, kind: 'signup' });
   });
 });
 

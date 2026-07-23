@@ -56,11 +56,12 @@ const AuthPage = () => {
           <p className="text-5xl mb-4">📬</p>
           <h1 className="text-2xl font-bold mb-2">Sjekk e-posten din!</h1>
           <p className="text-muted-foreground mb-6">
-            Vi har sendt en bekreftelseslenke til <strong>{email}</strong>. Klikk på lenken for å aktivere kontoen din.
+            Vi har sendt en bekreftelseslenke til <strong>{email}</strong>. Åpne lenken for å aktivere kontoen.
+            Åpner du den i Gmail eller Safari (ikke i Pastelly fra hjemskjermen), kan det feile — da er kontoen ofte klar likevel. Gå til innlogging og logg inn.
           </p>
           <button
             onClick={() => switchMode('login')}
-            className="text-foreground font-medium underline underline-offset-2"
+            className="rounded-xl bg-green-200 px-4 py-2.5 font-semibold text-green-900"
           >
             Gå til innlogging
           </button>

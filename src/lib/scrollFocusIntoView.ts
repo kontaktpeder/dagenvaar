@@ -40,10 +40,12 @@ export function focusFieldSoftly(el: HTMLElement | null) {
 
 /**
  * Scroll the focused field into view inside its nearest scroll container only.
+ * Delayed twice so iOS PWA keyboard + layout settle before measuring.
  */
 export function scrollFocusIntoView(e: React.FocusEvent<HTMLElement>) {
   const el = e.currentTarget;
   window.setTimeout(() => scrollElementIntoContainer(el), 80);
+  window.setTimeout(() => scrollElementIntoContainer(el), 280);
 }
 
 function findScrollParent(el: HTMLElement | null): HTMLElement | null {
