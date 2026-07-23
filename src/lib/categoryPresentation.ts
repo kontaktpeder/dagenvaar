@@ -1,4 +1,6 @@
 import type { EventCategory } from '@/lib/eventCategories';
+import { getCategoryOptionsForKind } from '@/lib/eventCategories';
+import type { CalendarKind } from '@/lib/calendarKinds';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -13,6 +15,11 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
+  meeting: 'blue',
+  client: 'teal',
+  deadline: 'orange',
+  focus: 'purple',
+  admin: 'amber',
 };
 
 type Visuals = {
@@ -67,6 +74,11 @@ const DEFAULT_LABELS: Record<EventCategory, string> = {
   celebration: 'Fest',
   important: 'Viktig',
   travel: 'Reise',
+  meeting: 'Møte',
+  client: 'Kunde',
+  deadline: 'Frist',
+  focus: 'Fokus',
+  admin: 'Drift',
   other: 'Annet',
 };
 
@@ -84,6 +96,12 @@ export function resolveCategoryLabel(
 export function getMemberColorMap(member: { category_color_map?: unknown } | null | undefined): CategoryColorMap | null {
   if (!member) return null;
   const raw = (member as any).category_color_map;
-  if (raw && typeof raw === 'object') return raw as CategoryColorMap;
-  return null;
+  if (!raw || typeof raw !== 'object') return null;
+  return raw as CategoryColorMap;
+}
+
+export function getColorableCategoriesForKind(
+  kind: CalendarKind | string | null | undefined,
+): MainCategory[] {
+  return getCategoryOptionsForKind(kind).filter((c): c is MainCategory => c !== 'other');
 }

@@ -49,12 +49,17 @@ const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
 
 const CATEGORY_ORDER: Record<string, number> = {
   important: 0,
-  work: 1,
-  couple: 2,
-  celebration: 3,
-  social: 4,
-  travel: 5,
-  other: 6,
+  deadline: 1,
+  work: 2,
+  meeting: 3,
+  client: 4,
+  focus: 5,
+  admin: 6,
+  couple: 7,
+  celebration: 8,
+  social: 9,
+  travel: 10,
+  other: 11,
 };
 
 /** Commit when dragged past this fraction of width, or with enough velocity */

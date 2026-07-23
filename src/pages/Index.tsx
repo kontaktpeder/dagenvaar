@@ -224,6 +224,7 @@ const Index = () => {
             householdId={household.id}
             members={members}
             currentMemberId={currentMember.id}
+            calendarKind={household.kind}
             showInOtherCalendars={household.show_in_other_calendars}
             initialDate={newEventDate}
             onClose={() => setShowNewEvent(false)}
@@ -241,6 +242,7 @@ const Index = () => {
             householdId={household.id}
             members={members}
             currentMemberId={currentMember.id}
+            calendarKind={household.kind}
             showInOtherCalendars={household.show_in_other_calendars}
             onClose={() => setEditEvent(null)}
             onSaved={(eventId, dateStr) => {
@@ -257,6 +259,7 @@ const Index = () => {
             householdId={household.id}
             members={members}
             currentMemberId={currentMember.id}
+            calendarKind={household.kind}
             onClose={() => setQuickEditEvent(null)}
             onSaved={(eventId, dateStr) => {
               flashHighlight(eventId, dateStr);

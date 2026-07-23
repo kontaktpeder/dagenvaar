@@ -6,10 +6,37 @@ import {
   AlertTriangle,
   Plane,
   MoreHorizontal,
+  UsersRound,
+  Handshake,
+  Flag,
+  Target,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
+import type { CalendarKind } from '@/lib/calendarKinds';
+import { resolveCalendarKind } from '@/lib/calendarKinds';
 
-export type EventCategory = 'couple' | 'work' | 'social' | 'celebration' | 'important' | 'travel' | 'other';
+export type HomeEventCategory =
+  | 'couple'
+  | 'work'
+  | 'social'
+  | 'celebration'
+  | 'important'
+  | 'travel'
+  | 'other';
+
+export type WorkEventCategory =
+  | 'meeting'
+  | 'client'
+  | 'deadline'
+  | 'focus'
+  | 'travel'
+  | 'admin'
+  | 'other';
+
+/** All persisted category keys (home + work). */
+export type EventCategory = HomeEventCategory | WorkEventCategory;
+
 export type EventPriority = 'normal' | 'high';
 
 type CategoryMeta = {
@@ -63,6 +90,41 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-teal-500',
   },
+  meeting: {
+    label: 'Møte',
+    Icon: UsersRound,
+    chipBg: 'bg-blue-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-blue-500',
+  },
+  client: {
+    label: 'Kunde',
+    Icon: Handshake,
+    chipBg: 'bg-teal-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-teal-500',
+  },
+  deadline: {
+    label: 'Frist',
+    Icon: Flag,
+    chipBg: 'bg-orange-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-orange-500',
+  },
+  focus: {
+    label: 'Fokus',
+    Icon: Target,
+    chipBg: 'bg-purple-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-purple-500',
+  },
+  admin: {
+    label: 'Drift',
+    Icon: ClipboardList,
+    chipBg: 'bg-amber-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-amber-500',
+  },
   other: {
     label: 'Annet',
     Icon: MoreHorizontal,
@@ -72,7 +134,36 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
   },
 };
 
-export const CATEGORY_OPTIONS: EventCategory[] = ['couple', 'work', 'social', 'celebration', 'important', 'travel', 'other'];
+export const HOME_CATEGORY_OPTIONS: EventCategory[] = [
+  'couple',
+  'work',
+  'social',
+  'celebration',
+  'important',
+  'travel',
+  'other',
+];
+
+export const WORK_CATEGORY_OPTIONS: EventCategory[] = [
+  'meeting',
+  'client',
+  'deadline',
+  'focus',
+  'travel',
+  'admin',
+  'other',
+];
+
+/** @deprecated Prefer getCategoryOptionsForKind — kept for callers that assume home. */
+export const CATEGORY_OPTIONS = HOME_CATEGORY_OPTIONS;
+
+export function getCategoryOptionsForKind(
+  kind: CalendarKind | string | null | undefined,
+): EventCategory[] {
+  return resolveCalendarKind(kind) === 'work'
+    ? WORK_CATEGORY_OPTIONS
+    : HOME_CATEGORY_OPTIONS;
+}
 
 export function getEventCategoryMeta(category: string | null | undefined) {
   if (!category) return null;
@@ -82,3 +173,19 @@ export function getEventCategoryMeta(category: string | null | undefined) {
 export function isHighPriority(priority: string | null | undefined) {
   return priority === 'high';
 }
+
+/** Sort rank for calendar day marks (lower = earlier). */
+export const CATEGORY_SORT_ORDER: Record<string, number> = {
+  important: 0,
+  deadline: 1,
+  work: 2,
+  meeting: 3,
+  client: 4,
+  focus: 5,
+  admin: 6,
+  couple: 7,
+  celebration: 8,
+  social: 9,
+  travel: 10,
+  other: 11,
+};

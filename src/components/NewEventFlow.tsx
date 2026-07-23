@@ -5,7 +5,7 @@ import { nb } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useCreateEvent, syncEventVisibleMembers } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
-import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import { resolveCategoryLabel } from '@/lib/categoryPresentation';
 import {
   DAY_PART_ORDER,
@@ -30,6 +30,7 @@ interface NewEventFlowProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  calendarKind?: string | null;
   showInOtherCalendars?: boolean;
   initialDate?: Date;
   onClose: () => void;
@@ -38,7 +39,8 @@ interface NewEventFlowProps {
 
 const STEPS = 4;
 
-const NewEventFlow = ({ householdId, members, currentMemberId, showInOtherCalendars = false, initialDate, onClose, onCreated }: NewEventFlowProps) => {
+const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'home', showInOtherCalendars = false, initialDate, onClose, onCreated }: NewEventFlowProps) => {
+  const categoryOptions = getCategoryOptionsForKind(calendarKind);
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate || new Date());
@@ -459,7 +461,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, showInOtherCalend
             <motion.div key="step2" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Type hendelse</h2>
               <div className="flex flex-col gap-2">
-                {CATEGORY_OPTIONS.map((key) => {
+                {categoryOptions.map((key) => {
                   const meta = EVENT_CATEGORY_META[key];
                   const Icon = meta.Icon;
                   const selected = category === key;

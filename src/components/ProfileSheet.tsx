@@ -444,7 +444,7 @@ const ProfileSheet = ({
               Innstillinger for denne kalenderen
             </p>
             <DailyDigestSettings member={currentMember} />
-            <CategoryColorSettings member={currentMember} />
+            <CategoryColorSettings member={currentMember} calendarKind={household.kind} />
           </div>
 
           {!showLeaveConfirm ? (

@@ -3,7 +3,7 @@ import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
-import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
@@ -20,6 +20,7 @@ interface EditEventQuickSheetProps {
   householdId: string;
   currentMemberId: string;
   members?: HouseholdMember[];
+  calendarKind?: string | null;
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
   onOpenFullEdit?: (event: Event) => void;
@@ -30,8 +31,9 @@ const FIELD =
 const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
-const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
+  const categoryOptions = getCategoryOptionsForKind(calendarKind);
 
   const initStartIdx = (() => {
     const dps = (event as any).day_part_start as string | null;
@@ -57,6 +59,13 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
   const [endTime, setEndTime] = useState<string | null>(event.end_time?.slice(0, 5) || null);
   const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory>((event.category as EventCategory) || 'other');
+  const categoryOptions = (() => {
+    const base = getCategoryOptionsForKind(calendarKind);
+    if (category && !base.includes(category) && EVENT_CATEGORY_META[category]) {
+      return [category, ...base.filter((c) => c !== category)];
+    }
+    return base;
+  })();
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     (event.visibility_type as any) || 'all_members',
@@ -351,7 +360,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, onClose, on
           <div>
             <SectionTitle>Type</SectionTitle>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORY_OPTIONS.map((key) => {
+              {categoryOptions.map((key) => {
                 const meta = EVENT_CATEGORY_META[key];
                 const Icon = meta.Icon;
                 const selected = category === key;

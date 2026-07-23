@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { CATEGORY_OPTIONS, EVENT_CATEGORY_META } from '@/lib/eventCategories';
+import { EVENT_CATEGORY_META, getCategoryOptionsForKind } from '@/lib/eventCategories';
 import {
   COLOR_TOKEN_OPTIONS,
   DEFAULT_CATEGORY_COLOR_MAP,
@@ -15,10 +15,12 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 
 interface CategoryColorSettingsProps {
   member: HouseholdMember;
+  calendarKind?: string | null;
 }
 
-const CategoryColorSettings = ({ member }: CategoryColorSettingsProps) => {
+const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorSettingsProps) => {
   const queryClient = useQueryClient();
+  const options = getCategoryOptionsForKind(calendarKind);
   const initial = getMemberColorMap(member) ?? { ...DEFAULT_CATEGORY_COLOR_MAP };
   const [map, setMap] = useState<CategoryColorMap>(initial);
   const [savedKey, setSavedKey] = useState<string | null>(null);
@@ -49,9 +51,9 @@ const CategoryColorSettings = ({ member }: CategoryColorSettingsProps) => {
   return (
     <div>
       <h3 className="text-sm font-semibold text-muted-foreground mb-1">Farger for kategorier</h3>
-      <p className="text-xs text-muted-foreground mb-3">Velg hvordan dine kategorier vises i kalenderen.</p>
+      <p className="text-xs text-muted-foreground mb-3">Velg hvordan dine kategorier vises i denne kalenderen.</p>
       <div className="space-y-3">
-        {CATEGORY_OPTIONS.map((catKey) => {
+        {options.map((catKey) => {
           if (catKey === 'other') {
             return (
               <div key={catKey} className="rounded-xl bg-muted p-3 flex items-center justify-between opacity-70">

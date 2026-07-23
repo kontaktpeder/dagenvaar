@@ -5,7 +5,7 @@ import { nb } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { DAY_PART_LABELS } from '@/lib/colors';
-import { CATEGORY_OPTIONS, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import { resolveCategoryLabel } from '@/lib/categoryPresentation';
 import {
   DAY_PART_ORDER,
@@ -24,6 +24,7 @@ interface EditEventFlowProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  calendarKind?: string | null;
   showInOtherCalendars?: boolean;
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
@@ -36,7 +37,7 @@ const FIELD =
 const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
-const EditEventFlow = ({ event, householdId, members, currentMemberId, showInOtherCalendars = false, onClose, onSaved }: EditEventFlowProps) => {
+const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarKind = 'home', showInOtherCalendars = false, onClose, onSaved }: EditEventFlowProps) => {
   const updateEvent = useUpdateEvent();
 
   // Init state from existing event
@@ -65,6 +66,13 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, showInOth
   const [endTime, setEndTime] = useState<string | null>(event.end_time?.slice(0, 5) || null);
   const [showDayParts, setShowDayParts] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>((event.category as EventCategory) || null);
+  const categoryOptions = (() => {
+    const base = getCategoryOptionsForKind(calendarKind);
+    if (category && !base.includes(category) && EVENT_CATEGORY_META[category]) {
+      return [category, ...base.filter((c) => c !== category)];
+    }
+    return base;
+  })();
   const [otherLabel, setOtherLabel] = useState<string>((event as any).category_label_override || '');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>(
     event.visibility_type as any || 'all_members',
@@ -326,7 +334,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, showInOth
             <motion.div key="step2" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">Type hendelse</h2>
               <div className="flex flex-col gap-2">
-                {CATEGORY_OPTIONS.map((key) => {
+                {categoryOptions.map((key) => {
                   const meta = EVENT_CATEGORY_META[key];
                   const Icon = meta.Icon;
                   const selected = category === key;
