@@ -39,6 +39,9 @@ interface CalendarViewProps {
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
   onSwitchCalendar?: (householdId: string) => void;
+  /** Vertical stack: +1 = swipe up (next), -1 = swipe down (previous) */
+  onSwipeCalendarStack?: (direction: 1 | -1) => void;
+  canSwipeCalendarStack?: boolean;
   highlight?: Highlight;
 }
 
@@ -57,6 +60,9 @@ const CATEGORY_ORDER: Record<string, number> = {
 /** Commit when dragged past this fraction of width, or with enough velocity */
 const COMMIT_RATIO = 0.18;
 const COMMIT_VELOCITY = 380;
+/** Vertical stack switch thresholds */
+const STACK_COMMIT_PX = 72;
+const STACK_COMMIT_VELOCITY = 520;
 /** Months rendered on each side of the center (5 panels total) */
 const WINDOW = 2;
 /** One gesture = at most one month */
@@ -115,7 +121,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, highlight }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight }: CalendarViewProps) => {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
   const setCurrentDate = useCallback(
@@ -209,6 +215,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const panModeRef = useRef<'pending' | 'pan' | 'blocked'>('pending');
   /** Set while a day long-press is active — keeps strip frozen */
   const pressLockRef = useRef(false);
+  /** Track vertical intent for calendar-stack swipe */
+  const panOffsetYRef = useRef(0);
+  const panVelocityYRef = useRef(0);
+  const verticalStackRef = useRef(false);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -295,10 +305,16 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     stopPagingAnim();
     panStartXRef.current = x.get();
     panModeRef.current = pressLockRef.current ? 'blocked' : 'pending';
+    panOffsetYRef.current = 0;
+    panVelocityYRef.current = 0;
+    verticalStackRef.current = false;
   };
 
   const handlePan = (_: unknown, info: PanInfo) => {
     if (!pageWidth) return;
+
+    panOffsetYRef.current = info.offset.y;
+    panVelocityYRef.current = info.velocity.y;
 
     if (pressLockRef.current || panModeRef.current === 'blocked') {
       x.set(panStartXRef.current);
@@ -317,6 +333,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       }
       if (ady >= PAN_ACTIVATE_PX && ady > adx * AXIS_LOCK_RATIO) {
         panModeRef.current = 'blocked';
+        verticalStackRef.current = canSwipeCalendarStack;
         x.set(panStartXRef.current);
         return;
       }
@@ -336,7 +353,23 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     if (!pageWidth) return;
 
     const wasPanning = panModeRef.current === 'pan' && !pressLockRef.current;
+    const wasVerticalStack = verticalStackRef.current && !pressLockRef.current;
+    const dy = info.offset.y || panOffsetYRef.current;
+    const vy = info.velocity.y || panVelocityYRef.current;
     panModeRef.current = 'pending';
+    verticalStackRef.current = false;
+
+    if (wasVerticalStack && onSwipeCalendarStack) {
+      const flicked = Math.abs(vy) > STACK_COMMIT_VELOCITY;
+      const dragged = Math.abs(dy) > STACK_COMMIT_PX;
+      if (flicked || dragged) {
+        // Finger up → content moves up → next calendar below
+        if (dy < 0 || (flicked && vy < 0)) onSwipeCalendarStack(1);
+        else onSwipeCalendarStack(-1);
+      }
+      x.set(0);
+      return;
+    }
 
     if (!wasPanning) {
       if (Math.abs(x.get()) > 0.5) flingToHops(0);

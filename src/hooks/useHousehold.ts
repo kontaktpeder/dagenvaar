@@ -24,6 +24,7 @@ export function useMembers(householdId: string | undefined) {
   return useQuery({
     queryKey: ['members', householdId],
     enabled: !!householdId,
+    placeholderData: (previousData) => previousData,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('household_members')

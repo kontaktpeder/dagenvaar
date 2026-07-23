@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { useState, useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from 'react';
 import { Navigate } from 'react-router-dom';
 import { startOfMonth } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { getRecoveryState } from '@/lib/auth/recoveryState';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
+import { adjacentCalendarId, sortCalendarMemberships } from '@/lib/calendarStack';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
@@ -19,6 +20,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
+
+const stackTransition = {
+  type: 'tween' as const,
+  duration: 0.28,
+  ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
+};
 
 const Index = () => {
   const { loading: authLoading, signOut } = useAuth();
@@ -41,6 +48,47 @@ const Index = () => {
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [quickEditEvent, setQuickEditEvent] = useState<Event | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
+  const [stackDirection, setStackDirection] = useState(0);
+  const switchingRef = useRef(false);
+
+  const orderedMemberships = useMemo(
+    () => sortCalendarMemberships(memberships),
+    [memberships],
+  );
+
+  const stackIndex = useMemo(() => {
+    if (!household) return 0;
+    const idx = orderedMemberships.findIndex((m) => m.household_id === household.id);
+    return idx >= 0 ? idx : 0;
+  }, [orderedMemberships, household]);
+
+  const selectCalendar = useCallback(
+    (id: string, direction?: number) => {
+      if (!household || id === household.id || switchingRef.current) return;
+      if (direction !== undefined) setStackDirection(direction);
+      else {
+        const from = orderedMemberships.findIndex((m) => m.household_id === household.id);
+        const to = orderedMemberships.findIndex((m) => m.household_id === id);
+        setStackDirection(to >= from ? 1 : -1);
+      }
+      switchingRef.current = true;
+      setActiveHouseholdId(id);
+      window.setTimeout(() => {
+        switchingRef.current = false;
+      }, 320);
+    },
+    [household, orderedMemberships, setActiveHouseholdId],
+  );
+
+  const handleSwipeCalendarStack = useCallback(
+    (direction: 1 | -1) => {
+      if (!household) return;
+      if (showNewEvent || editEvent || quickEditEvent || showProfile) return;
+      const nextId = adjacentCalendarId(memberships, household.id, direction);
+      if (nextId) selectCalendar(nextId, direction);
+    },
+    [household, memberships, selectCalendar, showNewEvent, editEvent, quickEditEvent, showProfile],
+  );
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
@@ -115,13 +163,16 @@ const Index = () => {
     }
   };
 
+  const canSwipeStack = orderedMemberships.length > 1;
+
   return (
     <div className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
-      <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+      <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}
-          memberships={memberships}
-          onSelect={setActiveHouseholdId}
+          memberships={orderedMemberships}
+          stackIndex={stackIndex}
+          onSelect={(id) => selectCalendar(id)}
         />
         <button
           onClick={() => setShowProfile(true)}
@@ -140,21 +191,34 @@ const Index = () => {
         </button>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden">
-        <CalendarView
-          key={household.id}
-          householdId={household.id}
-          members={members}
-          currentMemberId={currentMember.id}
-          currentDate={calendarMonthAnchor}
-          onCurrentDateChange={handleCalendarMonthChange}
-          onSelectDate={handleSelectDate}
-          onCreateEvent={handleCreateEvent}
-          onEditEvent={handleEditEvent}
-          onQuickEditEvent={setQuickEditEvent}
-          onSwitchCalendar={setActiveHouseholdId}
-          highlight={highlight}
-        />
+      <main className="flex-1 min-h-0 overflow-hidden relative">
+        <AnimatePresence initial={false} custom={stackDirection} mode="popLayout">
+          <motion.div
+            key={household.id}
+            custom={stackDirection}
+            initial={{ y: stackDirection >= 0 ? '22%' : '-22%' }}
+            animate={{ y: 0 }}
+            exit={{ y: stackDirection >= 0 ? '-14%' : '14%' }}
+            transition={stackTransition}
+            className="absolute inset-0 flex flex-col will-change-transform"
+          >
+            <CalendarView
+              householdId={household.id}
+              members={members}
+              currentMemberId={currentMember.id}
+              currentDate={calendarMonthAnchor}
+              onCurrentDateChange={handleCalendarMonthChange}
+              onSelectDate={handleSelectDate}
+              onCreateEvent={handleCreateEvent}
+              onEditEvent={handleEditEvent}
+              onQuickEditEvent={setQuickEditEvent}
+              onSwitchCalendar={(id) => selectCalendar(id)}
+              onSwipeCalendarStack={handleSwipeCalendarStack}
+              canSwipeCalendarStack={canSwipeStack}
+              highlight={highlight}
+            />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <AnimatePresence>
@@ -214,8 +278,8 @@ const Index = () => {
             household={household}
             members={members}
             currentMember={currentMember}
-            memberships={memberships}
-            onSelectCalendar={setActiveHouseholdId}
+            memberships={orderedMemberships}
+            onSelectCalendar={(id) => selectCalendar(id)}
             onClose={() => setShowProfile(false)}
             onSignOut={handleSignOut}
           />

@@ -8,10 +8,16 @@ import type { Household } from '@/hooks/useHousehold';
 interface CalendarSwitcherProps {
   household: Household;
   memberships: CalendarMembership[];
+  stackIndex?: number;
   onSelect: (householdId: string) => void;
 }
 
-const CalendarSwitcher = ({ household, memberships, onSelect }: CalendarSwitcherProps) => {
+const CalendarSwitcher = ({
+  household,
+  memberships,
+  stackIndex = 0,
+  onSelect,
+}: CalendarSwitcherProps) => {
   const [open, setOpen] = useState(false);
   const canSwitch = memberships.length > 1;
 
@@ -23,7 +29,7 @@ const CalendarSwitcher = ({ household, memberships, onSelect }: CalendarSwitcher
       <button
         type="button"
         onClick={() => canSwitch && setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 min-w-0 max-w-full text-left ${
+        className={`flex items-center gap-2 min-w-0 max-w-full text-left ${
           canSwitch ? 'cursor-pointer' : 'cursor-default'
         }`}
         aria-expanded={canSwitch ? open : undefined}
@@ -33,8 +39,21 @@ const CalendarSwitcher = ({ household, memberships, onSelect }: CalendarSwitcher
           <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
           <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
             {calendarKindLabel(household.kind)}
+            {canSwitch ? ' · sveip opp/ned' : ''}
           </span>
         </span>
+        {canSwitch && (
+          <span className="flex flex-col gap-1 shrink-0" aria-hidden>
+            {memberships.map((m, i) => (
+              <span
+                key={m.household_id}
+                className={`w-1.5 h-1.5 rounded-full ${
+                  i === stackIndex ? 'bg-foreground/70' : 'bg-border'
+                }`}
+              />
+            ))}
+          </span>
+        )}
         {canSwitch && (
           <ChevronDown
             size={18}

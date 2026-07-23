@@ -95,7 +95,7 @@ const ProfileFolder = ({
   </div>
 );
 
-type FolderKey = 'kalender' | 'innstillinger' | 'konto';
+type FolderKey = 'denne' | 'generelt';
 
 const ProfileSheet = ({
   household,
@@ -123,9 +123,8 @@ const ProfileSheet = ({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveError, setLeaveError] = useState('');
   const [openFolders, setOpenFolders] = useState<Record<FolderKey, boolean>>({
-    kalender: true,
-    innstillinger: false,
-    konto: false,
+    denne: true,
+    generelt: false,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -134,9 +133,8 @@ const ProfileSheet = ({
     setOpenFolders((prev) => {
       const nextOpen = !prev[key];
       return {
-        kalender: false,
-        innstillinger: false,
-        konto: false,
+        denne: false,
+        generelt: false,
         [key]: nextOpen,
       };
     });
@@ -337,7 +335,6 @@ const ProfileSheet = ({
   };
 
   const isOwner = currentMember.role === 'owner';
-  const folderTitle = household.kind === 'work' ? 'Jobb' : 'Hjem';
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
@@ -379,32 +376,14 @@ const ProfileSheet = ({
         </section>
 
         <div className="rounded-2xl bg-muted/40 px-4 mb-2">
-        <ProfileFolder title={folderTitle} open={openFolders.kalender} onToggle={() => toggleFolder('kalender')}>
-          {memberships.length > 1 && (
-            <div className="space-y-1.5 pb-1">
-              <p className="text-xs font-medium text-muted-foreground px-0.5">Bytt kalender</p>
-              {memberships.map((m) => (
-                <button
-                  key={m.household_id}
-                  type="button"
-                  onClick={() => {
-                    onSelectCalendar(m.household_id);
-                    onClose();
-                  }}
-                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                    m.household_id === household.id
-                      ? 'bg-primary/15 font-semibold'
-                      : 'bg-background hover:bg-muted'
-                  }`}
-                >
-                  <span className="truncate">{m.household.name}</span>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                    {calendarKindLabel(m.household.kind)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+        <ProfileFolder
+          title={`Denne kalenderen`}
+          open={openFolders.denne}
+          onToggle={() => toggleFolder('denne')}
+        >
+          <p className="text-xs text-muted-foreground px-0.5 -mt-1 mb-1">
+            Gjelder bare «{household.name}»
+          </p>
 
           <div className="space-y-2">
             {members.map((m) => (
@@ -470,27 +449,92 @@ const ProfileSheet = ({
               )}
             </div>
           )}
+
+          <div className="pt-2 space-y-3 border-t border-border/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+              Innstillinger for denne kalenderen
+            </p>
+            <DailyDigestSettings member={currentMember} />
+            <CategoryColorSettings member={currentMember} />
+          </div>
+
+          {!showLeaveConfirm ? (
+            <button
+              onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
+              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Forlat denne kalenderen
+            </button>
+          ) : (
+            <div className="rounded-xl bg-muted p-4 space-y-3">
+              <p className="text-sm font-medium text-center">
+                Er du sikker på at du vil forlate «{household.name}»?
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                {members.length <= 1
+                  ? 'Du er eneste medlem – kalenderen og alt innhold blir slettet.'
+                  : currentMember.role === 'owner'
+                  ? 'Du er eier. Eierskapet overføres til et annet medlem.'
+                  : 'Du mister tilgang til hendelser og lister i denne kalenderen.'}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
+                  disabled={leaveHousehold.isPending}
+                  className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={() => leaveHousehold.mutate()}
+                  disabled={leaveHousehold.isPending}
+                  className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {leaveHousehold.isPending ? 'Forlater...' : 'Ja, forlat'}
+                </button>
+              </div>
+              {leaveError && (
+                <p className="text-destructive text-sm text-center">{leaveError}</p>
+              )}
+            </div>
+          )}
         </ProfileFolder>
 
         <ProfileFolder
-          title="Innstillinger"
-          open={openFolders.innstillinger}
-          onToggle={() => toggleFolder('innstillinger')}
+          title="Generelt"
+          open={openFolders.generelt}
+          onToggle={() => toggleFolder('generelt')}
         >
-          <DailyDigestSettings member={currentMember} />
-          <CategoryColorSettings member={currentMember} />
-        </ProfileFolder>
+          <p className="text-xs text-muted-foreground px-0.5 -mt-1 mb-1">
+            Gjelder kontoen din og alle kalendere
+          </p>
 
-        <ProfileFolder title="Konto" open={openFolders.konto} onToggle={() => toggleFolder('konto')}>
-          <button
-            onClick={handleSignOutClick}
-            disabled={isSigningOut}
-            className="w-full rounded-xl border border-border bg-background py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSigningOut ? 'Logger ut...' : 'Logg ut'}
-          </button>
-          {signOutError && (
-            <p className="text-destructive text-sm text-center">{signOutError}</p>
+          {memberships.length > 1 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+                Mine kalendere
+              </p>
+              {memberships.map((m) => (
+                <button
+                  key={m.household_id}
+                  type="button"
+                  onClick={() => {
+                    onSelectCalendar(m.household_id);
+                    onClose();
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                    m.household_id === household.id
+                      ? 'bg-primary/15 font-semibold'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  <span className="truncate">{m.household.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                    {calendarKindLabel(m.household.kind)}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
 
           {!showCreate ? (
@@ -594,48 +638,20 @@ const ProfileSheet = ({
             </div>
           )}
 
-          {!showLeaveConfirm ? (
+          <div className="pt-2 space-y-3 border-t border-border/50">
             <button
-              onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
-              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+              onClick={handleSignOutClick}
+              disabled={isSigningOut}
+              className="w-full rounded-xl border border-border bg-background py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Forlat denne kalenderen
+              {isSigningOut ? 'Logger ut...' : 'Logg ut'}
             </button>
-          ) : (
-            <div className="rounded-xl bg-muted p-4 space-y-3">
-              <p className="text-sm font-medium text-center">
-                Er du sikker på at du vil forlate «{household.name}»?
-              </p>
-              <p className="text-xs text-muted-foreground text-center">
-                {members.length <= 1
-                  ? 'Du er eneste medlem – kalenderen og alt innhold blir slettet.'
-                  : currentMember.role === 'owner'
-                  ? 'Du er eier. Eierskapet overføres til et annet medlem.'
-                  : 'Du mister tilgang til hendelser og lister i denne kalenderen.'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
-                  disabled={leaveHousehold.isPending}
-                  className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
-                >
-                  Avbryt
-                </button>
-                <button
-                  onClick={() => leaveHousehold.mutate()}
-                  disabled={leaveHousehold.isPending}
-                  className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {leaveHousehold.isPending ? 'Forlater...' : 'Ja, forlat'}
-                </button>
-              </div>
-              {leaveError && (
-                <p className="text-destructive text-sm text-center">{leaveError}</p>
-              )}
-            </div>
-          )}
+            {signOutError && (
+              <p className="text-destructive text-sm text-center">{signOutError}</p>
+            )}
+          </div>
 
-          <div className="pt-2 space-y-3 text-center text-xs text-muted-foreground">
+          <div className="pt-1 space-y-3 text-center text-xs text-muted-foreground">
             <div className="flex items-center justify-center gap-4">
               <a
                 href="https://pastelly.no/personvern"
