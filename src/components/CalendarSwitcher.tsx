@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Settings } from 'lucide-react';
 import { calendarKindLabelLocalized, resolveCalendarKind } from '@/lib/calendarKinds';
 import { useLocale } from '@/hooks/useLocale';
 import type { CalendarMembership } from '@/hooks/useCurrentHouseholdContext';
@@ -10,6 +10,7 @@ interface CalendarSwitcherProps {
   memberships: CalendarMembership[];
   stackIndex?: number;
   onSelect: (householdId: string) => void;
+  onOpenSettings: (householdId: string) => void;
 }
 
 const CalendarSwitcher = ({
@@ -17,6 +18,7 @@ const CalendarSwitcher = ({
   memberships,
   stackIndex = 0,
   onSelect,
+  onOpenSettings,
 }: CalendarSwitcherProps) => {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
@@ -68,7 +70,7 @@ const CalendarSwitcher = ({
           <button
             type="button"
             className="fixed inset-0 z-40 cursor-default"
-            aria-label="Lukk"
+            aria-label={t('common.close')}
             onClick={() => setOpen(false)}
           />
           <div
@@ -82,9 +84,14 @@ const CalendarSwitcher = ({
                     key={m.household_id}
                     name={m.household.name}
                     active={m.household_id === household.id}
-                    onClick={() => {
+                    settingsLabel={t('profile.settingsThis')}
+                    onSelect={() => {
                       onSelect(m.household_id);
                       setOpen(false);
+                    }}
+                    onSettings={() => {
+                      setOpen(false);
+                      onOpenSettings(m.household_id);
                     }}
                   />
                 ))}
@@ -97,9 +104,14 @@ const CalendarSwitcher = ({
                     key={m.household_id}
                     name={m.household.name}
                     active={m.household_id === household.id}
-                    onClick={() => {
+                    settingsLabel={t('profile.settingsThis')}
+                    onSelect={() => {
                       onSelect(m.household_id);
                       setOpen(false);
+                    }}
+                    onSettings={() => {
+                      setOpen(false);
+                      onOpenSettings(m.household_id);
                     }}
                   />
                 ))}
@@ -115,24 +127,45 @@ const CalendarSwitcher = ({
 function SwitcherRow({
   name,
   active,
-  onClick,
+  settingsLabel,
+  onSelect,
+  onSettings,
 }: {
   name: string;
   active: boolean;
-  onClick: () => void;
+  settingsLabel: string;
+  onSelect: () => void;
+  onSettings: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <div
       role="option"
       aria-selected={active}
-      onClick={onClick}
-      className={`w-full text-left rounded-xl px-3 py-2.5 text-sm transition-colors truncate ${
-        active ? 'bg-primary/15 font-semibold text-foreground' : 'hover:bg-muted text-foreground font-medium'
+      className={`flex items-center gap-0.5 rounded-xl ${
+        active ? 'bg-primary/15' : 'hover:bg-muted'
       }`}
     >
-      {name}
-    </button>
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`min-w-0 flex-1 text-left rounded-xl px-3 py-2.5 text-sm truncate transition-colors ${
+          active ? 'font-semibold text-foreground' : 'text-foreground font-medium'
+        }`}
+      >
+        {name}
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSettings();
+        }}
+        aria-label={settingsLabel}
+        className="shrink-0 flex items-center justify-center w-10 h-10 mr-0.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background/80 transition-colors"
+      >
+        <Settings size={16} strokeWidth={2.25} />
+      </button>
+    </div>
   );
 }
 

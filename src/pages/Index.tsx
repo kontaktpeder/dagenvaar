@@ -192,6 +192,10 @@ const Index = () => {
           memberships={orderedMemberships}
           stackIndex={stackIndex}
           onSelect={(id) => selectCalendar(id)}
+          onOpenSettings={(id) => {
+            if (id !== household.id) selectCalendar(id);
+            setShowProfile(true);
+          }}
         />
         <button
           onClick={() => setShowProfile(true)}
