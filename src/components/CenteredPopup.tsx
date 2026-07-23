@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   motion,
   useMotionValue,
@@ -16,7 +16,7 @@ interface CenteredPopupProps {
   children: ReactNode;
   /**
    * hug — shrinks to content (day preview, event detail)
-   * sheet — fills the safe frame (create/edit/profile/day)
+   * sheet — fills most of the screen from the bottom
    */
   size?: 'hug' | 'sheet';
   className?: string;
@@ -36,6 +36,7 @@ interface CenteredPopupProps {
 
 const DISMISS_DIST = 110;
 const DISMISS_VEL = 650;
+const PULL_ACTIVATE_PX = 8;
 
 const flyTween = {
   type: 'tween' as const,
@@ -49,9 +50,21 @@ const returnTween = {
   ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
 };
 
+function getScrollTop(root: HTMLElement | null): number {
+  if (!root) return 0;
+  const marked = root.querySelector('[data-sheet-scroll]') as HTMLElement | null;
+  if (marked) return marked.scrollTop;
+  const scrollers = root.querySelectorAll('.overflow-y-auto, .overflow-y-scroll');
+  let max = 0;
+  scrollers.forEach((node) => {
+    max = Math.max(max, (node as HTMLElement).scrollTop);
+  });
+  return max;
+}
+
 /**
- * Modal shell: ✕ always works; dismiss drag only from the top grabber
- * so scrolling never fights the sheet.
+ * Bottom sheet: slides up from the bottom edge, flush with the screen,
+ * swipe-down to dismiss from anywhere when content is scrolled to the top.
  */
 const CenteredPopup = ({
   onClose,
@@ -66,6 +79,8 @@ const CenteredPopup = ({
   const keyboardOpen = keyboardInset > 24;
   const exit = onExit ?? onClose;
   const dragControls = useDragControls();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const pullRef = useRef<{ y: number; scrollTop: number } | null>(null);
 
   const dragY = useMotionValue(0);
   const dragProgress = useTransform(dragY, (y) => Math.min(1, Math.max(0, Number(y)) / 160));
@@ -85,27 +100,18 @@ const CenteredPopup = ({
     dragY.set(0);
   }, [keyboardOpen, dragY, flyingOut]);
 
-  // Sheets go edge-to-edge; hug keeps a little air
-  const framePad =
-    size === 'sheet'
-      ? {
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)',
-          paddingBottom: keyboardOpen
-            ? `${Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
-            : 'env(safe-area-inset-bottom)',
-          transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
-        }
-      : {
-          paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-          paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
-          paddingBottom: keyboardOpen
-            ? `${Math.min(keyboardInset + 8, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
-            : 'max(0.5rem, env(safe-area-inset-bottom))',
-          transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
-        };
+  // Flush to bottom; only lift for keyboard. Safe-area lives inside the card.
+  const framePad = {
+    paddingTop: size === 'sheet'
+      ? 'max(0.5rem, env(safe-area-inset-top))'
+      : 'max(0.5rem, env(safe-area-inset-top))',
+    paddingLeft: 'env(safe-area-inset-left)',
+    paddingRight: 'env(safe-area-inset-right)',
+    paddingBottom: keyboardOpen
+      ? `${Math.min(keyboardInset, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
+      : '0px',
+    transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
+  };
 
   const flyOutThenDismiss = () => {
     setFlyingOut(true);
@@ -130,6 +136,38 @@ const CenteredPopup = ({
 
   const canDrag = !keyboardOpen && !flyingOut;
 
+  const onCardPointerDown = (e: ReactPointerEvent) => {
+    if (!canDrag) return;
+    const target = e.target as HTMLElement;
+    // Let form controls keep focus / text selection; grabber + empty areas still dismiss
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+      pullRef.current = null;
+      return;
+    }
+    pullRef.current = {
+      y: e.clientY,
+      scrollTop: getScrollTop(cardRef.current),
+    };
+  };
+
+  const onCardPointerMove = (e: ReactPointerEvent) => {
+    if (!canDrag || !pullRef.current) return;
+    const dy = e.clientY - pullRef.current.y;
+    if (pullRef.current.scrollTop > 0) {
+      // Content can scroll — don't steal the gesture for dismiss
+      if (dy > PULL_ACTIVATE_PX) pullRef.current = null;
+      return;
+    }
+    if (dy > PULL_ACTIVATE_PX) {
+      dragControls.start(e);
+      pullRef.current = null;
+    }
+  };
+
+  const clearPull = () => {
+    pullRef.current = null;
+  };
+
   return (
     <motion.div
       initial={false}
@@ -149,7 +187,7 @@ const CenteredPopup = ({
       />
 
       <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
+        className="absolute inset-0 flex items-end justify-center pointer-events-none overflow-hidden"
         style={framePad}
       >
         <motion.div
@@ -164,31 +202,43 @@ const CenteredPopup = ({
           onDragEnd={handleDragEnd}
           style={{ y: dragY }}
           className={cn(
-            'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0 max-h-full',
-            size === 'sheet' ? 'h-full' : 'h-auto',
+            'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
+            size === 'sheet' ? 'h-[min(100%,100dvh)] max-h-full' : 'h-auto max-h-[min(92dvh,100%)]',
           )}
           onClick={(e) => e.stopPropagation()}
         >
           <motion.div
+            ref={cardRef}
             variants={sheetCardVariants}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={sheetSpring}
+            onPointerDown={onCardPointerDown}
+            onPointerMove={onCardPointerMove}
+            onPointerUp={clearPull}
+            onPointerCancel={clearPull}
             className={cn(
               'relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
-              size === 'sheet' ? 'rounded-[1.25rem]' : 'rounded-3xl',
+              'rounded-t-[1.25rem] rounded-b-none',
               className,
             )}
+            style={{
+              paddingBottom: keyboardOpen ? undefined : 'env(safe-area-inset-bottom)',
+            }}
           >
-            {/* Grabber + ✕ — only place that starts swipe-dismiss */}
-            <div className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-2 pb-1">
+            {/* Grabber + ✕ */}
+            <div
+              data-sheet-grabber
+              className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-2 pb-1"
+            >
               <div className="w-11" aria-hidden />
               <button
                 type="button"
                 className="flex flex-1 items-center justify-center py-2 touch-none"
                 aria-label="Dra for å lukke"
                 onPointerDown={(e) => {
+                  e.stopPropagation();
                   if (canDrag) dragControls.start(e);
                 }}
               >

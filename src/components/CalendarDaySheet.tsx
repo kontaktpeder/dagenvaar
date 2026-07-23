@@ -84,7 +84,7 @@ const CalendarDaySheet = ({
         </div>
       ) : (
         <div className="flex flex-col min-h-0 flex-1">
-            <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0" data-sheet-scroll>
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center">
                   <p className="font-medium text-foreground">Dagen er tom</p>

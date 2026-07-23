@@ -261,7 +261,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch">
+      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch" data-sheet-scroll>
         <AnimatePresence mode="wait" initial={false}>
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">

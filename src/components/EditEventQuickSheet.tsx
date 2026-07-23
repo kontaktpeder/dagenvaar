@@ -211,7 +211,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
         <h2 className="text-lg font-bold">Rask redigering</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4 space-y-5 min-h-0">
+      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4 space-y-5 min-h-0" data-sheet-scroll>
           {/* Tittel */}
           <div>
             <SectionTitle>Tittel</SectionTitle>
