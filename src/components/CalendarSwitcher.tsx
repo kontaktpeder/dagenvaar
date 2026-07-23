@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import { calendarKindLabel } from '@/lib/calendarKinds';
+import { calendarKindLabel, resolveCalendarKind } from '@/lib/calendarKinds';
 import type { CalendarMembership } from '@/hooks/useCurrentHouseholdContext';
 import type { Household } from '@/hooks/useHousehold';
 
@@ -21,8 +20,8 @@ const CalendarSwitcher = ({
   const [open, setOpen] = useState(false);
   const canSwitch = memberships.length > 1;
 
-  const homes = memberships.filter((m) => m.household.kind === 'home');
-  const works = memberships.filter((m) => m.household.kind !== 'home');
+  const homes = memberships.filter((m) => resolveCalendarKind(m.household) === 'home');
+  const works = memberships.filter((m) => resolveCalendarKind(m.household) === 'work');
 
   return (
     <div className="relative min-w-0 flex-1">
@@ -35,101 +34,98 @@ const CalendarSwitcher = ({
         aria-expanded={canSwitch ? open : undefined}
         aria-haspopup={canSwitch ? 'listbox' : undefined}
       >
+        {canSwitch && (
+          <span className="flex items-center gap-1.5 shrink-0 self-center" aria-hidden>
+            <span className="flex flex-col gap-1">
+              {memberships.map((m, i) => (
+                <span
+                  key={m.household_id}
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    i === stackIndex ? 'bg-foreground/70' : 'bg-border'
+                  }`}
+                />
+              ))}
+            </span>
+            <ChevronDown
+              size={18}
+              strokeWidth={2.25}
+              className={`text-muted-foreground transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+            />
+          </span>
+        )}
         <span className="min-w-0">
           <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
           <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
-            {calendarKindLabel(household.kind)}
-            {canSwitch ? ' · sveip opp/ned' : ''}
+            {calendarKindLabel(household)}
           </span>
         </span>
-        {canSwitch && (
-          <span className="flex flex-col gap-1 shrink-0" aria-hidden>
-            {memberships.map((m, i) => (
-              <span
-                key={m.household_id}
-                className={`w-1.5 h-1.5 rounded-full ${
-                  i === stackIndex ? 'bg-foreground/70' : 'bg-border'
-                }`}
-              />
-            ))}
-          </span>
-        )}
-        {canSwitch && (
-          <ChevronDown
-            size={18}
-            strokeWidth={2.25}
-            className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
-          />
-        )}
       </button>
 
-      <AnimatePresence>
-        {open && canSwitch && (
-          <>
-            <button
-              type="button"
-              className="fixed inset-0 z-40 cursor-default"
-              aria-label="Lukk"
-              onClick={() => setOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-0 top-full mt-2 z-50 w-[min(100vw-2.5rem,18rem)] rounded-2xl border border-border bg-background shadow-lg p-2"
-              role="listbox"
-            >
-              {homes.length > 0 && (
-                <div className="mb-1">
-                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Hjem
-                  </p>
-                  {homes.map((m) => (
-                    <SwitcherRow
-                      key={m.household_id}
-                      name={m.household.name}
-                      active={m.household_id === household.id}
-                      onClick={() => {
-                        onSelect(m.household_id);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              {works.length > 0 && (
-                <div>
-                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Jobb
-                  </p>
-                  {works.map((m) => (
-                    <SwitcherRow
-                      key={m.household_id}
-                      name={m.household.name}
-                      active={m.household_id === household.id}
-                      onClick={() => {
-                        onSelect(m.household_id);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {open && canSwitch && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 cursor-default"
+            aria-label="Lukk"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            className="absolute left-0 top-full mt-2 z-50 w-[min(100vw-2.5rem,18rem)] rounded-2xl border border-border bg-background shadow-lg p-2"
+            role="listbox"
+          >
+            {homes.length > 0 && (
+              <div className="mb-1">
+                <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Hjem
+                </p>
+                {homes.map((m) => (
+                  <SwitcherRow
+                    key={m.household_id}
+                    name={m.household.name}
+                    kindLabel={calendarKindLabel(m.household)}
+                    active={m.household_id === household.id}
+                    onClick={() => {
+                      onSelect(m.household_id);
+                      setOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            {works.length > 0 && (
+              <div>
+                <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Jobb
+                </p>
+                {works.map((m) => (
+                  <SwitcherRow
+                    key={m.household_id}
+                    name={m.household.name}
+                    kindLabel={calendarKindLabel(m.household)}
+                    active={m.household_id === household.id}
+                    onClick={() => {
+                      onSelect(m.household_id);
+                      setOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
 function SwitcherRow({
   name,
+  kindLabel,
   active,
   onClick,
 }: {
   name: string;
+  kindLabel: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -139,11 +135,12 @@ function SwitcherRow({
       role="option"
       aria-selected={active}
       onClick={onClick}
-      className={`w-full text-left rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-        active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted text-foreground'
+      className={`w-full text-left rounded-xl px-3 py-2.5 text-sm transition-colors ${
+        active ? 'bg-primary/15 font-semibold text-foreground' : 'hover:bg-muted text-foreground font-medium'
       }`}
     >
-      {name}
+      <span className="block truncate">{name}</span>
+      <span className="block text-[11px] font-medium text-muted-foreground">{kindLabel}</span>
     </button>
   );
 }

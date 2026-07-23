@@ -1,5 +1,5 @@
 import { useState, useRef, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
@@ -73,25 +73,14 @@ const ProfileFolder = ({
       <ChevronDown
         size={20}
         strokeWidth={2.25}
-        className={`text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        className={`text-muted-foreground shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
       />
     </button>
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.div
-          key="body"
-          initial={{ height: 0 }}
-          animate={{ height: 'auto' }}
-          exit={{ height: 0 }}
-          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-          className="overflow-hidden"
-        >
-          <div className="pb-5 pt-0 space-y-3">
-            {children}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    {open && (
+      <div className="pb-5 pt-0 space-y-3">
+        {children}
+      </div>
+    )}
   </div>
 );
 
@@ -371,7 +360,7 @@ const ProfileSheet = ({
           <h2 className="text-2xl font-bold">{currentMember.display_name}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {household.name}
-            <span className="text-muted-foreground/70"> · {calendarKindLabel(household.kind)}</span>
+            <span className="text-muted-foreground/70"> · {calendarKindLabel(household)}</span>
           </p>
         </section>
 
@@ -530,7 +519,7 @@ const ProfileSheet = ({
                 >
                   <span className="truncate">{m.household.name}</span>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                    {calendarKindLabel(m.household.kind)}
+                    {calendarKindLabel(m.household)}
                   </span>
                 </button>
               ))}

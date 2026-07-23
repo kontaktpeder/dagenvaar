@@ -20,9 +20,28 @@ export const CALENDAR_KINDS: {
   },
 ];
 
-export function calendarKindLabel(kind: string | null | undefined): string {
-  if (kind === 'work') return 'Jobb';
-  return 'Hjem';
+type KindSource = {
+  kind?: string | null;
+  show_in_other_calendars?: boolean | null;
+};
+
+/** Resolve home|work even if older rows miss `kind`. */
+export function resolveCalendarKind(source: KindSource | string | null | undefined): CalendarKind {
+  if (typeof source === 'string' || source == null) {
+    const k = (source ?? '').toLowerCase().trim();
+    if (k === 'work' || k === 'jobb') return 'work';
+    return 'home';
+  }
+  const k = (source.kind ?? '').toLowerCase().trim();
+  if (k === 'work' || k === 'jobb') return 'work';
+  if (k === 'home' || k === 'hjem') return 'home';
+  // Work calendars defaulted show_in_other_calendars=true at create time
+  if (source.show_in_other_calendars === true) return 'work';
+  return 'home';
+}
+
+export function calendarKindLabel(source: KindSource | string | null | undefined): string {
+  return resolveCalendarKind(source) === 'work' ? 'Jobb' : 'Hjem';
 }
 
 export function defaultShowInOtherCalendars(kind: CalendarKind): boolean {

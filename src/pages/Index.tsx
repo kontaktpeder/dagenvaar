@@ -23,7 +23,7 @@ export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
 const stackTransition = {
   type: 'tween' as const,
-  duration: 0.28,
+  duration: 0.2,
   ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
 };
 
@@ -191,34 +191,31 @@ const Index = () => {
         </button>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden relative">
-        <AnimatePresence initial={false} custom={stackDirection} mode="popLayout">
-          <motion.div
-            key={household.id}
-            custom={stackDirection}
-            initial={{ y: stackDirection >= 0 ? '22%' : '-22%' }}
-            animate={{ y: 0 }}
-            exit={{ y: stackDirection >= 0 ? '-14%' : '14%' }}
-            transition={stackTransition}
-            className="absolute inset-0 flex flex-col will-change-transform"
-          >
-            <CalendarView
-              householdId={household.id}
-              members={members}
-              currentMemberId={currentMember.id}
-              currentDate={calendarMonthAnchor}
-              onCurrentDateChange={handleCalendarMonthChange}
-              onSelectDate={handleSelectDate}
-              onCreateEvent={handleCreateEvent}
-              onEditEvent={handleEditEvent}
-              onQuickEditEvent={setQuickEditEvent}
-              onSwitchCalendar={(id) => selectCalendar(id)}
-              onSwipeCalendarStack={handleSwipeCalendarStack}
-              canSwipeCalendarStack={canSwipeStack}
-              highlight={highlight}
-            />
-          </motion.div>
-        </AnimatePresence>
+      <main className="flex-1 min-h-0 overflow-hidden relative bg-background">
+        {/* Single instance — no exit/enter overlap (avoids layered calendars) */}
+        <motion.div
+          key={household.id}
+          initial={{ y: stackDirection >= 0 ? 36 : -36 }}
+          animate={{ y: 0 }}
+          transition={stackTransition}
+          className="h-full flex flex-col bg-background"
+        >
+          <CalendarView
+            householdId={household.id}
+            members={members}
+            currentMemberId={currentMember.id}
+            currentDate={calendarMonthAnchor}
+            onCurrentDateChange={handleCalendarMonthChange}
+            onSelectDate={handleSelectDate}
+            onCreateEvent={handleCreateEvent}
+            onEditEvent={handleEditEvent}
+            onQuickEditEvent={setQuickEditEvent}
+            onSwitchCalendar={(id) => selectCalendar(id)}
+            onSwipeCalendarStack={handleSwipeCalendarStack}
+            canSwipeCalendarStack={canSwipeStack}
+            highlight={highlight}
+          />
+        </motion.div>
       </main>
 
       <AnimatePresence>
