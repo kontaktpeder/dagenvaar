@@ -74,6 +74,7 @@ export type CreateEventInput = {
   notes?: string | null;
   category: string;
   category_label_override?: string | null;
+  hide_from_other_calendars?: boolean;
 };
 
 export function useCreateEvent() {
@@ -95,12 +96,14 @@ export function useCreateEvent() {
         p_notes: event.notes ?? undefined,
         p_category: event.category,
         p_category_label_override: event.category_label_override ?? undefined,
+        p_hide_from_other_calendars: event.hide_from_other_calendars ?? false,
       });
       if (error) throw error;
       return data as Event;
     },
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
       if (created?.household_id && created?.title) {
         notifyPartners({
           householdId: created.household_id,
@@ -124,6 +127,7 @@ export function useUpdateEvent() {
     },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
       if (updated?.household_id && updated?.title) {
         notifyPartners({
           householdId: updated.household_id,
@@ -146,6 +150,7 @@ export function useDeleteEvent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
     },
   });
 }

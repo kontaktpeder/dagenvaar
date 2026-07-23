@@ -4,6 +4,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember, Household } from '@/hooks/useHousehold';
+import type { CalendarMembership } from '@/hooks/useCurrentHouseholdContext';
+import {
+  CALENDAR_KINDS,
+  calendarKindLabel,
+  defaultShowInOtherCalendars,
+  type CalendarKind,
+} from '@/lib/calendarKinds';
+import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { Camera, ChevronDown } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
@@ -14,6 +22,8 @@ interface ProfileSheetProps {
   household: Household;
   members: HouseholdMember[];
   currentMember: HouseholdMember;
+  memberships: CalendarMembership[];
+  onSelectCalendar: (householdId: string) => void;
   onClose: () => void;
   onSignOut: () => Promise<void>;
 }
@@ -41,7 +51,6 @@ const MemberAvatar = ({ member, size = 'md' }: { member: HouseholdMember; size?:
   );
 };
 
-/** Collapsible folder section inside profile — full-width, no nested “mini card” */
 const ProfileFolder = ({
   title,
   open,
@@ -86,9 +95,17 @@ const ProfileFolder = ({
   </div>
 );
 
-type FolderKey = 'hjem' | 'innstillinger' | 'konto';
+type FolderKey = 'kalender' | 'innstillinger' | 'konto';
 
-const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }: ProfileSheetProps) => {
+const ProfileSheet = ({
+  household,
+  members,
+  currentMember,
+  memberships,
+  onSelectCalendar,
+  onClose,
+  onSignOut,
+}: ProfileSheetProps) => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -97,12 +114,16 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [createKind, setCreateKind] = useState<CalendarKind>('work');
+  const [createName, setCreateName] = useState('Jobb');
+  const [createError, setCreateError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveError, setLeaveError] = useState('');
   const [openFolders, setOpenFolders] = useState<Record<FolderKey, boolean>>({
-    hjem: true,
+    kalender: true,
     innstillinger: false,
     konto: false,
   });
@@ -112,9 +133,8 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   const toggleFolder = (key: FolderKey) => {
     setOpenFolders((prev) => {
       const nextOpen = !prev[key];
-      // One folder open at a time — keeps the sheet readable
       return {
-        hjem: false,
+        kalender: false,
         innstillinger: false,
         konto: false,
         [key]: nextOpen,
@@ -124,17 +144,24 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
 
   const leaveHousehold = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc('leave_household');
+      const { error } = await supabase.rpc('leave_household', {
+        p_household_id: household.id,
+      });
       if (error) throw error;
     },
     onSuccess: async () => {
       setLeaveError('');
       setShowLeaveConfirm(false);
+      const remaining = memberships.filter((m) => m.household_id !== household.id);
+      if (remaining[0]) {
+        setStoredActiveHouseholdId(remaining[0].household_id);
+        onSelectCalendar(remaining[0].household_id);
+      }
       await queryClient.invalidateQueries();
       onClose();
     },
     onError: (err: any) => {
-      setLeaveError(err?.message ?? 'Kunne ikke forlate hjemmet');
+      setLeaveError(err?.message ?? 'Kunne ikke forlate kalenderen');
     },
   });
 
@@ -204,17 +231,22 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
     mutationFn: async () => {
       const code = joinCode.trim().toUpperCase();
       if (!code) throw new Error('Skriv inn invitasjonskoden');
-      const { error } = await supabase.rpc('join_household_by_code', {
+      const { data, error } = await supabase.rpc('join_household_by_code', {
         p_invite_code: code,
         p_display_name: currentMember.display_name || 'Meg',
         p_color_token: currentMember.color_token || 'pastel-blue',
       });
       if (error) throw error;
+      return data as string;
     },
-    onSuccess: async () => {
+    onSuccess: async (newId) => {
       setJoinError('');
       setJoinCode('');
       setShowJoin(false);
+      if (newId) {
+        setStoredActiveHouseholdId(newId);
+        onSelectCalendar(newId);
+      }
       await queryClient.invalidateQueries();
       onClose();
     },
@@ -223,9 +255,39 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
     },
   });
 
+  const createCalendar = useMutation({
+    mutationFn: async () => {
+      const meta = CALENDAR_KINDS.find((k) => k.value === createKind)!;
+      const { data, error } = await supabase.rpc('create_household_with_owner', {
+        p_name: createName.trim() || meta.defaultName,
+        p_display_name: currentMember.display_name || 'Meg',
+        p_color_token: currentMember.color_token || 'pastel-blue',
+        p_kind: createKind,
+        p_show_in_other_calendars: defaultShowInOtherCalendars(createKind),
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      setCreateError('');
+      setShowCreate(false);
+      if (data?.id) {
+        setStoredActiveHouseholdId(data.id);
+        onSelectCalendar(data.id);
+      }
+      await queryClient.invalidateQueries();
+      onClose();
+    },
+    onError: (err: any) => {
+      setCreateError(err?.message ?? 'Kunne ikke opprette kalender');
+    },
+  });
+
   const createInvite = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('create_household_invite');
+      const { data, error } = await supabase.rpc('create_household_invite', {
+        p_household_id: household.id,
+      });
       if (error) throw error;
       return data?.[0] ?? null;
     },
@@ -234,6 +296,20 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
         setInviteCode(data.code);
         setInviteExpiry(data.expires_at);
       }
+    },
+  });
+
+  const toggleShowInOther = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase
+        .from('households')
+        .update({ show_in_other_calendars: next })
+        .eq('id', household.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
+      queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
     },
   });
 
@@ -261,6 +337,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
   };
 
   const isOwner = currentMember.role === 'owner';
+  const folderTitle = household.kind === 'work' ? 'Jobb' : 'Hjem';
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
@@ -269,7 +346,6 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
           data-sheet-scroll
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-touch touch-pan-y px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         >
-          {/* Deg — always visible header */}
           <section className="shrink-0 text-center pt-2 pb-5">
           <div className="relative w-20 h-20 mx-auto mb-3">
             <MemberAvatar member={currentMember} size="lg" />
@@ -296,11 +372,40 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             <p className="text-destructive text-xs mb-2">{uploadError}</p>
           )}
           <h2 className="text-2xl font-bold">{currentMember.display_name}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{household.name}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {household.name}
+            <span className="text-muted-foreground/70"> · {calendarKindLabel(household.kind)}</span>
+          </p>
         </section>
 
         <div className="rounded-2xl bg-muted/40 px-4 mb-2">
-        <ProfileFolder title="Hjem" open={openFolders.hjem} onToggle={() => toggleFolder('hjem')}>
+        <ProfileFolder title={folderTitle} open={openFolders.kalender} onToggle={() => toggleFolder('kalender')}>
+          {memberships.length > 1 && (
+            <div className="space-y-1.5 pb-1">
+              <p className="text-xs font-medium text-muted-foreground px-0.5">Bytt kalender</p>
+              {memberships.map((m) => (
+                <button
+                  key={m.household_id}
+                  type="button"
+                  onClick={() => {
+                    onSelectCalendar(m.household_id);
+                    onClose();
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                    m.household_id === household.id
+                      ? 'bg-primary/15 font-semibold'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  <span className="truncate">{m.household.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                    {calendarKindLabel(m.household.kind)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="space-y-2">
             {members.map((m) => (
               <div key={m.id} className="flex items-center gap-3 rounded-xl bg-background p-3">
@@ -312,6 +417,24 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               </div>
             ))}
           </div>
+
+          {isOwner && (
+            <label className="flex items-start gap-3 rounded-xl bg-background p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 rounded border-border"
+                checked={household.show_in_other_calendars}
+                disabled={toggleShowInOther.isPending}
+                onChange={(e) => toggleShowInOther.mutate(e.target.checked)}
+              />
+              <span>
+                <span className="block text-sm font-medium">Vis i andre kalendere</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Vises som «{household.name}» + tidspunkt hos dine andre kalendere
+                </span>
+              </span>
+            </label>
+          )}
 
           {isOwner && (
             <div className="space-y-2 pt-1">
@@ -370,13 +493,75 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
             <p className="text-destructive text-sm text-center">{signOutError}</p>
           )}
 
+          {!showCreate ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreate(true);
+                setShowJoin(false);
+                setCreateError('');
+                setCreateKind('work');
+                setCreateName('Jobb');
+              }}
+              className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Opprett ny kalender
+            </button>
+          ) : (
+            <div className="rounded-xl bg-muted p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {CALENDAR_KINDS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setCreateKind(opt.value);
+                      setCreateName(opt.defaultName);
+                    }}
+                    className={`rounded-xl p-2.5 text-sm font-semibold ${
+                      createKind === opt.value ? 'bg-primary/20 ring-2 ring-primary' : 'bg-background'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="Navn"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowCreate(false); setCreateError(''); }}
+                  className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => createCalendar.mutate()}
+                  disabled={createCalendar.isPending}
+                  className="rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  {createCalendar.isPending ? 'Oppretter...' : 'Opprett'}
+                </button>
+              </div>
+              {createError && (
+                <p className="text-destructive text-sm text-center">{createError}</p>
+              )}
+            </div>
+          )}
+
           {!showJoin ? (
             <button
               type="button"
-              onClick={() => { setShowJoin(true); setJoinError(''); }}
+              onClick={() => { setShowJoin(true); setShowCreate(false); setJoinError(''); }}
               className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
-              Bli med i et annet hjem
+              Bli med via kode
             </button>
           ) : (
             <div className="rounded-xl bg-muted p-4 space-y-3">
@@ -414,7 +599,7 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               onClick={() => { setLeaveError(''); setShowLeaveConfirm(true); }}
               className="w-full rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
-              Forlat hjemmet
+              Forlat denne kalenderen
             </button>
           ) : (
             <div className="rounded-xl bg-muted p-4 space-y-3">
@@ -423,10 +608,10 @@ const ProfileSheet = ({ household, members, currentMember, onClose, onSignOut }:
               </p>
               <p className="text-xs text-muted-foreground text-center">
                 {members.length <= 1
-                  ? 'Du er eneste medlem – hjemmet og alt innhold blir slettet.'
+                  ? 'Du er eneste medlem – kalenderen og alt innhold blir slettet.'
                   : currentMember.role === 'owner'
                   ? 'Du er eier. Eierskapet overføres til et annet medlem.'
-                  : 'Du mister tilgang til hendelser og lister i dette hjemmet.'}
+                  : 'Du mister tilgang til hendelser og lister i denne kalenderen.'}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button

@@ -6,6 +6,7 @@ import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { Event } from '@/hooks/useEvents';
+import type { DisplayEvent } from '@/hooks/useOverlayEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import ListView from '@/components/ListView';
@@ -14,13 +15,13 @@ import PopupStickyFooter from '@/components/PopupStickyFooter';
 
 interface CalendarDaySheetProps {
   date: Date;
-  events: Event[];
+  events: DisplayEvent[];
   members: HouseholdMember[];
   householdId: string;
   currentMemberId: string;
   highlight?: Highlight;
   onClose: () => void;
-  onPickEvent: (event: Event) => void;
+  onPickEvent: (event: DisplayEvent) => void;
   onCreateForDate: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
@@ -93,13 +94,33 @@ const CalendarDaySheet = ({
                 [...events]
                   .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
                   .map((ev) => {
+                    const timeLabel = formatEventTime(ev);
+                    const multiLabel = formatMultiDayLabel(ev);
+
+                    if (ev.isOverlay) {
+                      return (
+                        <button
+                          key={ev.id}
+                          type="button"
+                          onClick={() => onPickEvent(ev)}
+                          className="w-full text-left rounded-xl p-3 bg-muted/70 border border-border/50"
+                        >
+                          <span className="font-semibold text-sm truncate block">{ev.title}</span>
+                          {timeLabel && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{timeLabel}</p>
+                          )}
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Trykk for å åpne kalenderen
+                          </p>
+                        </button>
+                      );
+                    }
+
                     const member = getMember(ev.owner_member_id);
                     const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
                     const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
                     const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
                     const Icon = meta?.Icon;
-                    const timeLabel = formatEventTime(ev);
-                    const multiLabel = formatMultiDayLabel(ev);
 
                     return (
                       <button

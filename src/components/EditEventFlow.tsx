@@ -24,6 +24,7 @@ interface EditEventFlowProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  showInOtherCalendars?: boolean;
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
 }
@@ -35,7 +36,7 @@ const FIELD =
 const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
-const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, onSaved }: EditEventFlowProps) => {
+const EditEventFlow = ({ event, householdId, members, currentMemberId, showInOtherCalendars = false, onClose, onSaved }: EditEventFlowProps) => {
   const updateEvent = useUpdateEvent();
 
   // Init state from existing event
@@ -75,6 +76,9 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
   useEffect(() => {
     if (existingVisibleIds) setSelectedMemberIds(existingVisibleIds);
   }, [existingVisibleIds]);
+  const [hideFromOtherCalendars, setHideFromOtherCalendars] = useState(
+    !!event.hide_from_other_calendars,
+  );
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
 
@@ -187,6 +191,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
           visibility,
           location,
           notes,
+          hideFromOtherCalendars,
         }),
       });
       try {
@@ -372,7 +377,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
               <h2 className="text-2xl font-bold">Hvem kan se?</h2>
               <div className="space-y-3">
                 {[
-                  { value: 'all_members' as const, label: 'Alle', desc: 'Synlig for alle i hjemmet' },
+                  { value: 'all_members' as const, label: 'Alle', desc: 'Synlig for alle i kalenderen' },
                   { value: 'private' as const, label: 'Bare meg', desc: 'Kun synlig for deg' },
                   { value: 'selected_members' as const, label: 'Valgte personer', desc: 'Velg hvem som kan se' },
                 ].map((opt) => (
@@ -383,6 +388,23 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, onClose, 
                   </button>
                 ))}
               </div>
+
+              {showInOtherCalendars && (
+                <label className="flex items-start gap-3 rounded-2xl bg-muted/50 p-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1 rounded border-border"
+                    checked={hideFromOtherCalendars}
+                    onChange={(e) => setHideFromOtherCalendars(e.target.checked)}
+                  />
+                  <span>
+                    <span className="block font-semibold text-sm">Skjul fra andre kalendere</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      Vises ikke som tidspunkt i hjem eller andre kalendere
+                    </span>
+                  </span>
+                </label>
+              )}
 
               {visibility === 'selected_members' && (
                 <div className="rounded-2xl bg-muted/50 p-4">

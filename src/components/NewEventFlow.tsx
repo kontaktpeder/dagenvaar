@@ -30,6 +30,7 @@ interface NewEventFlowProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  showInOtherCalendars?: boolean;
   initialDate?: Date;
   onClose: () => void;
   onCreated?: (eventId: string, dateStr: string) => void;
@@ -37,7 +38,7 @@ interface NewEventFlowProps {
 
 const STEPS = 4;
 
-const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onClose, onCreated }: NewEventFlowProps) => {
+const NewEventFlow = ({ householdId, members, currentMemberId, showInOtherCalendars = false, initialDate, onClose, onCreated }: NewEventFlowProps) => {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate || new Date());
@@ -53,6 +54,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
   const [otherLabel, setOtherLabel] = useState('');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [hideFromOtherCalendars, setHideFromOtherCalendars] = useState(false);
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const createEvent = useCreateEvent();
@@ -218,6 +220,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
         notes: notes || null,
         category: category!,
         category_label_override: category === 'other' ? (otherLabel.trim() || null) : null,
+        hide_from_other_calendars: hideFromOtherCalendars,
       });
       if (visibility === 'selected_members') {
         try {
@@ -518,7 +521,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
 
               <div className="space-y-3">
                 {[
-                  { value: 'all_members' as const, label: 'Alle', desc: 'Synlig for alle i hjemmet' },
+                  { value: 'all_members' as const, label: 'Alle', desc: 'Synlig for alle i kalenderen' },
                   { value: 'private' as const, label: 'Bare meg', desc: 'Kun synlig for deg' },
                   { value: 'selected_members' as const, label: 'Valgte personer', desc: 'Velg hvem som kan se' },
                 ].map((opt) => (
@@ -536,6 +539,23 @@ const NewEventFlow = ({ householdId, members, currentMemberId, initialDate, onCl
                   </button>
                 ))}
               </div>
+
+              {showInOtherCalendars && (
+                <label className="flex items-start gap-3 rounded-2xl bg-muted/50 p-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1 rounded border-border"
+                    checked={hideFromOtherCalendars}
+                    onChange={(e) => setHideFromOtherCalendars(e.target.checked)}
+                  />
+                  <span>
+                    <span className="block font-semibold text-sm">Skjul fra andre kalendere</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      Vises ikke som tidspunkt i hjem eller andre kalendere
+                    </span>
+                  </span>
+                </label>
+              )}
 
               {visibility === 'selected_members' && (
                 <div className="rounded-2xl bg-muted/50 p-4">

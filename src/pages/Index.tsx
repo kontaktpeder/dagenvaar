@@ -10,6 +10,7 @@ import { useMembers } from '@/hooks/useHousehold';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
+import CalendarSwitcher from '@/components/CalendarSwitcher';
 import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
@@ -21,7 +22,15 @@ export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
 const Index = () => {
   const { loading: authLoading, signOut } = useAuth();
-  const { user, household, currentMember, loading: ctxLoading, invalidate } = useCurrentHouseholdContext();
+  const {
+    user,
+    household,
+    currentMember,
+    memberships,
+    setActiveHouseholdId,
+    loading: ctxLoading,
+    invalidate,
+  } = useCurrentHouseholdContext();
   const { data: members = [] } = useMembers(household?.id);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -57,8 +66,6 @@ const Index = () => {
 
   const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
 
-  // If a password-recovery flow is active, always route to the update-password
-  // page — never render the calendar mid-recovery.
   if (getRecoveryState().isRecoveryFlow) {
     return <Navigate to="/auth/update-password" replace />;
   }
@@ -110,9 +117,12 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
-      {/* Header — single safe-area pad (native WebView is edge-to-edge) */}
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
-        <h1 className="text-xl font-bold tracking-tight truncate min-w-0">{household.name}</h1>
+        <CalendarSwitcher
+          household={household}
+          memberships={memberships}
+          onSelect={setActiveHouseholdId}
+        />
         <button
           onClick={() => setShowProfile(true)}
           className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden shadow-sm"
@@ -130,9 +140,9 @@ const Index = () => {
         </button>
       </header>
 
-      {/* Content fills to the home indicator; calendar paints into the bottom */}
       <main className="flex-1 min-h-0 overflow-hidden">
         <CalendarView
+          key={household.id}
           householdId={household.id}
           members={members}
           currentMemberId={currentMember.id}
@@ -142,6 +152,7 @@ const Index = () => {
           onCreateEvent={handleCreateEvent}
           onEditEvent={handleEditEvent}
           onQuickEditEvent={setQuickEditEvent}
+          onSwitchCalendar={setActiveHouseholdId}
           highlight={highlight}
         />
       </main>
@@ -152,6 +163,7 @@ const Index = () => {
             householdId={household.id}
             members={members}
             currentMemberId={currentMember.id}
+            showInOtherCalendars={household.show_in_other_calendars}
             initialDate={newEventDate}
             onClose={() => setShowNewEvent(false)}
             onCreated={(eventId, dateStr) => {
@@ -168,6 +180,7 @@ const Index = () => {
             householdId={household.id}
             members={members}
             currentMemberId={currentMember.id}
+            showInOtherCalendars={household.show_in_other_calendars}
             onClose={() => setEditEvent(null)}
             onSaved={(eventId, dateStr) => {
               flashHighlight(eventId, dateStr);
@@ -197,8 +210,15 @@ const Index = () => {
 
       <AnimatePresence>
         {showProfile && (
-          <ProfileSheet household={household} members={members} currentMember={currentMember}
-            onClose={() => setShowProfile(false)} onSignOut={handleSignOut} />
+          <ProfileSheet
+            household={household}
+            members={members}
+            currentMember={currentMember}
+            memberships={memberships}
+            onSelectCalendar={setActiveHouseholdId}
+            onClose={() => setShowProfile(false)}
+            onSignOut={handleSignOut}
+          />
         )}
       </AnimatePresence>
     </div>

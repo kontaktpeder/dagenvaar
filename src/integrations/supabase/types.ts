@@ -308,6 +308,7 @@ export type Database = {
           end_date: string | null
           end_time: string | null
           event_date: string
+          hide_from_other_calendars: boolean
           household_id: string
           id: string
           location: string | null
@@ -329,6 +330,7 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           event_date: string
+          hide_from_other_calendars?: boolean
           household_id: string
           id?: string
           location?: string | null
@@ -350,6 +352,7 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           event_date?: string
+          hide_from_other_calendars?: boolean
           household_id?: string
           id?: string
           location?: string | null
@@ -486,21 +489,27 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          kind: string
           name: string
+          show_in_other_calendars: boolean
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           id?: string
+          kind?: string
           name?: string
+          show_in_other_calendars?: boolean
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
           id?: string
+          kind?: string
           name?: string
+          show_in_other_calendars?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -774,7 +783,7 @@ export type Database = {
         Returns: boolean
       }
       create_household_invite: {
-        Args: never
+        Args: { p_household_id?: string }
         Returns: {
           code: string
           expires_at: string
@@ -783,12 +792,20 @@ export type Database = {
         }[]
       }
       create_household_with_owner: {
-        Args: { p_color_token?: string; p_display_name: string; p_name: string }
+        Args: {
+          p_color_token?: string
+          p_display_name: string
+          p_kind?: string
+          p_name: string
+          p_show_in_other_calendars?: boolean
+        }
         Returns: {
           created_at: string
           created_by: string | null
           id: string
+          kind: string
           name: string
+          show_in_other_calendars: boolean
           updated_at: string
         }
         SetofOptions: {
@@ -808,6 +825,7 @@ export type Database = {
           p_end_date?: string
           p_end_time?: string
           p_event_date: string
+          p_hide_from_other_calendars?: boolean
           p_household_id: string
           p_location?: string
           p_notes?: string
@@ -818,6 +836,27 @@ export type Database = {
         Returns: Database["public"]["Tables"]["events"]["Row"]
       }
       current_member_ids: { Args: never; Returns: string[] }
+      get_overlay_events_for_household: {
+        Args: {
+          p_end_date: string
+          p_household_id: string
+          p_start_date: string
+        }
+        Returns: {
+          day_part: string
+          day_part_end: string | null
+          day_part_start: string | null
+          end_date: string | null
+          end_time: string | null
+          event_date: string
+          id: string
+          source_household_id: string
+          source_household_kind: string
+          source_household_name: string
+          source_member_id: string
+          start_time: string | null
+        }[]
+      }
       is_household_member: {
         Args: { p_household_id: string; p_user_id: string }
         Returns: boolean
@@ -838,7 +877,7 @@ export type Database = {
         }
         Returns: string
       }
-      leave_household: { Args: never; Returns: Json }
+      leave_household: { Args: { p_household_id?: string }; Returns: Json }
       sync_event_visible_members: {
         Args: { p_event_id: string; p_member_ids?: string[] }
         Returns: undefined

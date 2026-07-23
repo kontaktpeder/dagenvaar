@@ -3,6 +3,11 @@ import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from '
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
+import {
+  mergeEventsWithOverlays,
+  useOverlayEventsForRange,
+  type DisplayEvent,
+} from '@/hooks/useOverlayEvents';
 import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
@@ -33,6 +38,7 @@ interface CalendarViewProps {
   onCreateEvent: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
+  onSwitchCalendar?: (householdId: string) => void;
   highlight?: Highlight;
 }
 
@@ -70,11 +76,11 @@ function rubberBand(offset: number, limit: number): number {
   return sign * (limit + (abs - limit) * RUBBER);
 }
 
-function buildEventsByDate(events: Event[]): Record<string, Event[]> {
-  const map: Record<string, Event[]> = {};
+function buildEventsByDate(events: DisplayEvent[]): Record<string, DisplayEvent[]> {
+  const map: Record<string, DisplayEvent[]> = {};
   events.forEach((e) => {
     const start = e.event_date;
-    const end = (e as any).end_date || e.event_date;
+    const end = e.end_date || e.event_date;
     let current = start;
     while (current <= end) {
       if (!map[current]) map[current] = [];
@@ -87,6 +93,20 @@ function buildEventsByDate(events: Event[]): Record<string, Event[]> {
   return map;
 }
 
+function eventsForMonth(
+  all: DisplayEvent[],
+  year: number,
+  month: number,
+): DisplayEvent[] {
+  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  return all.filter((e) => {
+    const end = e.end_date || e.event_date;
+    return e.event_date <= monthEnd && end >= monthStart;
+  });
+}
+
 function buildMonthDays(monthDate: Date): Date[] {
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
@@ -95,7 +115,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, highlight }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, highlight }: CalendarViewProps) => {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
   const setCurrentDate = useCallback(
@@ -144,11 +164,33 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const { data: eventsP1 = [] } = useEventsForMonth(householdId, stripDates[3].getFullYear(), stripDates[3].getMonth());
   const { data: eventsP2 = [] } = useEventsForMonth(householdId, stripDates[4].getFullYear(), stripDates[4].getMonth());
 
+  const overlayRange = useMemo(() => {
+    const start = format(startOfMonth(stripDates[0]), 'yyyy-MM-dd');
+    const end = format(endOfMonth(stripDates[stripDates.length - 1]), 'yyyy-MM-dd');
+    return { start, end };
+  }, [stripDates]);
+
+  const { data: overlayEvents = [] } = useOverlayEventsForRange(
+    householdId,
+    overlayRange.start,
+    overlayRange.end,
+  );
+
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
+  const mergedByOffset = useMemo(() => {
+    const locals = [eventsM2, eventsM1, events, eventsP1, eventsP2];
+    return locals.map((local, i) => {
+      const y = stripDates[i].getFullYear();
+      const m = stripDates[i].getMonth();
+      const monthOverlays = eventsForMonth(overlayEvents, y, m);
+      return mergeEventsWithOverlays(local, monthOverlays);
+    });
+  }, [eventsM2, eventsM1, events, eventsP1, eventsP2, overlayEvents, stripDates]);
+
   const eventsByOffset = useMemo(
-    () => [eventsM2, eventsM1, events, eventsP1, eventsP2].map(buildEventsByDate),
-    [eventsM2, eventsM1, events, eventsP1, eventsP2],
+    () => mergedByOffset.map(buildEventsByDate),
+    [mergedByOffset],
   );
   const eventsByDate = eventsByOffset[WINDOW];
 
@@ -482,6 +524,12 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             highlight={highlight}
             onClose={() => setDaySheetDate(null)}
             onPickEvent={(ev) => {
+              const display = ev as DisplayEvent;
+              if (display.isOverlay && display.sourceHouseholdId) {
+                onSwitchCalendar?.(display.sourceHouseholdId);
+                setDaySheetDate(null);
+                return;
+              }
               // Keep day sheet under detail — backdrop pops one level
               setDetailEvent(ev);
             }}
@@ -547,9 +595,9 @@ interface MonthPanelProps {
   width: number;
   monthDate: Date;
   days: Date[];
-  eventsByDate: Record<string, Event[]>;
+  eventsByDate: Record<string, DisplayEvent[]>;
   /** Events from adjacent months so padding days stay filled */
-  neighbourEventsByDate?: Record<string, Event[]>;
+  neighbourEventsByDate?: Record<string, DisplayEvent[]>;
   monthTheme: ReturnType<typeof getMonthTheme>;
   members: HouseholdMember[];
   highlight: Highlight;
@@ -626,7 +674,7 @@ const MonthPanel = ({
 interface DayCellProps {
   day: Date;
   dateStr: string;
-  dayEvents: Event[];
+  dayEvents: DisplayEvent[];
   spanSegments: SpanSegment[];
   inMonth: boolean;
   today: boolean;
@@ -652,7 +700,7 @@ const MARK_CHIP = 'w-[17px] h-[17px]';
 const SPAN_RAIL_H = 'h-[17px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
-function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; overflow: number } {
+function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
   const sorted = [...events].sort((a, b) => {
     const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
     const bRank = CATEGORY_ORDER[b.category ?? 'other'] ?? 999;
@@ -660,7 +708,7 @@ function packEventRows(events: Event[], maxMarks: number): { rows: Event[][]; ov
     return (a.start_time || '').localeCompare(b.start_time || '');
   });
 
-  const rows: Event[][] = [];
+  const rows: DisplayEvent[][] = [];
   let shown = 0;
 
   for (const ev of sorted) {
@@ -717,7 +765,19 @@ const DayCell = ({
   const laneCount = Math.max(maxSpanLane(spanSegments) + 1, 0);
   const spanByLane = new Map(spanSegments.map((s) => [s.lane, s]));
 
-  const renderEventMark = (ev: Event) => {
+  const renderEventMark = (ev: DisplayEvent) => {
+    if (ev.isOverlay) {
+      const evHighlighted = highlight && highlight.eventId === ev.id;
+      return (
+        <div
+          key={ev.id}
+          title={ev.title}
+          className={`${MARK_CHIP} rounded-full bg-muted ring-1 ring-border/60 ${
+            evHighlighted ? 'ring-1 ring-primary/40' : ''
+          }`}
+        />
+      );
+    }
     const member = getMemberForEvent(ev);
     const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
     const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));

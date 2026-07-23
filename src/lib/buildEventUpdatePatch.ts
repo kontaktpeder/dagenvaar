@@ -14,6 +14,7 @@ export interface EventUpdatePatchInput {
   visibility: 'all_members' | 'private' | 'selected_members';
   location: string;
   notes: string;
+  hideFromOtherCalendars?: boolean;
 }
 
 export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
@@ -41,5 +42,6 @@ export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
     category: input.category,
     category_label_override:
       input.category === 'other' ? input.otherLabel.trim() || null : null,
+    hide_from_other_calendars: input.hideFromOtherCalendars ?? false,
   } as any;
 }
