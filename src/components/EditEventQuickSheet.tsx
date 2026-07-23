@@ -8,6 +8,9 @@ import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
   timeRangeToDayParts,
+  ALL_DAY_INDEX,
+  AFTERNOON_INDEX,
+  isAllDayPart,
 } from '@/lib/dayParts';
 import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
@@ -57,6 +60,12 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   const [startTime, setStartTime] = useState(event.start_time?.slice(0, 5) || DAY_PART_TIME_RANGES[DAY_PART_ORDER[initStartIdx]].start);
   const [endTime, setEndTime] = useState<string | null>(event.end_time?.slice(0, 5) || null);
   const [showDayParts, setShowDayParts] = useState(false);
+  const [showTimedMultiDay, setShowTimedMultiDay] = useState(() => {
+    const multi =
+      !!(event as any).end_date && (event as any).end_date !== event.event_date;
+    const dps = (event as any).day_part_start as string | null;
+    return multi && !isAllDayPart(dps) && dps !== 'full_diem' && !!event.start_time;
+  });
   const [category, setCategory] = useState<EventCategory>((event.category as EventCategory) || 'other');
   const categoryOptions = (() => {
     const base = getCategoryOptionsForKind(calendarKind);
@@ -81,6 +90,8 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
+  const isMultiDay = !!endDate;
+  const useAllDay = isMultiDay ? !showTimedMultiDay : isAllDayPart(dayPartStart);
 
   const syncTimesFromDayPart = (startIdx: number, endIdx: number) => {
     const range = DAY_PART_TIME_RANGES[DAY_PART_ORDER[startIdx]];
@@ -89,14 +100,33 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
     setEndTime(rangeEnd.end === '24:00' ? '00:00' : rangeEnd.end);
   };
 
+  const applyAllDay = () => {
+    setSelectedDayParts([ALL_DAY_INDEX, ALL_DAY_INDEX]);
+    setDayPartClickCount(1);
+    setStartTime(DAY_PART_TIME_RANGES.all_day.start);
+    setEndTime(null);
+    setShowTimedMultiDay(false);
+  };
+
+  const enableTimedMultiDay = () => {
+    setShowTimedMultiDay(true);
+    setSelectedDayParts([AFTERNOON_INDEX, AFTERNOON_INDEX]);
+    setDayPartClickCount(1);
+    setStartTime('09:00');
+    setEndTime('18:00');
+    setShowDayParts(false);
+  };
+
   const handleDayPartClick = (idx: number) => {
     const key = DAY_PART_ORDER[idx];
     if (key === 'all_day' || key === 'full_diem') {
       setSelectedDayParts([idx, idx]);
       setDayPartClickCount(1);
       syncTimesFromDayPart(idx, idx);
+      if (key === 'all_day') setShowTimedMultiDay(false);
       return;
     }
+    if (isMultiDay) setShowTimedMultiDay(true);
     let newRange: [number, number];
     if (dayPartClickCount === 1) {
       const prev = selectedDayParts[0];
@@ -118,6 +148,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   };
 
   const handleStartTimeChange = (value: string) => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     setStartTime(value);
     if (value && endTime) {
       const newRange = timeRangeToDayParts(value, endTime);
@@ -131,6 +162,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   };
 
   const handleEndTimeChange = (value: string) => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     setEndTime(value);
     if (startTime && value) {
       const newRange = timeRangeToDayParts(startTime, value);
@@ -148,6 +180,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   };
 
   const handleAddHour = () => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     if (!endTime) setEndTime(addOneHour(startTime || '12:00'));
     else setEndTime(addOneHour(endTime));
   };
@@ -155,8 +188,22 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   const isDayPartSelected = (idx: number) => idx >= selectedDayParts[0] && idx <= selectedDayParts[1];
 
   const handleAddDay = () => {
+    const becomingMulti = !endDate;
     if (!endDate) setEndDate(addDays(startDate, 1));
     else setEndDate(addDays(endDate, 1));
+    if (becomingMulti) applyAllDay();
+  };
+
+  const clearEndDate = () => {
+    const wasUntimedAllDay = isMultiDay && !showTimedMultiDay;
+    setEndDate(null);
+    setShowTimedMultiDay(false);
+    if (wasUntimedAllDay) {
+      setSelectedDayParts([AFTERNOON_INDEX, AFTERNOON_INDEX]);
+      setDayPartClickCount(1);
+      setStartTime('12:00');
+      setEndTime(null);
+    }
   };
 
   const canSave =
@@ -173,10 +220,10 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
           title,
           startDate,
           endDate,
-          dayPartStart,
-          dayPartEnd,
-          startTime,
-          endTime: endTime || '',
+          dayPartStart: useAllDay ? 'all_day' : dayPartStart,
+          dayPartEnd: useAllDay ? 'all_day' : dayPartEnd,
+          startTime: useAllDay ? '' : startTime,
+          endTime: useAllDay ? '' : (endTime || ''),
           category,
           otherLabel,
           visibility,
@@ -251,43 +298,73 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                   min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
                   className={`flex-1 ${FIELD}`}
                 />
-                <button type="button" onClick={() => setEndDate(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                <button type="button" onClick={clearEndDate} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Klokke — same size as date */}
+          {/* Klokke / hele dagen */}
           <div className="space-y-3">
-            <SectionTitle>Klokke</SectionTitle>
-            <div className="flex gap-2">
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => handleStartTimeChange(e.target.value)}
-                className={`flex-1 ${FIELD}`}
-              />
-              <button type="button" onClick={handleAddHour} className={ADD_BTN}>
-                +1 time
-              </button>
-            </div>
-            {endTime && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => handleEndTimeChange(e.target.value)}
-                  className={`flex-1 ${FIELD}`}
-                />
-                <button type="button" onClick={() => setEndTime(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            {isMultiDay && !showTimedMultiDay ? (
+              <>
+                <div className="rounded-xl bg-muted/70 px-4 py-3">
+                  <p className="text-sm font-medium">Hele dagen</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Flerdagers hendelser er uten klokkeslett
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={enableTimedMultiDay}
+                  className="text-sm text-muted-foreground underline underline-offset-2"
+                >
+                  Har start-/sluttid
                 </button>
-              </div>
+              </>
+            ) : (
+              <>
+                <SectionTitle>Klokke</SectionTitle>
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                    className={`flex-1 ${FIELD}`}
+                  />
+                  <button type="button" onClick={handleAddHour} className={ADD_BTN}>
+                    +1 time
+                  </button>
+                </div>
+                {endTime && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className={`flex-1 ${FIELD}`}
+                    />
+                    <button type="button" onClick={() => setEndTime(null)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
+                )}
+                {isMultiDay && (
+                  <button
+                    type="button"
+                    onClick={applyAllDay}
+                    className="text-sm text-muted-foreground underline underline-offset-2"
+                  >
+                    Bruk hele dagen
+                  </button>
+                )}
+              </>
             )}
           </div>
 
-          {/* Del av dagen — optional */}
+          {/* Del av dagen — optional (hidden when multi-day all-day) */}
+          {!(isMultiDay && !showTimedMultiDay) && (
           <div>
             {!showDayParts ? (
               <button
@@ -328,6 +405,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
               </div>
             )}
           </div>
+          )}
 
           {/* Sted & Notat */}
           <div className="space-y-3">

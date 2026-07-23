@@ -1,6 +1,13 @@
 export const DAY_PART_ORDER = ['morning', 'late_morning', 'afternoon', 'evening', 'night', 'full_diem', 'all_day'] as const;
 export type DayPart = typeof DAY_PART_ORDER[number];
 
+export const ALL_DAY_INDEX = DAY_PART_ORDER.indexOf('all_day');
+export const AFTERNOON_INDEX = DAY_PART_ORDER.indexOf('afternoon');
+
+export function isAllDayPart(part: string | null | undefined): boolean {
+  return part === 'all_day';
+}
+
 export const DAY_PART_TIME_RANGES: Record<DayPart, { start: string; end: string; label: string }> = {
   morning:      { start: '06:00', end: '09:00', label: '06–09' },
   late_morning: { start: '09:00', end: '12:00', label: '09–12' },

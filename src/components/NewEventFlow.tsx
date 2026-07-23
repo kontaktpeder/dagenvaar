@@ -11,6 +11,9 @@ import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
   timeRangeToDayParts,
+  ALL_DAY_INDEX,
+  AFTERNOON_INDEX,
+  isAllDayPart,
 } from '@/lib/dayParts';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
@@ -52,6 +55,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   const [showDayParts, setShowDayParts] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  /** Multi-day defaults to all-day; user can opt into start/end times. */
+  const [showTimedMultiDay, setShowTimedMultiDay] = useState(false);
   const [category, setCategory] = useState<EventCategory | null>(null);
   const [otherLabel, setOtherLabel] = useState('');
   const [visibility, setVisibility] = useState<'all_members' | 'private' | 'selected_members'>('all_members');
@@ -116,6 +121,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
   const dayPartCompat = (!dayPartStart || dayPartStart === 'all_day' || dayPartStart === 'full_diem') ? 'morning' : dayPartStart;
+  const isMultiDay = !!endDate;
+  const useAllDay = isMultiDay ? !showTimedMultiDay : isAllDayPart(dayPartStart);
 
   // --- Two-way sync helpers ---
 
@@ -128,14 +135,34 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
     setEndTime(rangeEnd.end === '24:00' ? '00:00' : rangeEnd.end);
   };
 
+  const applyAllDay = () => {
+    setSelectedDayParts([ALL_DAY_INDEX, ALL_DAY_INDEX]);
+    setDayPartClickCount(1);
+    setStartTime(DAY_PART_TIME_RANGES.all_day.start);
+    setEndTime(null);
+    setShowTimedMultiDay(false);
+  };
+
+  const enableTimedMultiDay = () => {
+    setShowTimedMultiDay(true);
+    const afternoon = AFTERNOON_INDEX;
+    setSelectedDayParts([afternoon, afternoon]);
+    setDayPartClickCount(1);
+    setStartTime('09:00');
+    setEndTime('18:00');
+    setShowDayParts(false);
+  };
+
   const handleDayPartClick = (idx: number) => {
     const key = DAY_PART_ORDER[idx];
     if (key === 'all_day' || key === 'full_diem') {
       setSelectedDayParts([idx, idx]);
       setDayPartClickCount(1);
       syncTimesFromDayPart(idx, idx);
+      if (key === 'all_day') setShowTimedMultiDay(false);
       return;
     }
+    if (isMultiDay) setShowTimedMultiDay(true);
     let newRange: [number, number];
     if (dayPartClickCount === 1) {
       const prev = selectedDayParts[0];
@@ -158,6 +185,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   };
 
   const handleStartTimeChange = (value: string) => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     setStartTime(value);
     if (value && endTime) {
       const newRange = timeRangeToDayParts(value, endTime);
@@ -171,6 +199,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   };
 
   const handleEndTimeChange = (value: string) => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     setEndTime(value);
     if (startTime && value) {
       const newRange = timeRangeToDayParts(startTime, value);
@@ -180,6 +209,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   };
 
   const handleAddHour = () => {
+    if (isMultiDay) setShowTimedMultiDay(true);
     if (!endTime) {
       setEndTime(addOneHour(startTime || '12:00'));
     } else {
@@ -192,10 +222,24 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   };
 
   const handleAddDay = () => {
+    const becomingMulti = !endDate;
     if (!endDate) {
       setEndDate(addDays(startDate, 1));
     } else {
       setEndDate(addDays(endDate, 1));
+    }
+    if (becomingMulti) applyAllDay();
+  };
+
+  const clearEndDate = () => {
+    const wasUntimedAllDay = isMultiDay && !showTimedMultiDay;
+    setEndDate(null);
+    setShowTimedMultiDay(false);
+    if (wasUntimedAllDay) {
+      setSelectedDayParts([AFTERNOON_INDEX, AFTERNOON_INDEX]);
+      setDayPartClickCount(1);
+      setStartTime('12:00');
+      setEndTime(null);
     }
   };
 
@@ -213,10 +257,20 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
         event_date: dateStr,
         end_date: eventEndDate,
         day_part: dayPartCompat,
-        day_part_start: dayPartStart || null,
-        day_part_end: dayPartEnd || null,
-        start_time: (dayPartStart === 'full_diem' && dayPartEnd === 'full_diem') ? '00:00' : (startTime || null),
-        end_time: (dayPartStart === 'full_diem' && dayPartEnd === 'full_diem') ? '23:59' : (endTime || null),
+        day_part_start: useAllDay ? 'all_day' : (dayPartStart || null),
+        day_part_end: useAllDay ? 'all_day' : (dayPartEnd || null),
+        start_time:
+          dayPartStart === 'full_diem' && dayPartEnd === 'full_diem'
+            ? '00:00'
+            : useAllDay
+              ? null
+              : (startTime || null),
+        end_time:
+          dayPartStart === 'full_diem' && dayPartEnd === 'full_diem'
+            ? '23:59'
+            : useAllDay
+              ? null
+              : (endTime || null),
         visibility_type: visibility,
         location: location || null,
         notes: notes || null,
@@ -302,7 +356,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                   </div>
                   <button
                     type="button"
-                    onClick={() => setEndDate(null)}
+                    onClick={clearEndDate}
                     className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
                   >
                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -310,84 +364,114 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                 </div>
               )}
 
-              {/* Clock — same field size as date */}
+              {/* Clock / all-day — multi-day defaults to hele dagen */}
               <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Klokke</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => handleStartTimeChange(e.target.value)}
-                      className={`flex-1 ${FIELD}`}
-                    />
-                    <button type="button" onClick={handleAddHour} className={ADD_BTN}>
-                      +1 time
-                    </button>
-                  </div>
-                </div>
-
-                {endTime && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <label className="text-sm font-medium mb-2 block">Slutttid</label>
-                      <input
-                        type="time"
-                        value={endTime}
-                        onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className={`w-full ${FIELD}`}
-                      />
+                {isMultiDay && !showTimedMultiDay ? (
+                  <>
+                    <div className="rounded-xl bg-muted/70 px-4 py-3">
+                      <p className="text-sm font-medium">Hele dagen</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Flerdagers hendelser er uten klokkeslett
+                      </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setEndTime(null)}
-                      className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                      onClick={enableTimedMultiDay}
+                      className="text-sm text-muted-foreground underline underline-offset-2"
                     >
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      Har start-/sluttid
                     </button>
-                  </div>
-                )}
-
-                {!showDayParts ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowDayParts(true)}
-                    className="text-sm text-muted-foreground underline underline-offset-2"
-                  >
-                    Velg del av dagen
-                  </button>
+                  </>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Del av dagen</label>
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Klokke</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => handleStartTimeChange(e.target.value)}
+                          className={`flex-1 ${FIELD}`}
+                        />
+                        <button type="button" onClick={handleAddHour} className={ADD_BTN}>
+                          +1 time
+                        </button>
+                      </div>
+                    </div>
+
+                    {endTime && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <label className="text-sm font-medium mb-2 block">Slutttid</label>
+                          <input
+                            type="time"
+                            value={endTime}
+                            onChange={(e) => handleEndTimeChange(e.target.value)}
+                            className={`w-full ${FIELD}`}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEndTime(null)}
+                          className="mt-7 p-2 rounded-full hover:bg-muted text-muted-foreground"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {isMultiDay && (
                       <button
                         type="button"
-                        onClick={() => setShowDayParts(false)}
-                        className="text-xs text-muted-foreground underline underline-offset-2"
+                        onClick={applyAllDay}
+                        className="text-sm text-muted-foreground underline underline-offset-2"
                       >
-                        Skjul
+                        Bruk hele dagen
                       </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {DAY_PART_ORDER.map((key, idx) => {
-                        const selected = isDayPartSelected(idx);
-                        return (
+                    )}
+
+                    {!showDayParts ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDayParts(true)}
+                        className="text-sm text-muted-foreground underline underline-offset-2"
+                      >
+                        Velg del av dagen
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Del av dagen</label>
                           <button
-                            key={key}
                             type="button"
-                            onClick={() => handleDayPartClick(idx)}
-                            className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-                              selected
-                                ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
-                                : 'bg-muted hover:bg-muted/80'
-                            }`}
+                            onClick={() => setShowDayParts(false)}
+                            className="text-xs text-muted-foreground underline underline-offset-2"
                           >
-                            {DAY_PART_LABELS[key]}
+                            Skjul
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {DAY_PART_ORDER.map((key, idx) => {
+                            const selected = isDayPartSelected(idx);
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => handleDayPartClick(idx)}
+                                className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${
+                                  selected
+                                    ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent'
+                                    : 'bg-muted hover:bg-muted/80'
+                                }`}
+                              >
+                                {DAY_PART_LABELS[key]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -608,8 +692,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                   {endDate && ` → ${format(endDate, 'd. MMMM yyyy', { locale: nb })}`}
                   {' · '}
                   {getDayPartRangeLabel()}
-                  {startTime && ` · ${startTime}`}
-                  {endTime ? `–${endTime}` : ''}
+                  {!useAllDay && startTime && ` · ${startTime}`}
+                  {!useAllDay && endTime ? `–${endTime}` : ''}
                 </p>
                 {category && (
                   <p className="text-sm text-muted-foreground mt-1">
