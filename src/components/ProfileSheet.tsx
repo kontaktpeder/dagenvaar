@@ -338,7 +338,6 @@ const ProfileSheet = ({
       onExit={onClose}
       size="sheet"
       zClassName="z-[60]"
-      grabberDismissOnly
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div

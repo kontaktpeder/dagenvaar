@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
@@ -46,8 +47,7 @@ const CalendarDaySheet = ({
   const getMember = (id: string) => members.find((m) => m.id === id);
 
   const handleDismiss = () => {
-    if (showList) setShowList(false);
-    else onClose();
+    onClose();
   };
 
   const formatEventTime = (ev: Event) => {
@@ -64,6 +64,7 @@ const CalendarDaySheet = ({
   };
 
   return (
+    <>
     <CenteredPopup onClose={handleDismiss} onExit={onClose} size="sheet" zClassName="z-50">
       <div className="px-5 pt-1 pb-3 shrink-0">
         <h2 className="text-lg font-bold capitalize">
@@ -71,21 +72,7 @@ const CalendarDaySheet = ({
         </h2>
       </div>
 
-      {showList ? (
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <ListView
-            householdId={householdId}
-            members={members}
-            currentMemberId={currentMemberId}
-            initialDate={date}
-            embedded
-            highlight={highlight}
-            onEditEvent={onEditEvent}
-            onQuickEditEvent={onQuickEditEvent}
-          />
-        </div>
-      ) : (
-        <div className="flex flex-col min-h-0 flex-1">
+      <div className="flex flex-col min-h-0 flex-1">
             <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0" data-sheet-scroll>
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center">
@@ -168,8 +155,41 @@ const CalendarDaySheet = ({
               </button>
             </PopupStickyFooter>
         </div>
-      )}
     </CenteredPopup>
+
+    <AnimatePresence>
+    {showList && (
+      <CenteredPopup
+        onClose={() => setShowList(false)}
+        onExit={() => setShowList(false)}
+        size="sheet"
+        zClassName="z-[55]"
+      >
+        <div className="px-5 pt-1 pb-2 shrink-0">
+          <h2 className="text-lg font-bold">
+            {locale === 'en' ? 'List' : 'Liste'}
+            <span className="text-muted-foreground font-medium text-base">
+              {' · '}
+              {format(date, 'd. MMM', { locale: dateLocale })}
+            </span>
+          </h2>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ListView
+            householdId={householdId}
+            members={members}
+            currentMemberId={currentMemberId}
+            initialDate={date}
+            embedded
+            highlight={highlight}
+            onEditEvent={onEditEvent}
+            onQuickEditEvent={onQuickEditEvent}
+          />
+        </div>
+      </CenteredPopup>
+    )}
+    </AnimatePresence>
+    </>
   );
 };
 

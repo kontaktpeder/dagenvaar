@@ -32,11 +32,6 @@ interface CenteredPopupProps {
    * Backdrop taps still use onClose (e.g. step-back in wizards).
    */
   onExit?: () => void;
-  /**
-   * Only the top grabber starts swipe-to-dismiss (content scrolls freely).
-   * Use for long sheets like profile.
-   */
-  grabberDismissOnly?: boolean;
 }
 
 const DISMISS_DIST = 110;
@@ -68,8 +63,8 @@ function getScrollTop(root: HTMLElement | null): number {
 }
 
 /**
- * Bottom sheet: slides up from the bottom edge, flush with the screen,
- * swipe-down to dismiss from anywhere when content is scrolled to the top.
+ * Bottom sheet: slides up from the bottom, flush with the screen.
+ * Swipe down from grabber anytime; from content when scrolled to the top.
  */
 const CenteredPopup = ({
   onClose,
@@ -79,7 +74,6 @@ const CenteredPopup = ({
   zClassName = 'z-50',
   backdrop = 'solid',
   onExit,
-  grabberDismissOnly = false,
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
@@ -143,9 +137,9 @@ const CenteredPopup = ({
   const canDrag = !keyboardOpen && !flyingOut;
 
   const onCardPointerDown = (e: ReactPointerEvent) => {
-    if (!canDrag || grabberDismissOnly) return;
+    if (!canDrag) return;
     const target = e.target as HTMLElement;
-    // Let form controls keep focus / text selection; grabber + empty areas still dismiss
+    // Let form controls keep focus / text selection; grabber handles its own drag
     if (target.closest('input, textarea, select, [contenteditable="true"]')) {
       pullRef.current = null;
       return;
@@ -163,8 +157,9 @@ const CenteredPopup = ({
   const onCardPointerMove = (e: ReactPointerEvent) => {
     if (!canDrag || !pullRef.current) return;
     const dy = e.clientY - pullRef.current.y;
-    if (pullRef.current.scrollTop > 0) {
-      // Content can scroll — don't steal the gesture for dismiss
+    // Re-check live scroll position so overscroll-at-top still dismisses
+    const scrollTop = getScrollTop(cardRef.current);
+    if (scrollTop > 0 || pullRef.current.scrollTop > 0) {
       if (dy > PULL_ACTIVATE_PX) pullRef.current = null;
       return;
     }

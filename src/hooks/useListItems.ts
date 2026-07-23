@@ -49,6 +49,21 @@ export function useToggleListItem() {
   });
 }
 
+export function useUpdateListItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const trimmed = title.trim();
+      if (!trimmed) throw new Error('Tomt punkt');
+      const { error } = await supabase.from('list_items').update({ title: trimmed }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listItems'] });
+    },
+  });
+}
+
 export function useDeleteListItem() {
   const queryClient = useQueryClient();
   return useMutation({

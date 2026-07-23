@@ -2,18 +2,25 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { format, addDays, subDays, isToday } from 'date-fns';
 import { getMonthTheme } from '@/lib/monthTheme';
-import { nb } from 'date-fns/locale';
 import { useEventsForDate, type Event } from '@/hooks/useEvents';
-import { useListItemsForDate, useCreateListItem, useToggleListItem, useDeleteListItem } from '@/hooks/useListItems';
+import {
+  useListItemsForDate,
+  useCreateListItem,
+  useToggleListItem,
+  useUpdateListItem,
+  useDeleteListItem,
+  type ListItem,
+} from '@/hooks/useListItems';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
+import { useLocale } from '@/hooks/useLocale';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import ViewHeader from '@/components/ViewHeader';
 import { useLongPress } from '@/hooks/useLongPress';
-import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 
 interface ListViewProps {
   householdId: string;
@@ -28,17 +35,32 @@ interface ListViewProps {
   embedded?: boolean;
 }
 
-const ListView = ({ householdId, members, currentMemberId, initialDate, onDateChange, onEditEvent, onQuickEditEvent, highlight, embedded = false }: ListViewProps) => {
+const ListView = ({
+  householdId,
+  members,
+  currentMemberId,
+  initialDate,
+  onDateChange,
+  onEditEvent,
+  onQuickEditEvent,
+  highlight,
+  embedded = false,
+}: ListViewProps) => {
+  const { dateLocale } = useLocale();
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [newItem, setNewItem] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const { data: events = [] } = useEventsForDate(householdId, dateStr);
   const { data: listItems = [] } = useListItemsForDate(householdId, dateStr);
   const createItem = useCreateListItem();
   const toggleItem = useToggleListItem();
+  const updateItem = useUpdateListItem();
   const deleteItem = useDeleteListItem();
 
   useEffect(() => {
@@ -49,7 +71,13 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     if (!embedded) onDateChange?.(selectedDate);
   }, [selectedDate, onDateChange, embedded]);
 
-  const handleSwipe = (_: any, info: PanInfo) => {
+  useEffect(() => {
+    if (!editingId) return;
+    const t = window.setTimeout(() => focusFieldSoftly(editInputRef.current), 40);
+    return () => window.clearTimeout(t);
+  }, [editingId]);
+
+  const handleSwipe = (_: unknown, info: PanInfo) => {
     if (Math.abs(info.offset.x) > 50) {
       setSelectedDate((d) => (info.offset.x < 0 ? addDays(d, 1) : subDays(d, 1)));
     }
@@ -67,10 +95,53 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
     inputRef.current?.focus();
   };
 
+  const startEdit = (item: ListItem) => {
+    setEditingId(item.id);
+    setEditText(item.title);
+  };
+
+  const commitEdit = () => {
+    if (!editingId) return;
+    const trimmed = editText.trim();
+    const id = editingId;
+    setEditingId(null);
+    if (!trimmed) return;
+    const current = listItems.find((i) => i.id === id);
+    if (current && current.title === trimmed) return;
+    updateItem.mutate({ id, title: trimmed });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
   const getMemberForEvent = (event: Event) => members.find((m) => m.id === event.owner_member_id);
 
   const sortedEvents = [...events].sort((a, b) =>
     (a.start_time || '').localeCompare(b.start_time || ''),
+  );
+
+  const composer = (
+    <div className="flex gap-2">
+      <input
+        ref={inputRef}
+        value={newItem}
+        onChange={(e) => setNewItem(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+        onFocus={scrollFocusIntoView}
+        placeholder="Legg til punkt..."
+        className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <button
+        type="button"
+        onClick={handleAddItem}
+        disabled={!newItem.trim()}
+        className="rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-40 transition-all"
+      >
+        +
+      </button>
+    </div>
   );
 
   return (
@@ -82,7 +153,7 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
         dragElastic={0.2}
         onDragEnd={embedded ? undefined : handleSwipe}
         style={{ touchAction: 'pan-y' }}
-        className="flex flex-col h-full"
+        className="flex flex-col h-full min-h-0"
       >
         {!embedded && (
           <ViewHeader
@@ -92,94 +163,137 @@ const ListView = ({ householdId, members, currentMemberId, initialDate, onDateCh
             calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
           >
             {isToday(selectedDate)
-              ? `I dag · ${format(selectedDate, 'd. MMM', { locale: nb })}`
-              : format(selectedDate, 'EEEE d. MMM', { locale: nb })}
+              ? `I dag · ${format(selectedDate, 'd. MMM', { locale: dateLocale })}`
+              : format(selectedDate, 'EEEE d. MMM', { locale: dateLocale })}
           </ViewHeader>
         )}
 
-        {/* Events — simple list, no day-part timeline */}
-        <div className={`px-4 space-y-2 ${embedded ? 'pt-1 pb-2' : 'pt-3 pb-2'}`}>
-          {sortedEvents.length === 0 ? (
-            <div className="py-2 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground/50">Ingen aktiviteter</span>
-            </div>
-          ) : (
-            sortedEvents.map((ev) => (
-              <EventRow
-                key={ev.id}
-                event={ev}
-                currentMemberId={currentMemberId}
-                highlight={highlight}
-                onTap={(e) => setSelectedEvent(e)}
-                onLongPress={(e) => onEditEvent?.(e)}
-                getMemberForEvent={getMemberForEvent}
-              />
-            ))
-          )}
-        </div>
+        <div
+          data-sheet-scroll={embedded ? true : undefined}
+          className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 space-y-2 ${
+            embedded ? 'pt-1 pb-3' : 'pt-3 pb-4'
+          }`}
+        >
+          {/* Events */}
+          <div className="space-y-2">
+            {sortedEvents.length === 0 ? (
+              <div className="py-2 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground/50">Ingen aktiviteter</span>
+              </div>
+            ) : (
+              sortedEvents.map((ev) => (
+                <EventRow
+                  key={ev.id}
+                  event={ev}
+                  currentMemberId={currentMemberId}
+                  highlight={highlight}
+                  onTap={(e) => setSelectedEvent(e)}
+                  onLongPress={(e) => onEditEvent?.(e)}
+                  getMemberForEvent={getMemberForEvent}
+                />
+              ))
+            )}
+          </div>
 
-        <div className="px-5 mb-3 mt-1">
-          <div className="h-px bg-border/60" />
-        </div>
+          <div className="h-px bg-border/60 my-2" />
 
-        <div className="px-5 mb-4">
-          <div className="flex gap-2">
-            <input
-              ref={inputRef}
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-              onFocus={scrollFocusIntoView}
-              placeholder="Legg til punkt..."
-              className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <button
-              onClick={handleAddItem}
-              disabled={!newItem.trim()}
-              className="rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-40 transition-all"
-            >
-              +
-            </button>
+          {/* List items */}
+          <div className="space-y-2">
+            {listItems.map((item) => {
+              const isEditing = editingId === item.id;
+              return (
+                <motion.div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-soft"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isEditing) return;
+                      toggleItem.mutate({ id: item.id, is_checked: !item.is_checked });
+                    }}
+                    className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      item.is_checked ? 'bg-primary border-primary' : 'border-border hover:border-primary'
+                    }`}
+                    aria-label={item.is_checked ? 'Avmerk' : 'Merk som ferdig'}
+                  >
+                    {item.is_checked && (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path
+                          d="M3 7L6 10L11 4"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-primary-foreground"
+                        />
+                      </svg>
+                    )}
+                  </button>
+
+                  {isEditing ? (
+                    <input
+                      ref={editInputRef}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onFocus={scrollFocusIntoView}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEdit();
+                        }
+                      }}
+                      className="flex-1 min-w-0 rounded-lg border border-border bg-background px-2.5 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      className={`flex-1 min-w-0 text-left text-base ${
+                        item.is_checked ? 'line-through text-muted-foreground' : ''
+                      }`}
+                    >
+                      {item.title}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editingId === item.id) cancelEdit();
+                      deleteItem.mutate(item.id);
+                    }}
+                    className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors shrink-0"
+                    aria-label="Slett"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </motion.div>
+              );
+            })}
+
+            {events.length === 0 && listItems.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="font-medium">Ingen planer ennå</p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className={`flex-1 overflow-y-auto scroll-touch overscroll-contain px-5 space-y-2 ${embedded ? 'pb-6' : 'pb-32'}`}>
-          {listItems.map((item) => (
-            <motion.div
-              key={item.id}
-              className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-soft"
-            >
-              <button
-                onClick={() => toggleItem.mutate({ id: item.id, is_checked: !item.is_checked })}
-                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                  item.is_checked ? 'bg-primary border-primary' : 'border-border hover:border-primary'
-                }`}
-              >
-                {item.is_checked && (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M3 7L6 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary-foreground" />
-                  </svg>
-                )}
-              </button>
-              <span className={`flex-1 text-base ${item.is_checked ? 'line-through text-muted-foreground' : ''}`}>
-                {item.title}
-              </span>
-              <button
-                onClick={() => deleteItem.mutate(item.id)}
-                className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            </motion.div>
-          ))}
-
-          {events.length === 0 && listItems.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="font-medium">Ingen planer ennå</p>
-            </div>
-          )}
+        {/* Composer pinned to bottom of sheet / view */}
+        <div
+          className={`shrink-0 border-t border-border/60 bg-background px-5 pt-3 ${
+            embedded ? 'pb-3' : 'pb-[max(1rem,env(safe-area-inset-bottom))]'
+          }`}
+        >
+          {composer}
         </div>
       </motion.div>
 
