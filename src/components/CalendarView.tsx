@@ -66,18 +66,18 @@ const CATEGORY_ORDER: Record<string, number> = {
 const COMMIT_RATIO = 0.18;
 const COMMIT_VELOCITY = 380;
 /** Vertical stack switch thresholds */
-const STACK_COMMIT_PX = 72;
-const STACK_COMMIT_VELOCITY = 520;
+const STACK_COMMIT_PX = 64;
+const STACK_COMMIT_VELOCITY = 420;
 /** Months rendered on each side of the center (5 panels total) */
 const WINDOW = 2;
 /** One gesture = at most one month */
 const MAX_HOPS_PER_SWIPE = 1;
 /** Soft resistance past one page (rubber-band) — avoids hard edge blink */
 const RUBBER = 0.28;
-/** Ignore strip movement until finger travels this far horizontally (px) */
-const PAN_ACTIVATE_PX = 18;
-/** Treat gesture as vertical (block strip) when |dy| exceeds |dx| by this factor */
-const AXIS_LOCK_RATIO = 1.2;
+/** Ignore strip movement until finger travels this far (px) */
+const PAN_ACTIVATE_PX = 14;
+/** Treat gesture as vertical (stack) when |dy| exceeds |dx| by this factor */
+const AXIS_LOCK_RATIO = 1.15;
 
 /** Diminishing travel past ±limit so the strip never hard-stops / blinks at the edge */
 function rubberBand(offset: number, limit: number): number {
@@ -217,14 +217,13 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const animatingRef = useRef(false);
   const animationControlsRef = useRef<{ stop: () => void } | null>(null);
   const panStartXRef = useRef(0);
-  /** pending = undecided, pan = horizontal swipe, blocked = tap/hold/vertical */
-  const panModeRef = useRef<'pending' | 'pan' | 'blocked'>('pending');
+  /** pending = undecided, pan = horizontal month, stack = vertical calendar switch, blocked = press lock */
+  const panModeRef = useRef<'pending' | 'pan' | 'stack' | 'blocked'>('pending');
   /** Set while a day long-press is active — keeps strip frozen */
   const pressLockRef = useRef(false);
   /** Track vertical intent for calendar-stack swipe */
   const panOffsetYRef = useRef(0);
   const panVelocityYRef = useRef(0);
-  const verticalStackRef = useRef(false);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -313,7 +312,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     panModeRef.current = pressLockRef.current ? 'blocked' : 'pending';
     panOffsetYRef.current = 0;
     panVelocityYRef.current = 0;
-    verticalStackRef.current = false;
   };
 
   const handlePan = (_: unknown, info: PanInfo) => {
@@ -323,6 +321,11 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     panVelocityYRef.current = info.velocity.y;
 
     if (pressLockRef.current || panModeRef.current === 'blocked') {
+      x.set(panStartXRef.current);
+      return;
+    }
+
+    if (panModeRef.current === 'stack') {
       x.set(panStartXRef.current);
       return;
     }
@@ -337,9 +340,9 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
         x.set(panStartXRef.current);
         return;
       }
+      // Vertical wins → calendar stack (same gesture model on iOS + Android)
       if (ady >= PAN_ACTIVATE_PX && ady > adx * AXIS_LOCK_RATIO) {
-        panModeRef.current = 'blocked';
-        verticalStackRef.current = canSwipeCalendarStack;
+        panModeRef.current = canSwipeCalendarStack ? 'stack' : 'blocked';
         x.set(panStartXRef.current);
         return;
       }
@@ -359,11 +362,10 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
     if (!pageWidth) return;
 
     const wasPanning = panModeRef.current === 'pan' && !pressLockRef.current;
-    const wasVerticalStack = verticalStackRef.current && !pressLockRef.current;
+    const wasVerticalStack = panModeRef.current === 'stack' && !pressLockRef.current;
     const dy = info.offset.y || panOffsetYRef.current;
     const vy = info.velocity.y || panVelocityYRef.current;
     panModeRef.current = 'pending';
-    verticalStackRef.current = false;
 
     if (wasVerticalStack && onSwipeCalendarStack) {
       const flicked = Math.abs(vy) > STACK_COMMIT_VELOCITY;
@@ -397,7 +399,6 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
       }
     }
 
-    hops = Math.max(-MAX_HOPS_PER_SWIPE, Math.min(MAX_HOPS_PER_SWIPE, hops));
     flingToHops(hops);
   };
 
@@ -482,15 +483,18 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
           </div>
         </div>
 
-        {/* Continuous infinite-feel month strip */}
-        <div ref={trackRef} className="relative flex-1 min-h-0 overflow-hidden touch-pan-x select-none">
+        {/* Continuous infinite-feel month strip — touch-action:none so Android gets H+V gestures */}
+        <div
+          ref={trackRef}
+          className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
+        >
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
             style={{
               x,
               width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
               left: pageWidth ? -pageWidth * WINDOW : '-200%',
-              touchAction: 'pan-x',
+              touchAction: 'none',
               WebkitUserSelect: 'none',
               userSelect: 'none',
             }}

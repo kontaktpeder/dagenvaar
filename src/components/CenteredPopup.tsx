@@ -214,6 +214,7 @@ const CenteredPopup = ({
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
             size === 'sheet' ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
           )}
+          style={{ touchAction: 'none' }}
           onClick={(e) => e.stopPropagation()}
         >
           <motion.div

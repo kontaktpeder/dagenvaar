@@ -342,7 +342,7 @@ const ProfileSheet = ({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           data-sheet-scroll
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-touch touch-pan-y px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         >
           <section className="shrink-0 text-center pt-2 pb-5">
           <div className="relative w-20 h-20 mx-auto mb-3">

@@ -173,6 +173,7 @@ const ListView = ({
           className={`flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 space-y-2 ${
             embedded ? 'pt-1 pb-3' : 'pt-3 pb-4'
           }`}
+          style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
         >
           {/* Events */}
           <div className="space-y-2">
