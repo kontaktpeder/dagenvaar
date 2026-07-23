@@ -29,41 +29,54 @@ const CalendarSwitcher = ({
 
   return (
     <div className="relative min-w-0 flex-1">
-      <button
-        type="button"
-        onClick={() => canSwitch && setOpen((v) => !v)}
-        className={`flex items-center gap-2 min-w-0 max-w-full text-left ${
-          canSwitch ? 'cursor-pointer' : 'cursor-default'
-        }`}
-        aria-expanded={canSwitch ? open : undefined}
-        aria-haspopup={canSwitch ? 'listbox' : undefined}
-      >
-        {canSwitch && (
-          <span className="flex items-center gap-1.5 shrink-0 self-center" aria-hidden>
-            <span className="flex flex-col gap-1">
-              {memberships.map((m, i) => (
-                <span
-                  key={m.household_id}
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    i === stackIndex ? 'bg-foreground/70' : 'bg-border'
-                  }`}
-                />
-              ))}
+      <div className="flex items-center gap-1 min-w-0">
+        <button
+          type="button"
+          onClick={() => canSwitch && setOpen((v) => !v)}
+          className={`flex items-center gap-2 min-w-0 max-w-full text-left ${
+            canSwitch ? 'cursor-pointer' : 'cursor-default'
+          }`}
+          aria-expanded={canSwitch ? open : undefined}
+          aria-haspopup={canSwitch ? 'listbox' : undefined}
+        >
+          {canSwitch && (
+            <span className="flex items-center gap-1.5 shrink-0 self-center" aria-hidden>
+              <span className="flex flex-col gap-1">
+                {memberships.map((m, i) => (
+                  <span
+                    key={m.household_id}
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      i === stackIndex ? 'bg-foreground/70' : 'bg-border'
+                    }`}
+                  />
+                ))}
+              </span>
+              <ChevronDown
+                size={18}
+                strokeWidth={2.25}
+                className={`text-muted-foreground transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+              />
             </span>
-            <ChevronDown
-              size={18}
-              strokeWidth={2.25}
-              className={`text-muted-foreground transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-            />
+          )}
+          <span className="min-w-0">
+            <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
+            <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
+              {calendarKindLabelLocalized(household, t)}
+            </span>
           </span>
+        </button>
+
+        {!canSwitch && (
+          <button
+            type="button"
+            onClick={() => onOpenSettings(household.id)}
+            aria-label={t('profile.settingsThis')}
+            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-muted/50 transition-colors"
+          >
+            <Settings size={15} strokeWidth={2} />
+          </button>
         )}
-        <span className="min-w-0">
-          <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
-          <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
-            {calendarKindLabelLocalized(household, t)}
-          </span>
-        </span>
-      </button>
+      </div>
 
       {open && canSwitch && (
         <>
@@ -161,9 +174,9 @@ function SwitcherRow({
           onSettings();
         }}
         aria-label={settingsLabel}
-        className="shrink-0 flex items-center justify-center w-10 h-10 mr-0.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background/80 transition-colors"
+        className="shrink-0 flex items-center justify-center w-10 h-10 mr-0.5 rounded-xl text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-background/60 transition-colors"
       >
-        <Settings size={16} strokeWidth={2.25} />
+        <Settings size={15} strokeWidth={2} />
       </button>
     </div>
   );

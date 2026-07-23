@@ -17,7 +17,7 @@ import CalendarSwitcher from '@/components/CalendarSwitcher';
 import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
-import ProfileSheet from '@/components/ProfileSheet';
+import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
 
@@ -46,7 +46,7 @@ const Index = () => {
   const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
-  const [showProfile, setShowProfile] = useState(false);
+  const [profileMode, setProfileMode] = useState<ProfileSheetMode | null>(null);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [quickEditEvent, setQuickEditEvent] = useState<Event | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
@@ -85,11 +85,11 @@ const Index = () => {
   const handleSwipeCalendarStack = useCallback(
     (direction: 1 | -1) => {
       if (!household) return;
-      if (showNewEvent || editEvent || quickEditEvent || showProfile) return;
+      if (showNewEvent || editEvent || quickEditEvent || profileMode) return;
       const nextId = adjacentCalendarId(memberships, household.id, direction);
       if (nextId) selectCalendar(nextId, direction);
     },
-    [household, memberships, selectCalendar, showNewEvent, editEvent, quickEditEvent, showProfile],
+    [household, memberships, selectCalendar, showNewEvent, editEvent, quickEditEvent, profileMode],
   );
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
@@ -165,7 +165,7 @@ const Index = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      setShowProfile(false);
+      setProfileMode(null);
       queryClient.clear();
     } catch (err: any) {
       console.error('Sign out error:', err);
@@ -194,11 +194,11 @@ const Index = () => {
           onSelect={(id) => selectCalendar(id)}
           onOpenSettings={(id) => {
             if (id !== household.id) selectCalendar(id);
-            setShowProfile(true);
+            setProfileMode('calendar');
           }}
         />
         <button
-          onClick={() => setShowProfile(true)}
+          onClick={() => setProfileMode('account')}
           className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden shadow-sm"
           style={
             !currentMember.avatar_url
@@ -296,14 +296,15 @@ const Index = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showProfile && (
+        {profileMode && (
           <ProfileSheet
+            mode={profileMode}
             household={household}
             members={members}
             currentMember={currentMember}
             memberships={orderedMemberships}
             onSelectCalendar={(id) => selectCalendar(id)}
-            onClose={() => setShowProfile(false)}
+            onClose={() => setProfileMode(null)}
             onSignOut={handleSignOut}
           />
         )}
