@@ -67,7 +67,7 @@ export const en: Record<MessageKey, string> = {
   'profile.thisCalendar': 'This calendar',
   'profile.thisCalendarHint': 'Only applies to “{name}”',
   'profile.showInOther': 'Show in other calendars',
-  'profile.showInOtherHint': 'Appears as “{name}” + time in your other calendars',
+  'profile.showInOtherHint': 'My events from “{name}” appear as name + time in my other calendars',
   'profile.invite': 'Invite member',
   'profile.inviteCode': 'Invite code',
   'profile.copy': 'Copy code',

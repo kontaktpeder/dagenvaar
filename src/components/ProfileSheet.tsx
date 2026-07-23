@@ -296,12 +296,15 @@ const ProfileSheet = ({
   const toggleShowInOther = useMutation({
     mutationFn: async (next: boolean) => {
       const { error } = await supabase
-        .from('households')
+        .from('household_members')
         .update({ show_in_other_calendars: next })
-        .eq('id', household.id);
+        .eq('id', currentMember.id)
+        .eq('user_id', currentMember.user_id);
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentMember'] });
+      queryClient.invalidateQueries({ queryKey: ['members', household.id] });
       queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
       queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
     },
@@ -401,23 +404,21 @@ const ProfileSheet = ({
             ))}
           </div>
 
-          {isOwner && (
-            <label className="flex items-start gap-3 rounded-xl bg-background p-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 rounded border-border"
-                checked={household.show_in_other_calendars}
-                disabled={toggleShowInOther.isPending}
-                onChange={(e) => toggleShowInOther.mutate(e.target.checked)}
-              />
-              <span>
-                <span className="block text-sm font-medium">{t('profile.showInOther')}</span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  {t('profile.showInOtherHint', { name: household.name })}
-                </span>
+          <label className="flex items-start gap-3 rounded-xl bg-background p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 rounded border-border"
+              checked={!!currentMember.show_in_other_calendars}
+              disabled={toggleShowInOther.isPending}
+              onChange={(e) => toggleShowInOther.mutate(e.target.checked)}
+            />
+            <span>
+              <span className="block text-sm font-medium">{t('profile.showInOther')}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                {t('profile.showInOtherHint', { name: household.name })}
               </span>
-            </label>
-          )}
+            </span>
+          </label>
 
           <CalendarLocaleSettings
             householdId={household.id}

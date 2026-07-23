@@ -436,6 +436,7 @@ export type Database = {
           id: string
           is_active: boolean
           role: string
+          show_in_other_calendars: boolean
           timezone: string
           updated_at: string
           user_id: string
@@ -453,6 +454,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: string
+          show_in_other_calendars?: boolean
           timezone?: string
           updated_at?: string
           user_id: string
@@ -470,6 +472,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: string
+          show_in_other_calendars?: boolean
           timezone?: string
           updated_at?: string
           user_id?: string

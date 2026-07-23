@@ -73,7 +73,7 @@ export const nb = {
   'profile.thisCalendar': 'Denne kalenderen',
   'profile.thisCalendarHint': 'Gjelder bare «{name}»',
   'profile.showInOther': 'Vis i andre kalendere',
-  'profile.showInOtherHint': 'Vises som «{name}» + tidspunkt hos dine andre kalendere',
+  'profile.showInOtherHint': 'Mine events fra «{name}» vises som navn + tid i mine andre kalendere',
   'profile.invite': 'Inviter medlem',
   'profile.inviteCode': 'Invitasjonskode',
   'profile.copy': 'Kopier kode',
