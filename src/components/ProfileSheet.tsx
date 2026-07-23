@@ -301,6 +301,16 @@ const ProfileSheet = ({
         .eq('id', currentMember.id)
         .eq('user_id', currentMember.user_id);
       if (error) throw error;
+
+      // Legacy dual-write: old overlay RPC still reads households.show_in_other_calendars.
+      // Keep them in sync when the current user is owner (safe until SQL is applied).
+      if (currentMember.role === 'owner') {
+        const { error: householdError } = await supabase
+          .from('households')
+          .update({ show_in_other_calendars: next })
+          .eq('id', household.id);
+        if (householdError) throw householdError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentMember'] });
