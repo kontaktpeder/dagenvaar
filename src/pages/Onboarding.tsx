@@ -10,6 +10,8 @@ import {
   type CalendarKind,
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
+import { defaultLocaleForKind } from '@/lib/i18n/types';
+import { useLocale } from '@/hooks/useLocale';
 import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 interface OnboardingPageProps {
@@ -28,6 +30,7 @@ const colorMap: Record<string, string> = {
 type Mode = 'create' | 'join';
 
 const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
+  const { t, appLocale, setAppLocale } = useLocale();
   const [mode, setMode] = useState<Mode>('create');
   const [displayName, setDisplayName] = useState('');
   const [kind, setKind] = useState<CalendarKind>('home');
@@ -37,16 +40,19 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   const [error, setError] = useState('');
 
   const kindMeta = CALENDAR_KINDS.find((k) => k.value === kind)!;
+  const defaultName =
+    kind === 'work' ? t('kind.workDefaultName') : t('kind.homeDefaultName');
 
   const createHousehold = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('create_household_with_owner', {
-        p_name: householdName || kindMeta.defaultName,
-        p_display_name: displayName || 'Meg',
+        p_name: householdName || defaultName,
+        p_display_name: displayName || t('common.me'),
         p_color_token: colorToken,
         p_kind: kind,
         p_show_in_other_calendars: defaultShowInOtherCalendars(kind),
-      });
+        p_locale: defaultLocaleForKind(kind),
+      } as any);
       if (error) throw error;
       return data;
     },
@@ -60,7 +66,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('join_household_by_code', {
         p_invite_code: inviteCode.trim(),
-        p_display_name: displayName || 'Meg',
+        p_display_name: displayName || t('common.me'),
         p_color_token: colorToken,
       });
       if (error) throw error;
@@ -82,13 +88,13 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
         await createHousehold.mutateAsync();
       } else {
         if (!inviteCode.trim()) {
-          setError('Skriv inn invitasjonskoden');
+          setError(t('onboarding.inviteCode'));
           return;
         }
         await joinHousehold.mutateAsync();
       }
     } catch (err: any) {
-      setError(err.message || 'Noe gikk galt');
+      setError(err.message || t('common.error'));
     }
   };
 
@@ -101,38 +107,56 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
         <button type="submit" disabled={isPending}
           className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors active:opacity-90 disabled:opacity-50">
           {isPending
-            ? (mode === 'create' ? 'Oppretter...' : 'Kobler til...')
-            : (mode === 'create' ? 'Kom i gang ✨' : 'Bli med 🎉')}
+            ? (mode === 'create' ? t('onboarding.creating') : t('onboarding.joining'))
+            : (mode === 'create' ? t('onboarding.start') : t('onboarding.joinCta'))}
         </button>
       }
     >
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-2">Velkommen! 🏡</h1>
-        <p className="text-muted-foreground text-center mb-6">La oss sette opp din første kalender</p>
+        <h1 className="text-3xl font-bold text-center mb-2">{t('onboarding.welcome')}</h1>
+        <p className="text-muted-foreground text-center mb-6">{t('onboarding.subtitle')}</p>
+
+        <div className="mb-5 space-y-2">
+          <label className="text-sm font-medium block">{t('locale.app')}</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(['nb', 'en'] as const).map((loc) => (
+              <button
+                key={loc}
+                type="button"
+                onClick={() => void setAppLocale(loc)}
+                className={`rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                  appLocale === loc ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted'
+                }`}
+              >
+                {t(loc === 'nb' ? 'locale.nb' : 'locale.en')}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex rounded-xl bg-muted p-1 mb-6">
           <button type="button" onClick={() => { setMode('create'); setError(''); }}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === 'create' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-            Opprett
+            {t('onboarding.create')}
           </button>
           <button type="button" onClick={() => { setMode('join'); setError(''); }}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === 'join' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-            Jeg har kode
+            {t('onboarding.join')}
           </button>
         </div>
 
         <div className="space-y-5">
           <div>
-            <label className="text-sm font-medium mb-2 block">Hva heter du?</label>
+            <label className="text-sm font-medium mb-2 block">{t('onboarding.yourName')}</label>
             <input type="text" onFocus={scrollFocusIntoView} value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="F.eks. Peder"
+              placeholder="Peder"
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
 
           {mode === 'create' ? (
             <>
               <div>
-                <label className="text-sm font-medium mb-2 block">Type</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.type')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {CALENDAR_KINDS.map((opt) => (
                     <button
@@ -141,7 +165,9 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
                       onClick={() => {
                         setKind(opt.value);
                         if (!householdName || CALENDAR_KINDS.some((k) => k.defaultName === householdName)) {
-                          setHouseholdName(opt.defaultName);
+                          setHouseholdName(
+                            opt.value === 'work' ? t('kind.workDefaultName') : t('kind.homeDefaultName'),
+                          );
                         }
                       }}
                       className={`rounded-xl p-3 text-left transition-all ${
@@ -150,32 +176,36 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
-                      <p className="font-semibold text-sm">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+                      <p className="font-semibold text-sm">
+                        {opt.value === 'work' ? t('kind.work') : t('kind.home')}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {opt.value === 'work' ? t('kind.workDesc') : t('kind.homeDesc')}
+                      </p>
                     </button>
                   ))}
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Navn på {kind === 'work' ? 'jobbkalenderen' : 'hjemmet'}
+                  {kind === 'work' ? t('onboarding.workName') : t('onboarding.homeName')}
                 </label>
                 <input type="text" onFocus={scrollFocusIntoView} value={householdName} onChange={(e) => setHouseholdName(e.target.value)}
-                  placeholder={kindMeta.defaultName}
+                  placeholder={defaultName}
                   className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </>
           ) : (
             <div>
-              <label className="text-sm font-medium mb-2 block">Invitasjonskode</label>
+              <label className="text-sm font-medium mb-2 block">{t('onboarding.inviteCode')}</label>
               <input type="text" onFocus={scrollFocusIntoView} value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="F.eks. AB12-CD34"
+                placeholder="AB12-CD34"
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           )}
 
           <div>
-            <label className="text-sm font-medium mb-3 block">Velg din farge</label>
+            <label className="text-sm font-medium mb-3 block">{t('onboarding.pickColor')}</label>
             <div className="flex gap-3 justify-center">
               {COLOR_TOKEN_OPTIONS.map((token) => (
                 <button key={token} type="button" onClick={() => setColorToken(token)}

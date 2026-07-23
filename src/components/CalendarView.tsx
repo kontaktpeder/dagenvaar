@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
-import { nb } from 'date-fns/locale';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import {
   mergeEventsWithOverlays,
@@ -21,6 +20,7 @@ import {
 } from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
+import { useLocale } from '@/hooks/useLocale';
 import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
@@ -127,6 +127,7 @@ function buildMonthDays(monthDate: Date): Date[] {
 }
 
 const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight }: CalendarViewProps) => {
+  const { dateLocale } = useLocale();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
   const setCurrentDate = useCallback(
@@ -450,7 +451,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
                 <MonthHeaderPanel
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
-                  label={format(date, 'MMMM yyyy', { locale: nb })}
+                  label={format(date, 'MMMM yyyy', { locale: dateLocale })}
                   gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
@@ -973,7 +974,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
               }}
             >
               <span className="text-sm font-semibold capitalize" style={{ color: theme.dark }}>
-                {format(new Date(year, m, 1), 'MMM', { locale: nb })}
+                {format(new Date(year, m, 1), 'MMM', { locale: dateLocale })}
               </span>
             </button>
           );

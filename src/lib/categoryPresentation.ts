@@ -1,6 +1,8 @@
 import type { EventCategory } from '@/lib/eventCategories';
 import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
+import { translateCategory } from '@/lib/i18n';
+import type { AppLocale } from '@/lib/i18n/types';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -71,31 +73,15 @@ export function resolveCategoryVisuals(
   return TOKEN_TO_TW[token] ?? TOKEN_TO_TW[DEFAULT_CATEGORY_COLOR_MAP[cat]];
 }
 
-const DEFAULT_LABELS: Record<EventCategory, string> = {
-  couple: 'Vi to',
-  work: 'Jobb',
-  social: 'Sosialt',
-  celebration: 'Fest',
-  important: 'Viktig',
-  travel: 'Reise',
-  meeting: 'Møte',
-  production: 'Produksjon',
-  development: 'Utvikling',
-  admin: 'Administrasjon',
-  client: 'Kunde',
-  deadline: 'Frist',
-  focus: 'Fokus',
-  other: 'Annet',
-};
-
 export function resolveCategoryLabel(
   category: EventCategory | string | null | undefined,
   categoryLabelOverride?: string | null,
+  locale: AppLocale = 'nb',
 ): string {
   const cat = (category as EventCategory) || 'other';
-  if (cat !== 'other') return DEFAULT_LABELS[cat] ?? DEFAULT_LABELS.other;
+  if (cat !== 'other') return translateCategory(locale, cat);
   const clean = categoryLabelOverride?.trim();
-  return clean ? clean : DEFAULT_LABELS.other;
+  return clean ? clean : translateCategory(locale, 'other');
 }
 
 /** Read a member's category_color_map from the row (jsonb) */

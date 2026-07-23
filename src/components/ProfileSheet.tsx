@@ -7,7 +7,7 @@ import type { HouseholdMember, Household } from '@/hooks/useHousehold';
 import type { CalendarMembership } from '@/hooks/useCurrentHouseholdContext';
 import {
   CALENDAR_KINDS,
-  calendarKindLabel,
+  calendarKindLabelLocalized,
   defaultShowInOtherCalendars,
   type CalendarKind,
 } from '@/lib/calendarKinds';
@@ -16,7 +16,10 @@ import { Camera, ChevronDown } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
 import DailyDigestSettings from '@/components/DailyDigestSettings';
+import { AppLocaleSettings, CalendarLocaleSettings } from '@/components/LocaleSettings';
 import CenteredPopup from '@/components/CenteredPopup';
+import { useLocale } from '@/hooks/useLocale';
+import { defaultLocaleForKind } from '@/lib/i18n/types';
 
 interface ProfileSheetProps {
   household: Household;
@@ -95,6 +98,7 @@ const ProfileSheet = ({
   onClose,
   onSignOut,
 }: ProfileSheetProps) => {
+  const { t, intlLocale, locale } = useLocale();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -253,7 +257,8 @@ const ProfileSheet = ({
         p_color_token: currentMember.color_token || 'pastel-blue',
         p_kind: createKind,
         p_show_in_other_calendars: defaultShowInOtherCalendars(createKind),
-      });
+        p_locale: defaultLocaleForKind(createKind),
+      } as any);
       if (error) throw error;
       return data;
     },
@@ -368,21 +373,21 @@ const ProfileSheet = ({
           <h2 className="text-2xl font-bold">{currentMember.display_name}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {household.name}
-            <span className="text-muted-foreground/70"> · {calendarKindLabel(household)}</span>
+            <span className="text-muted-foreground/70"> · {calendarKindLabelLocalized(household, t)}</span>
           </p>
           <p className="text-xs text-muted-foreground/80 mt-1.5">
-            Profilbildet gjelder bare denne kalenderen
+            {t('profile.avatarHint')}
           </p>
         </section>
 
         <div className="rounded-2xl bg-muted/40 px-4 mb-2">
         <ProfileFolder
-          title={`Denne kalenderen`}
+          title={t('profile.thisCalendar')}
           open={openFolders.denne}
           onToggle={() => toggleFolder('denne')}
         >
           <p className="text-xs text-muted-foreground px-0.5 -mt-1 mb-1">
-            Gjelder bare «{household.name}»
+            {t('profile.thisCalendarHint', { name: household.name })}
           </p>
 
           <div className="space-y-2">
@@ -391,7 +396,7 @@ const ProfileSheet = ({
                 <MemberAvatar member={m} size="sm" />
                 <div>
                   <p className="font-medium text-sm">{m.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{m.role === 'owner' ? 'Eier' : 'Medlem'}</p>
+                  <p className="text-xs text-muted-foreground">{m.role === 'owner' ? t('common.owner') : t('common.member')}</p>
                 </div>
               </div>
             ))}
@@ -407,13 +412,19 @@ const ProfileSheet = ({
                 onChange={(e) => toggleShowInOther.mutate(e.target.checked)}
               />
               <span>
-                <span className="block text-sm font-medium">Vis i andre kalendere</span>
+                <span className="block text-sm font-medium">{t('profile.showInOther')}</span>
                 <span className="block text-xs text-muted-foreground mt-0.5">
-                  Vises som «{household.name}» + tidspunkt hos dine andre kalendere
+                  {t('profile.showInOtherHint', { name: household.name })}
                 </span>
               </span>
             </label>
           )}
+
+          <CalendarLocaleSettings
+            householdId={household.id}
+            locale={(household as any).locale}
+            canEdit={isOwner}
+          />
 
           {isOwner && (
             <div className="space-y-2 pt-1">
@@ -423,28 +434,28 @@ const ProfileSheet = ({
                   disabled={createInvite.isPending}
                   className="w-full rounded-xl bg-calendar-accent/60 py-3 text-sm font-medium transition-colors hover:bg-calendar-accent/80 disabled:opacity-50"
                 >
-                  {createInvite.isPending ? 'Oppretter...' : 'Inviter medlem'}
+                  {createInvite.isPending ? t('onboarding.creating') : t('profile.invite')}
                 </button>
               ) : (
                 <div className="rounded-xl bg-background p-4 space-y-3">
-                  <p className="text-sm font-medium text-center">Invitasjonskode</p>
+                  <p className="text-sm font-medium text-center">{t('profile.inviteCode')}</p>
                   <p className="text-2xl font-bold text-center tracking-widest">{inviteCode}</p>
                   {inviteExpiry && (
                     <p className="text-xs text-muted-foreground text-center">
-                      Utløper {new Date(inviteExpiry).toLocaleDateString('nb-NO')}
+                      {new Date(inviteExpiry).toLocaleDateString(intlLocale)}
                     </p>
                   )}
                   <button
                     onClick={handleCopyCode}
                     className="w-full rounded-xl bg-calendar-accent/60 py-2.5 text-sm font-medium transition-colors hover:bg-calendar-accent/80"
                   >
-                    {copied ? 'Kopiert' : 'Kopier kode'}
+                    {copied ? t('profile.copied') : t('profile.copy')}
                   </button>
                 </div>
               )}
               {createInvite.isError && (
                 <p className="text-destructive text-sm text-center">
-                  {(createInvite.error as any)?.message || 'Kunne ikke opprette invitasjon'}
+                  {(createInvite.error as any)?.message || t('common.error')}
                 </p>
               )}
             </div>
@@ -452,7 +463,7 @@ const ProfileSheet = ({
 
           <div className="pt-2 space-y-3 border-t border-border/50">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
-              Innstillinger for denne kalenderen
+              {t('profile.settingsThis')}
             </p>
             <DailyDigestSettings member={currentMember} />
             <CategoryColorSettings member={currentMember} calendarKind={household.kind} />
@@ -501,13 +512,17 @@ const ProfileSheet = ({
         </ProfileFolder>
 
         <ProfileFolder
-          title="Generelt"
+          title={t('profile.general')}
           open={openFolders.generelt}
           onToggle={() => toggleFolder('generelt')}
         >
           <p className="text-xs text-muted-foreground px-0.5 -mt-1 mb-1">
-            Gjelder kontoen din og alle kalendere
+            {locale === 'en'
+              ? 'Applies to your account and all calendars'
+              : 'Gjelder kontoen din og alle kalendere'}
           </p>
+
+          <AppLocaleSettings />
 
           {memberships.length > 1 && (
             <div className="space-y-1.5">
@@ -530,7 +545,7 @@ const ProfileSheet = ({
                 >
                   <span className="truncate">{m.household.name}</span>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                    {calendarKindLabel(m.household)}
+                    {calendarKindLabelLocalized(m.household, t)}
                   </span>
                 </button>
               ))}

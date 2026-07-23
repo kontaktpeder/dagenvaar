@@ -12,6 +12,8 @@ import {
   type CategoryColorToken,
 } from '@/lib/categoryPresentation';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import { resolveCategoryLabel } from '@/lib/categoryPresentation';
+import { useLocale } from '@/hooks/useLocale';
 
 interface CategoryColorSettingsProps {
   member: HouseholdMember;
@@ -19,6 +21,7 @@ interface CategoryColorSettingsProps {
 }
 
 const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorSettingsProps) => {
+  const { t, locale } = useLocale();
   const queryClient = useQueryClient();
   const options = getCategoryOptionsForKind(calendarKind);
   const initial = getMemberColorMap(member) ?? { ...DEFAULT_CATEGORY_COLOR_MAP };
@@ -57,7 +60,7 @@ const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorS
           if (catKey === 'other') {
             return (
               <div key={catKey} className="rounded-xl bg-muted p-3 flex items-center justify-between opacity-70">
-                <span className="text-sm font-medium">Annet</span>
+                <span className="text-sm font-medium">{t('cat.other')}</span>
                 <span className="text-xs text-muted-foreground">Fast nøytral</span>
               </div>
             );
@@ -71,7 +74,7 @@ const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorS
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
-                  <span className="text-sm font-medium">{meta.label}</span>
+                  <span className="text-sm font-medium">{resolveCategoryLabel(catKey, null, locale)}</span>
                 </div>
                 {savedKey === catKey && (
                   <span className="text-[11px] text-muted-foreground">Lagret ✓</span>

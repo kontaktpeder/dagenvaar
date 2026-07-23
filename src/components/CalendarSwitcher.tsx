@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { calendarKindLabel, resolveCalendarKind } from '@/lib/calendarKinds';
+import { calendarKindLabelLocalized, resolveCalendarKind } from '@/lib/calendarKinds';
+import { useLocale } from '@/hooks/useLocale';
 import type { CalendarMembership } from '@/hooks/useCurrentHouseholdContext';
 import type { Household } from '@/hooks/useHousehold';
 
@@ -17,6 +18,7 @@ const CalendarSwitcher = ({
   stackIndex = 0,
   onSelect,
 }: CalendarSwitcherProps) => {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const canSwitch = memberships.length > 1;
 
@@ -56,7 +58,7 @@ const CalendarSwitcher = ({
         <span className="min-w-0">
           <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
           <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
-            {calendarKindLabel(household)}
+            {calendarKindLabelLocalized(household, t)}
           </span>
         </span>
       </button>

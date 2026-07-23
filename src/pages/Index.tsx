@@ -9,6 +9,7 @@ import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
 import { adjacentCalendarId, sortCalendarMemberships } from '@/lib/calendarStack';
 import { resolveCalendarKind } from '@/lib/calendarKinds';
+import { LocaleProvider } from '@/hooks/useLocale';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
@@ -121,19 +122,31 @@ const Index = () => {
 
   if (authLoading || ctxLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4 motion-reduce:animate-none" />
-          <p className="text-muted-foreground">Laster...</p>
-        </motion.div>
-      </div>
+      <LocaleProvider>
+        <div className="min-h-[100dvh] flex items-center justify-center bg-background">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4 motion-reduce:animate-none" />
+            <p className="text-muted-foreground">Laster...</p>
+          </motion.div>
+        </div>
+      </LocaleProvider>
     );
   }
 
-  if (!user) return <AuthPage />;
+  if (!user) {
+    return (
+      <LocaleProvider>
+        <AuthPage />
+      </LocaleProvider>
+    );
+  }
 
   if (!household || !currentMember) {
-    return <OnboardingPage onComplete={invalidate} />;
+    return (
+      <LocaleProvider>
+        <OnboardingPage onComplete={invalidate} />
+      </LocaleProvider>
+    );
   }
 
   const handleSelectDate = (date: Date) => {
@@ -168,6 +181,7 @@ const Index = () => {
   const calendarKind = resolveCalendarKind(household);
 
   return (
+    <LocaleProvider calendarLocale={(household as any).locale}>
     <div
       data-calendar-kind={calendarKind}
       className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden"
@@ -291,6 +305,7 @@ const Index = () => {
         )}
       </AnimatePresence>
     </div>
+    </LocaleProvider>
   );
 };
 

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
+import { translateDayPart } from '@/lib/i18n';
+import { useLocale } from '@/hooks/useLocale';
 import type { Event } from '@/hooks/useEvents';
 import type { DisplayEvent } from '@/hooks/useOverlayEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
@@ -40,6 +41,7 @@ const CalendarDaySheet = ({
   onEditEvent,
   onQuickEditEvent,
 }: CalendarDaySheetProps) => {
+  const { t, locale, dateLocale } = useLocale();
   const [showList, setShowList] = useState(false);
   const getMember = (id: string) => members.find((m) => m.id === id);
 
@@ -55,7 +57,7 @@ const CalendarDaySheet = ({
       parts.push(ev.start_time.slice(0, 5));
       if (ev.end_time) parts[0] += `–${ev.end_time.slice(0, 5)}`;
     } else {
-      const label = DAY_PART_LABELS[dps || ev.day_part] || ev.day_part;
+      const label = translateDayPart(locale, dps || ev.day_part) || DAY_PART_LABELS[dps || ev.day_part] || ev.day_part;
       if (label) parts.push(label);
     }
     return parts.join(' · ') || null;
@@ -65,7 +67,7 @@ const CalendarDaySheet = ({
     <CenteredPopup onClose={handleDismiss} onExit={onClose} size="sheet" zClassName="z-50">
       <div className="px-5 pt-1 pb-3 shrink-0">
         <h2 className="text-lg font-bold capitalize">
-          {format(date, 'EEEE d. MMMM', { locale: nb })}
+          {format(date, 'EEEE d. MMMM', { locale: dateLocale })}
         </h2>
       </div>
 
@@ -87,8 +89,8 @@ const CalendarDaySheet = ({
             <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0" data-sheet-scroll>
               {events.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center">
-                  <p className="font-medium text-foreground">Dagen er tom</p>
-                  <p className="text-sm text-muted-foreground mt-1">Ingen aktiviteter planlagt</p>
+                  <p className="font-medium text-foreground">{t('event.emptyDay')}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('event.emptyDayHint')}</p>
                 </div>
               ) : (
                 [...events]
@@ -110,7 +112,7 @@ const CalendarDaySheet = ({
                             <p className="text-xs text-muted-foreground mt-0.5">{timeLabel}</p>
                           )}
                           <p className="text-[11px] text-muted-foreground mt-1">
-                            Trykk for å åpne kalenderen
+                            {t('event.openCalendar')}
                           </p>
                         </button>
                       );
@@ -155,14 +157,14 @@ const CalendarDaySheet = ({
                 onClick={() => setShowList(true)}
                 className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold"
               >
-                Se liste
+                {t('event.seeList')}
               </button>
               <button
                 type="button"
                 onClick={() => onCreateForDate(date)}
                 className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold"
               >
-                Ny aktivitet
+                {t('event.newActivity')}
               </button>
             </PopupStickyFooter>
         </div>

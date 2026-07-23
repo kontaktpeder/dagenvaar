@@ -44,6 +44,14 @@ export function calendarKindLabel(source: KindSource | string | null | undefined
   return resolveCalendarKind(source) === 'work' ? 'Jobb' : 'Hjem';
 }
 
+/** Localized kind label — prefer over calendarKindLabel in UI. */
+export function calendarKindLabelLocalized(
+  source: KindSource | string | null | undefined,
+  t: (key: 'kind.home' | 'kind.work', params?: Record<string, string | number>) => string,
+): string {
+  return resolveCalendarKind(source) === 'work' ? t('kind.work') : t('kind.home');
+}
+
 export function defaultShowInOtherCalendars(kind: CalendarKind): boolean {
   return kind === 'work';
 }

@@ -490,6 +490,7 @@ export type Database = {
           created_by: string | null
           id: string
           kind: string
+          locale: string
           name: string
           show_in_other_calendars: boolean
           updated_at: string
@@ -499,6 +500,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           kind?: string
+          locale?: string
           name?: string
           show_in_other_calendars?: boolean
           updated_at?: string
@@ -508,6 +510,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           kind?: string
+          locale?: string
           name?: string
           show_in_other_calendars?: boolean
           updated_at?: string
