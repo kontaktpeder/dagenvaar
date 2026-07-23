@@ -863,6 +863,14 @@ export type Database = {
           start_time: string | null
         }[]
       }
+      hide_overlay_event_for_viewer: {
+        Args: { p_event_id: string; p_viewer_household_id: string }
+        Returns: undefined
+      }
+      unhide_overlay_event_for_viewer: {
+        Args: { p_event_id: string; p_viewer_household_id: string }
+        Returns: undefined
+      }
       is_household_member: {
         Args: { p_household_id: string; p_user_id: string }
         Returns: boolean

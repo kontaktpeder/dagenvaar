@@ -27,6 +27,7 @@ interface CalendarDaySheetProps {
   onCreateForDate: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
+  calendarKind?: string;
   canSeedWeek?: boolean;
   onSeedWeek?: () => void;
 }
@@ -43,6 +44,7 @@ const CalendarDaySheet = ({
   onCreateForDate,
   onEditEvent,
   onQuickEditEvent,
+  calendarKind = 'home',
   canSeedWeek = false,
   onSeedWeek,
 }: CalendarDaySheetProps) => {
@@ -105,7 +107,7 @@ const CalendarDaySheet = ({
                             <p className="text-xs text-muted-foreground mt-0.5">{timeLabel}</p>
                           )}
                           <p className="text-[11px] text-muted-foreground mt-1">
-                            {t('event.openCalendar')}
+                            {t('event.overlayHint')}
                           </p>
                         </button>
                       );
@@ -198,6 +200,7 @@ const CalendarDaySheet = ({
             householdId={householdId}
             members={members}
             currentMemberId={currentMemberId}
+            calendarKind={calendarKind}
             initialDate={date}
             embedded
             highlight={highlight}

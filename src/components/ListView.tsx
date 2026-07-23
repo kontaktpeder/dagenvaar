@@ -15,6 +15,8 @@ import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresent
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import { canEditEvent } from '@/lib/canEditEvent';
+import type { CalendarKind } from '@/lib/calendarKinds';
 import type { Highlight } from '@/pages/Index';
 import { useLocale } from '@/hooks/useLocale';
 import EventDetailSheet from '@/components/EventDetailSheet';
@@ -26,6 +28,7 @@ interface ListViewProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  calendarKind?: CalendarKind | string;
   initialDate?: Date;
   onDateChange?: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
@@ -39,6 +42,7 @@ const ListView = ({
   householdId,
   members,
   currentMemberId,
+  calendarKind = 'home',
   initialDate,
   onDateChange,
   onEditEvent,
@@ -187,6 +191,7 @@ const ListView = ({
                   key={ev.id}
                   event={ev}
                   currentMemberId={currentMemberId}
+                  calendarKind={calendarKind}
                   highlight={highlight}
                   onTap={(e) => setSelectedEvent(e)}
                   onLongPress={(e) => onEditEvent?.(e)}
@@ -304,6 +309,7 @@ const ListView = ({
             event={selectedEvent}
             members={members}
             currentMemberId={currentMemberId}
+            calendarKind={calendarKind}
             onClose={() => setSelectedEvent(null)}
             onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
             onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
@@ -317,16 +323,17 @@ const ListView = ({
 interface EventRowProps {
   event: Event;
   currentMemberId: string;
+  calendarKind: CalendarKind | string;
   highlight: Highlight;
   onTap: (event: Event) => void;
   onLongPress: (event: Event) => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
 }
 
-const EventRow = ({ event, currentMemberId, highlight, onTap, onLongPress, getMemberForEvent }: EventRowProps) => {
+const EventRow = ({ event, currentMemberId, calendarKind, highlight, onTap, onLongPress, getMemberForEvent }: EventRowProps) => {
   const { longPressHandlers, didFire } = useLongPress({
     onLongPress: () => {
-      if (event.owner_member_id === currentMemberId) onLongPress(event);
+      if (canEditEvent(event, currentMemberId, calendarKind)) onLongPress(event);
     },
   });
 

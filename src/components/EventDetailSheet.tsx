@@ -10,17 +10,20 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { canEditEvent } from '@/lib/canEditEvent';
+import type { CalendarKind } from '@/lib/calendarKinds';
 
 interface EventDetailSheetProps {
   event: Event;
   members: HouseholdMember[];
   currentMemberId: string;
+  calendarKind?: CalendarKind | string;
   onClose: () => void;
   onEdit?: (event: Event) => void;
   onQuickEdit?: (event: Event) => void;
 }
 
-const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
+const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'home', onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
   const [comment, setComment] = useState('');
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
@@ -28,6 +31,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
 
   const owner = members.find((m) => m.id === event.owner_member_id);
   const ownerColor = owner ? getMemberColor(owner.color_token) : getMemberColor('pastel-blue');
+  const editable = canEditEvent(event, currentMemberId, calendarKind);
 
   const handleAddComment = () => {
     if (!comment.trim()) return;
@@ -141,7 +145,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           </button>
         </div>
 
-        {event.owner_member_id === currentMemberId && onQuickEdit && (
+        {editable && onQuickEdit && (
           <button
             type="button"
             onClick={() => onQuickEdit(event)}
@@ -151,7 +155,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, onClose, onEdit, on
           </button>
         )}
 
-        {event.owner_member_id === currentMemberId && (
+        {editable && (
           <button
             type="button"
             onClick={handleDelete}

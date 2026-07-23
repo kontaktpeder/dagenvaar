@@ -21,9 +21,11 @@ import {
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import { useLocale } from '@/hooks/useLocale';
+import type { CalendarKind } from '@/lib/calendarKinds';
 import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
+import OverlayEventSheet from '@/components/OverlayEventSheet';
 import { useLongPress } from '@/hooks/useLongPress';
 import { fadeQuick } from '@/lib/motion';
 import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
@@ -32,6 +34,7 @@ interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
   currentMemberId: string;
+  calendarKind?: CalendarKind | string;
   currentDate?: Date;
   onCurrentDateChange?: Dispatch<SetStateAction<Date>>;
   onSelectDate: (date: Date) => void;
@@ -128,7 +131,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
@@ -142,6 +145,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
   const [showYear, setShowYear] = useState(false);
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
   const [detailEvent, setDetailEvent] = useState<Event | null>(null);
+  const [overlayEvent, setOverlayEvent] = useState<DisplayEvent | null>(null);
   const [paging, setPaging] = useState(false);
 
   const openDayFromPush = useCallback(
@@ -570,9 +574,8 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             onClose={() => setDaySheetDate(null)}
             onPickEvent={(ev) => {
               const display = ev as DisplayEvent;
-              if (display.isOverlay && display.sourceHouseholdId) {
-                onSwitchCalendar?.(display.sourceHouseholdId);
-                setDaySheetDate(null);
+              if (display.isOverlay) {
+                setOverlayEvent(display);
                 return;
               }
               // Keep day sheet under detail — backdrop pops one level
@@ -584,10 +587,26 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             }}
             onEditEvent={onEditEvent}
             onQuickEditEvent={onQuickEditEvent}
+            calendarKind={calendarKind}
             canSeedWeek={canSeedWeek}
             onSeedWeek={() => {
               setDaySheetDate(null);
               onSeedWeek?.();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {overlayEvent && (
+          <OverlayEventSheet
+            event={overlayEvent}
+            viewerHouseholdId={householdId}
+            onClose={() => setOverlayEvent(null)}
+            onOpenSourceCalendar={(id) => {
+              setOverlayEvent(null);
+              setDaySheetDate(null);
+              onSwitchCalendar?.(id);
             }}
           />
         )}
@@ -599,6 +618,7 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             event={detailEvent}
             members={members}
             currentMemberId={currentMemberId}
+            calendarKind={calendarKind}
             onClose={() => setDetailEvent(null)}
             onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
             onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
