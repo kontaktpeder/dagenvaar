@@ -307,6 +307,7 @@ const ProfileSheet = ({
         <div
           data-sheet-scroll
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
         >
           {mode === 'calendar' ? (
             <div className="space-y-4 pt-2 pb-2">

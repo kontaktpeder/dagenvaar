@@ -9,7 +9,7 @@ import {
 } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
-import { sheetCardVariants, sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
+import { sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
 interface CenteredPopupProps {
   onClose: () => void;
@@ -80,22 +80,35 @@ const CenteredPopup = ({
   const exit = onExit ?? onClose;
   const dragControls = useDragControls();
   const cardRef = useRef<HTMLDivElement>(null);
-  const pullRef = useRef<{ y: number; scrollTop: number } | null>(null);
+  const pullRef = useRef<{ y: number; scrollTop: number; pointerId: number } | null>(null);
 
-  const dragY = useMotionValue(0);
+  const dragY = useMotionValue(
+    typeof window !== 'undefined' ? window.innerHeight : 640,
+  );
   const dragProgress = useTransform(dragY, (y) => Math.min(1, Math.max(0, Number(y)) / 160));
   const backdropOpacity = useTransform(dragProgress, [0, 1], [backdrop === 'solid' ? 0.4 : 0, 0]);
 
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
+  const enteredRef = useRef(false);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setPadReady(true));
     return () => window.cancelAnimationFrame(id);
   }, []);
 
+  // Single y channel for enter + drag + dismiss (avoids nested transform lag on Android)
+  useEffect(() => {
+    if (enteredRef.current || flyingOut) return;
+    enteredRef.current = true;
+    void animate(dragY, 0, sheetSpring);
+  }, [dragY, flyingOut]);
+
   useEffect(() => {
     if (flyingOut) return;
+    if (!enteredRef.current) return;
+    // Don't fight enter animation when keyboard toggles mid-open
+    if (dragY.get() > 40) return;
     dragY.stop();
     dragY.set(0);
   }, [keyboardOpen, dragY, flyingOut]);
@@ -114,10 +127,11 @@ const CenteredPopup = ({
   };
 
   const flyOutThenDismiss = () => {
+    if (flyingOut) return;
     setFlyingOut(true);
     dragY.stop();
     const curY = dragY.get();
-    const travel = window.innerHeight * 1.2;
+    const travel = Math.max(window.innerHeight * 1.05 - curY, window.innerHeight * 0.55);
     void animate(dragY, curY + travel, flyTween).then(() => {
       exit();
     });
@@ -137,7 +151,7 @@ const CenteredPopup = ({
   const canDrag = !keyboardOpen && !flyingOut;
 
   const onCardPointerDown = (e: ReactPointerEvent) => {
-    if (!canDrag) return;
+    if (!canDrag || e.button !== 0) return;
     const target = e.target as HTMLElement;
     // Let form controls keep focus / text selection; grabber handles its own drag
     if (target.closest('input, textarea, select, [contenteditable="true"]')) {
@@ -151,11 +165,13 @@ const CenteredPopup = ({
     pullRef.current = {
       y: e.clientY,
       scrollTop: getScrollTop(cardRef.current),
+      pointerId: e.pointerId,
     };
   };
 
   const onCardPointerMove = (e: ReactPointerEvent) => {
     if (!canDrag || !pullRef.current) return;
+    if (pullRef.current.pointerId !== e.pointerId) return;
     const dy = e.clientY - pullRef.current.y;
     // Re-check live scroll position so overscroll-at-top still dismisses
     const scrollTop = getScrollTop(cardRef.current);
@@ -164,6 +180,12 @@ const CenteredPopup = ({
       return;
     }
     if (dy > PULL_ACTIVATE_PX) {
+      // Android: keep receiving moves after scroll gesture would otherwise steal them
+      try {
+        cardRef.current?.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
       dragControls.start(e);
       pullRef.current = null;
     }
@@ -209,21 +231,16 @@ const CenteredPopup = ({
             if (dragY.get() < 0) dragY.set(0);
           }}
           onDragEnd={handleDragEnd}
-          style={{ y: dragY }}
+          // Must keep y + touchAction in ONE style object (duplicate style props overwrite dragY).
+          style={{ y: dragY, touchAction: 'none' }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
             size === 'sheet' ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
           )}
-          style={{ touchAction: 'none' }}
           onClick={(e) => e.stopPropagation()}
         >
           <motion.div
             ref={cardRef}
-            variants={sheetCardVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={sheetSpring}
             onPointerDown={onCardPointerDown}
             onPointerMove={onCardPointerMove}
             onPointerUp={clearPull}
@@ -242,6 +259,7 @@ const CenteredPopup = ({
             <div
               data-sheet-grabber
               className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-1.5 pb-1"
+              style={{ touchAction: 'none' }}
             >
               <div className="w-11" aria-hidden />
               <button
@@ -251,7 +269,11 @@ const CenteredPopup = ({
                 onPointerDown={(e) => {
                   e.stopPropagation();
                   if (!canDrag) return;
-                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  try {
+                    e.currentTarget.setPointerCapture?.(e.pointerId);
+                  } catch {
+                    /* ignore */
+                  }
                   dragControls.start(e);
                 }}
               >
@@ -261,7 +283,7 @@ const CenteredPopup = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  exit();
+                  flyOutThenDismiss();
                 }}
                 className="relative z-40 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
                 aria-label="Lukk"

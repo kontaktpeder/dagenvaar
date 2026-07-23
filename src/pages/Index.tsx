@@ -194,11 +194,14 @@ const Index = () => {
           onSelect={(id) => selectCalendar(id)}
           onOpenSettings={(id) => {
             if (id !== household.id) selectCalendar(id);
-            setProfileMode('calendar');
+            // Defer sheet open so calendar switch paint isn't blocked (esp. Android)
+            window.requestAnimationFrame(() => setProfileMode('calendar'));
           }}
         />
         <button
-          onClick={() => setProfileMode('account')}
+          onClick={() => {
+            window.requestAnimationFrame(() => setProfileMode('account'));
+          }}
           className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden shadow-sm"
           style={
             !currentMember.avatar_url
@@ -298,6 +301,7 @@ const Index = () => {
       <AnimatePresence>
         {profileMode && (
           <ProfileSheet
+            key={profileMode}
             mode={profileMode}
             household={household}
             members={members}
