@@ -33,7 +33,6 @@ const ADD_BTN =
 
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const updateEvent = useUpdateEvent();
-  const categoryOptions = getCategoryOptionsForKind(calendarKind);
 
   const initStartIdx = (() => {
     const dps = (event as any).day_part_start as string | null;
