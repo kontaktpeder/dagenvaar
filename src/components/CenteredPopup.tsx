@@ -197,7 +197,11 @@ const CenteredPopup = ({
       />
 
       <div
-        className="absolute inset-0 flex items-end justify-center pointer-events-none overflow-hidden"
+        className={cn(
+          'absolute inset-0 flex justify-center pointer-events-none overflow-hidden',
+          // sheet must stretch full height — items-end collapses to content (short wizards/day sheets)
+          size === 'sheet' ? 'items-stretch' : 'items-end',
+        )}
         style={framePad}
       >
         <motion.div
@@ -213,7 +217,7 @@ const CenteredPopup = ({
           style={{ y: dragY }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
-            size === 'sheet' ? 'h-[min(100%,100dvh)] max-h-full' : 'h-auto max-h-[min(92dvh,100%)]',
+            size === 'sheet' ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -229,8 +233,9 @@ const CenteredPopup = ({
             onPointerUp={clearPull}
             onPointerCancel={clearPull}
             className={cn(
-              'relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
+              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
               'rounded-t-[1.25rem] rounded-b-none',
+              size === 'sheet' ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
             style={{
