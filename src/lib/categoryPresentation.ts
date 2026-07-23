@@ -15,11 +15,15 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
-  meeting: 'blue',
+  // WORK core hues (pastel tokens)
+  meeting: 'amber',
+  production: 'green',
+  development: 'blue',
+  admin: 'purple',
+  // Legacy
   client: 'teal',
   deadline: 'orange',
   focus: 'purple',
-  admin: 'amber',
 };
 
 type Visuals = {
@@ -75,10 +79,12 @@ const DEFAULT_LABELS: Record<EventCategory, string> = {
   important: 'Viktig',
   travel: 'Reise',
   meeting: 'Møte',
+  production: 'Produksjon',
+  development: 'Utvikling',
+  admin: 'Administrasjon',
   client: 'Kunde',
   deadline: 'Frist',
   focus: 'Fokus',
-  admin: 'Drift',
   other: 'Annet',
 };
 

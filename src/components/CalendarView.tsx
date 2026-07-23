@@ -858,7 +858,7 @@ const DayCell = ({
         }`}
         style={
           today
-            ? { border: '2px solid hsl(340, 55%, 68%)', color: 'hsl(340, 55%, 58%)' }
+            ? { border: '2px solid hsl(var(--primary))', color: 'hsl(var(--primary))' }
             : undefined
         }
       >

@@ -71,6 +71,37 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* Jobbkalender — kjøligere blåtoner, fortsatt pastelly */
+  [data-calendar-kind="work"] {
+    --background: 210 28% 98%;
+    --foreground: 220 18% 18%;
+
+    --primary: 214 52% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 214 35% 94%;
+    --secondary-foreground: 220 18% 18%;
+
+    --muted: 214 22% 95%;
+    --muted-foreground: 215 12% 48%;
+
+    --accent: 200 45% 90%;
+    --accent-foreground: 220 18% 18%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 214 52% 58%;
+
+    --today: 214 48% 82%;
+    --weekend: 214 22% 96%;
+    --month-stripe: 214 45% 72%;
+    --nav-bg: 0 0% 100%;
+    --nav-shadow: 214 30% 88%;
+
+    --calendar-accent: 214 55% 86%;
+    --list-accent: 200 40% 90%;
+  }
 }
 
 @layer base {

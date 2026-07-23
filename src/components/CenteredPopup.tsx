@@ -32,6 +32,11 @@ interface CenteredPopupProps {
    * Backdrop taps still use onClose (e.g. step-back in wizards).
    */
   onExit?: () => void;
+  /**
+   * Only the top grabber starts swipe-to-dismiss (content scrolls freely).
+   * Use for long sheets like profile.
+   */
+  grabberDismissOnly?: boolean;
 }
 
 const DISMISS_DIST = 110;
@@ -74,6 +79,7 @@ const CenteredPopup = ({
   zClassName = 'z-50',
   backdrop = 'solid',
   onExit,
+  grabberDismissOnly = false,
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
@@ -137,10 +143,14 @@ const CenteredPopup = ({
   const canDrag = !keyboardOpen && !flyingOut;
 
   const onCardPointerDown = (e: ReactPointerEvent) => {
-    if (!canDrag) return;
+    if (!canDrag || grabberDismissOnly) return;
     const target = e.target as HTMLElement;
     // Let form controls keep focus / text selection; grabber + empty areas still dismiss
     if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+      pullRef.current = null;
+      return;
+    }
+    if (target.closest('[data-sheet-grabber]')) {
       pullRef.current = null;
       return;
     }
@@ -230,19 +240,21 @@ const CenteredPopup = ({
             {/* Grabber + ✕ */}
             <div
               data-sheet-grabber
-              className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-2 pb-1"
+              className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-1.5 pb-1"
             >
               <div className="w-11" aria-hidden />
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center py-2 touch-none"
+                className="flex flex-1 items-center justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
                 aria-label="Dra for å lukke"
                 onPointerDown={(e) => {
                   e.stopPropagation();
-                  if (canDrag) dragControls.start(e);
+                  if (!canDrag) return;
+                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  dragControls.start(e);
                 }}
               >
-                <span className="block h-1 w-10 rounded-full bg-muted-foreground/35" />
+                <span className="block h-1.5 w-12 rounded-full bg-muted-foreground/40" />
               </button>
               <button
                 type="button"

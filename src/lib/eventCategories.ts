@@ -25,17 +25,20 @@ export type HomeEventCategory =
   | 'travel'
   | 'other';
 
+/** WORK core–aligned categories for jobbkalender. */
 export type WorkEventCategory =
   | 'meeting'
-  | 'client'
-  | 'deadline'
-  | 'focus'
-  | 'travel'
+  | 'production'
+  | 'development'
   | 'admin'
+  | 'travel'
   | 'other';
 
-/** All persisted category keys (home + work). */
-export type EventCategory = HomeEventCategory | WorkEventCategory;
+/** Legacy work keys still readable on old events. */
+export type LegacyWorkEventCategory = 'client' | 'deadline' | 'focus';
+
+/** All persisted category keys (home + work + legacy). */
+export type EventCategory = HomeEventCategory | WorkEventCategory | LegacyWorkEventCategory;
 
 export type EventPriority = 'normal' | 'high';
 
@@ -93,10 +96,32 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
   meeting: {
     label: 'Møte',
     Icon: UsersRound,
+    chipBg: 'bg-amber-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-amber-500',
+  },
+  production: {
+    label: 'Produksjon',
+    Icon: BriefcaseBusiness,
+    chipBg: 'bg-green-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-green-500',
+  },
+  development: {
+    label: 'Utvikling',
+    Icon: Target,
     chipBg: 'bg-blue-100',
     chipText: 'text-foreground',
     iconColor: 'text-blue-500',
   },
+  admin: {
+    label: 'Administrasjon',
+    Icon: ClipboardList,
+    chipBg: 'bg-purple-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-purple-500',
+  },
+  // Legacy — still render old events
   client: {
     label: 'Kunde',
     Icon: Handshake,
@@ -118,13 +143,6 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-purple-500',
   },
-  admin: {
-    label: 'Drift',
-    Icon: ClipboardList,
-    chipBg: 'bg-amber-100',
-    chipText: 'text-foreground',
-    iconColor: 'text-amber-500',
-  },
   other: {
     label: 'Annet',
     Icon: MoreHorizontal,
@@ -144,13 +162,13 @@ export const HOME_CATEGORY_OPTIONS: EventCategory[] = [
   'other',
 ];
 
+/** Aligns with WORK core work_types (+ Reise). */
 export const WORK_CATEGORY_OPTIONS: EventCategory[] = [
   'meeting',
-  'client',
-  'deadline',
-  'focus',
-  'travel',
+  'production',
+  'development',
   'admin',
+  'travel',
   'other',
 ];
 
@@ -180,12 +198,14 @@ export const CATEGORY_SORT_ORDER: Record<string, number> = {
   deadline: 1,
   work: 2,
   meeting: 3,
-  client: 4,
-  focus: 5,
+  production: 4,
+  development: 5,
   admin: 6,
-  couple: 7,
-  celebration: 8,
-  social: 9,
-  travel: 10,
-  other: 11,
+  client: 7,
+  focus: 8,
+  couple: 9,
+  celebration: 10,
+  social: 11,
+  travel: 12,
+  other: 13,
 };

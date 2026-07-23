@@ -158,7 +158,8 @@ const ProfileSheet = ({
       const userId = auth.user?.id;
       if (!userId) throw new Error('Ikke innlogget');
 
-      const filePath = `${userId}/avatar.jpg`;
+      // Per-calendar avatar (membership row + storage path)
+      const filePath = `${userId}/${household.id}/avatar.jpg`;
 
       const { error: uploadErr } = await supabase.storage
         .from('avatars')
@@ -174,7 +175,8 @@ const ProfileSheet = ({
       const { error: updateErr } = await supabase
         .from('household_members')
         .update({ avatar_url: avatarUrl })
-        .eq('id', currentMember.id);
+        .eq('id', currentMember.id)
+        .eq('household_id', household.id);
       if (updateErr) throw updateErr;
 
       return avatarUrl;
@@ -326,7 +328,13 @@ const ProfileSheet = ({
   const isOwner = currentMember.role === 'owner';
 
   return (
-    <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[60]">
+    <CenteredPopup
+      onClose={onClose}
+      onExit={onClose}
+      size="sheet"
+      zClassName="z-[60]"
+      grabberDismissOnly
+    >
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           data-sheet-scroll
@@ -361,6 +369,9 @@ const ProfileSheet = ({
           <p className="text-sm text-muted-foreground mt-0.5">
             {household.name}
             <span className="text-muted-foreground/70"> · {calendarKindLabel(household)}</span>
+          </p>
+          <p className="text-xs text-muted-foreground/80 mt-1.5">
+            Profilbildet gjelder bare denne kalenderen
           </p>
         </section>
 

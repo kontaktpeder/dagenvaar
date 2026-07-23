@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
 import { adjacentCalendarId, sortCalendarMemberships } from '@/lib/calendarStack';
+import { resolveCalendarKind } from '@/lib/calendarKinds';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
@@ -164,9 +165,13 @@ const Index = () => {
   };
 
   const canSwipeStack = orderedMemberships.length > 1;
+  const calendarKind = resolveCalendarKind(household);
 
   return (
-    <div className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden">
+    <div
+      data-calendar-kind={calendarKind}
+      className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden"
+    >
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}
