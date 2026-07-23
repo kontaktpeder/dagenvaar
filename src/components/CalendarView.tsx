@@ -43,6 +43,8 @@ interface CalendarViewProps {
   onSwipeCalendarStack?: (direction: 1 | -1) => void;
   canSwipeCalendarStack?: boolean;
   highlight?: Highlight;
+  canSeedWeek?: boolean;
+  onSeedWeek?: () => void;
 }
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
@@ -126,7 +128,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
@@ -582,6 +584,11 @@ const CalendarView = ({ householdId, members, currentMemberId, currentDate: cont
             }}
             onEditEvent={onEditEvent}
             onQuickEditEvent={onQuickEditEvent}
+            canSeedWeek={canSeedWeek}
+            onSeedWeek={() => {
+              setDaySheetDate(null);
+              onSeedWeek?.();
+            }}
           />
         )}
       </AnimatePresence>

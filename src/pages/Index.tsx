@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { Navigate } from 'react-router-dom';
 import { startOfMonth } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -7,8 +7,10 @@ import { getRecoveryState } from '@/lib/auth/recoveryState';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentHouseholdContext } from '@/hooks/useCurrentHouseholdContext';
 import { useMembers } from '@/hooks/useHousehold';
+import { useHouseholdHasEvents } from '@/hooks/useHouseholdHasEvents';
 import { adjacentCalendarId, sortCalendarMemberships } from '@/lib/calendarStack';
 import { resolveCalendarKind } from '@/lib/calendarKinds';
+import { isSeedWeekDismissed } from '@/lib/seedWeekStorage';
 import { LocaleProvider } from '@/hooks/useLocale';
 import AuthPage from '@/pages/Auth';
 import OnboardingPage from '@/pages/Onboarding';
@@ -17,6 +19,7 @@ import CalendarSwitcher from '@/components/CalendarSwitcher';
 import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
+import SeedWeekFlow from '@/components/SeedWeekFlow';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
@@ -41,6 +44,7 @@ const Index = () => {
     invalidate,
   } = useCurrentHouseholdContext();
   const { data: members = [] } = useMembers(household?.id);
+  const { data: hasEvents, isSuccess: hasEventsReady } = useHouseholdHasEvents(household?.id);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
@@ -49,9 +53,11 @@ const Index = () => {
   const [profileMode, setProfileMode] = useState<ProfileSheetMode | null>(null);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [quickEditEvent, setQuickEditEvent] = useState<Event | null>(null);
+  const [showSeedWeek, setShowSeedWeek] = useState(false);
   const [highlight, setHighlight] = useState<Highlight>(null);
   const [stackDirection, setStackDirection] = useState(0);
   const switchingRef = useRef(false);
+  const seedAutoOpenedRef = useRef<string | null>(null);
 
   const orderedMemberships = useMemo(
     () => sortCalendarMemberships(memberships),
@@ -85,12 +91,27 @@ const Index = () => {
   const handleSwipeCalendarStack = useCallback(
     (direction: 1 | -1) => {
       if (!household) return;
-      if (showNewEvent || editEvent || quickEditEvent || profileMode) return;
+      if (showNewEvent || editEvent || quickEditEvent || profileMode || showSeedWeek) return;
       const nextId = adjacentCalendarId(memberships, household.id, direction);
       if (nextId) selectCalendar(nextId, direction);
     },
-    [household, memberships, selectCalendar, showNewEvent, editEvent, quickEditEvent, profileMode],
+    [household, memberships, selectCalendar, showNewEvent, editEvent, quickEditEvent, profileMode, showSeedWeek],
   );
+
+  const calendarKind = household ? resolveCalendarKind(household) : 'home';
+  const canSeedWeek =
+    !!household &&
+    calendarKind === 'home' &&
+    hasEventsReady &&
+    hasEvents === false;
+
+  useEffect(() => {
+    if (!household || !canSeedWeek) return;
+    if (isSeedWeekDismissed(household.id)) return;
+    if (seedAutoOpenedRef.current === household.id) return;
+    seedAutoOpenedRef.current = household.id;
+    setShowSeedWeek(true);
+  }, [household, canSeedWeek]);
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
@@ -178,7 +199,6 @@ const Index = () => {
   };
 
   const canSwipeStack = orderedMemberships.length > 1;
-  const calendarKind = resolveCalendarKind(household);
 
   return (
     <LocaleProvider calendarLocale={(household as any).locale}>
@@ -240,9 +260,21 @@ const Index = () => {
             onSwipeCalendarStack={handleSwipeCalendarStack}
             canSwipeCalendarStack={canSwipeStack}
             highlight={highlight}
+            canSeedWeek={canSeedWeek}
+            onSeedWeek={() => setShowSeedWeek(true)}
           />
         </motion.div>
       </main>
+
+      <AnimatePresence>
+        {showSeedWeek && (
+          <SeedWeekFlow
+            householdId={household.id}
+            onClose={() => setShowSeedWeek(false)}
+            onComplete={() => setShowSeedWeek(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showNewEvent && (

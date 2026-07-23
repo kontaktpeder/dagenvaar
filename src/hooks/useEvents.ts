@@ -104,6 +104,7 @@ export function useCreateEvent() {
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['overlay-events'] });
+      queryClient.invalidateQueries({ queryKey: ['household-has-events'] });
       if (created?.household_id && created?.title) {
         notifyPartners({
           householdId: created.household_id,
