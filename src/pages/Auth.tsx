@@ -1,25 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/hooks/useLocale';
 import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
+import { consumeSessionNotice } from '@/lib/auth/sessionNotice';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
 const AuthPage = () => {
+  const { t } = useLocale();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const { signIn, signUp } = useAuth();
 
+  useEffect(() => {
+    const pending = consumeSessionNotice();
+    if (pending === 'account_unavailable') {
+      setNotice(t('auth.accountUnavailable'));
+    }
+  }, [t]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setBusy(true);
     try {
       if (mode === 'login') {
@@ -45,6 +57,7 @@ const AuthPage = () => {
   const switchMode = (next: Mode) => {
     setMode(next);
     setError('');
+    setNotice('');
     setConfirmationSent(false);
     setResetSent(false);
   };
@@ -120,6 +133,12 @@ const AuthPage = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
         <h1 className="text-3xl font-bold text-center mb-2">{title}</h1>
         <p className="text-muted-foreground text-center mb-8">{subtitle}</p>
+
+        {notice && (
+          <p className="mb-4 rounded-xl bg-muted px-4 py-3 text-sm text-center text-foreground">
+            {notice}
+          </p>
+        )}
 
         <div className="space-y-4">
           <input
