@@ -55,16 +55,22 @@ const snapTween = {
   ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
 };
 
-function getScrollTop(root: HTMLElement | null): number {
-  if (!root) return 0;
+function getScrollEl(root: HTMLElement | null): HTMLElement | null {
+  if (!root) return null;
   const marked = root.querySelector('[data-sheet-scroll]') as HTMLElement | null;
-  if (marked) return marked.scrollTop;
-  const scrollers = root.querySelectorAll('.overflow-y-auto, .overflow-y-scroll');
-  let max = 0;
-  scrollers.forEach((node) => {
-    max = Math.max(max, (node as HTMLElement).scrollTop);
-  });
-  return max;
+  if (marked) return marked;
+  return root.querySelector('.overflow-y-auto, .overflow-y-scroll') as HTMLElement | null;
+}
+
+function getScrollTop(root: HTMLElement | null): number {
+  return getScrollEl(root)?.scrollTop ?? 0;
+}
+
+/** True when the sheet body can actually scroll (content taller than viewport). */
+function contentCanScroll(root: HTMLElement | null): boolean {
+  const el = getScrollEl(root);
+  if (!el) return false;
+  return el.scrollHeight > el.clientHeight + 2;
 }
 
 function yForDetent(detent: SheetDetent, frameH: number): number {
@@ -258,6 +264,8 @@ const CenteredPopup = ({
     if (pullRef.current.pointerId !== e.pointerId) return;
     const dy = e.clientY - pullRef.current.y;
     const scrollTop = getScrollTop(cardRef.current);
+    const scrollable = contentCanScroll(cardRef.current);
+
     // Expand toward full even when scrolled, if pulling up from half
     if (dy < -PULL_ACTIVATE_PX && multiDetent && detentRef.current !== 'full') {
       try {
@@ -269,11 +277,14 @@ const CenteredPopup = ({
       pullRef.current = null;
       return;
     }
-    if (scrollTop > 0 || pullRef.current.scrollTop > 0) {
+
+    // Only block sheet-drag when the body is mid-scroll. Short lists / empty
+    // space (scrollTop 0 or not scrollable) can always drag the sheet down.
+    if (scrollable && scrollTop > 1) {
       if (dy > PULL_ACTIVATE_PX) pullRef.current = null;
       return;
     }
-    if (dy > PULL_ACTIVATE_PX) {
+    if (Math.abs(dy) > PULL_ACTIVATE_PX) {
       try {
         cardRef.current?.setPointerCapture?.(e.pointerId);
       } catch {
@@ -347,9 +358,6 @@ const CenteredPopup = ({
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
-            style={{
-              paddingBottom: keyboardOpen ? undefined : 'env(safe-area-inset-bottom)',
-            }}
           >
             <div
               data-sheet-grabber

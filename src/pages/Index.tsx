@@ -20,6 +20,7 @@ import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
 import SeedWeekFlow from '@/components/SeedWeekFlow';
+import WelcomeHost from '@/components/WelcomeHost';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import type { Event } from '@/hooks/useEvents';
@@ -206,6 +207,7 @@ const Index = () => {
       data-calendar-kind={calendarKind}
       className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden"
     >
+      <WelcomeHost />
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}

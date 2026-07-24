@@ -10,6 +10,7 @@ export const nb = {
   'common.owner': 'Eier',
   'common.member': 'Medlem',
   'common.optional': 'Valgfritt',
+  'common.back': 'Tilbake',
 
   // locales
   'locale.app': 'App-språk',
@@ -68,6 +69,11 @@ export const nb = {
   'onboarding.joining': 'Kobler til...',
   'onboarding.creating': 'Oppretter...',
   'onboarding.joinCta': 'Bli med',
+  'onboarding.signOut': 'Logg ut',
+  'onboarding.signOutHint': 'Feil konto, eller vil du starte på nytt?',
+
+  'auth.accountUnavailable':
+    'Kontoen finnes ikke lenger. Logg inn med en annen konto, eller opprett ny. Kontakt support hvis dette er feil.',
 
   // profile
   'profile.thisCalendar': 'Denne kalenderen',
@@ -141,31 +147,31 @@ export const nb = {
   'event.openCalendar': 'Trykk for å åpne kalenderen',
 
   // seed week (young couples)
-  'seed.title': 'Gjør uka deres synlig',
-  'seed.subtitle': 'Huk av det som skjer ofte. Du kan endre alt etterpå.',
+  'seed.title': 'Fyll inn uka',
+  'seed.subtitle': 'Gjør det enkelt å planlegge — legg inn noen ting dere allerede vet, så ser dere når dere har planer.',
+  'seed.placeTitle': 'Når skjer det?',
+  'seed.placeSubtitle': 'Velg dag og del av dagen. Du kan finjustere senere.',
   'seed.submit': 'Legg inn {count} ting',
+  'seed.nextPlace': 'Neste · {count} valgt',
   'seed.pickSome': 'Velg noe først',
   'seed.saving': 'Legger inn...',
   'seed.skip': 'Hopp over',
   'seed.done': 'La til {count} ting i kalenderen',
   'seed.training': 'Trening',
-  'seed.trainingHint': 'To ettermiddager denne uka',
   'seed.dinnerHome': 'Middag hjemme',
-  'seed.dinnerHomeHint': 'Et par kvelder',
   'seed.dinnerOut': 'Middag ute',
-  'seed.dinnerOutHint': 'En kveld ute',
   'seed.workLate': 'Jobb til sent',
-  'seed.workLateHint': 'Så partneren ser at du er opptatt',
   'seed.dateNight': 'Date',
-  'seed.dateNightHint': 'Fredag eller lørdag kveld',
   'seed.friends': 'Venner',
-  'seed.friendsHint': 'Lørdag kveld',
   'seed.weekend': 'Helgetur',
-  'seed.weekendHint': 'Lørdag–søndag',
   'seed.aloneTime': 'Alenetid',
-  'seed.aloneTimeHint': 'En kveld for deg — synlig som opptatt',
   'seed.chores': 'Praktisk / vask',
-  'seed.choresHint': 'Søndag formiddag',
+
+  // one-shot welcome
+  'welcome.createTitle': 'Kalenderen er klar',
+  'welcome.createBody': 'Inviter partner — da blir det kalenderen vår. Tips: trykk lenge på en dag for ny aktivitet.',
+  'welcome.joinTitle': 'Du er med i kalenderen vår',
+  'welcome.joinBody': 'Her ser dere de samme planene. Trykk lenge på en dag for å legge til noe.',
 } as const;
 
 export type MessageKey = keyof typeof nb;

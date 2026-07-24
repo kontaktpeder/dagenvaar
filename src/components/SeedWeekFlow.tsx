@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import {
   Dumbbell,
@@ -15,10 +16,15 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useLocale } from '@/hooks/useLocale';
+import { translateDayPart } from '@/lib/i18n';
+import type { DayPart } from '@/lib/dayParts';
 import {
   SEED_TEMPLATES,
+  SEED_DAY_PARTS,
   buildSeedEvents,
-  countSeedEvents,
+  defaultPlacementFor,
+  nextDays,
+  type SeedPlacement,
   type SeedTemplateId,
 } from '@/lib/seedWeek';
 import { dismissSeedWeek } from '@/lib/seedWeekStorage';
@@ -43,14 +49,18 @@ interface SeedWeekFlowProps {
   onComplete: () => void;
 }
 
+type Step = 'pick' | 'place';
+
 const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) => {
-  const { t } = useLocale();
+  const { t, locale, dateLocale } = useLocale();
   const queryClient = useQueryClient();
   const createEvent = useCreateEvent();
+  const [step, setStep] = useState<Step>('pick');
   const [selected, setSelected] = useState<Set<SeedTemplateId>>(() => new Set());
+  const [placements, setPlacements] = useState<SeedPlacement[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const eventCount = useMemo(() => countSeedEvents([...selected]), [selected]);
+  const dayOptions = useMemo(() => nextDays(new Date(), 7), []);
 
   const toggle = (id: SeedTemplateId) => {
     setSelected((prev) => {
@@ -59,6 +69,19 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
       else next.add(id);
       return next;
     });
+  };
+
+  const goPlace = () => {
+    if (selected.size === 0) return;
+    const next = [...selected].map((id) => defaultPlacementFor(id));
+    setPlacements(next);
+    setStep('place');
+  };
+
+  const updatePlacement = (id: SeedTemplateId, patch: Partial<Pick<SeedPlacement, 'date' | 'dayPart'>>) => {
+    setPlacements((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    );
   };
 
   const finish = () => {
@@ -72,10 +95,10 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
   };
 
   const handleSubmit = async () => {
-    if (selected.size === 0) return;
+    if (placements.length === 0) return;
     setSaving(true);
     try {
-      const payloads = buildSeedEvents(householdId, [...selected], (key) => t(key));
+      const payloads = buildSeedEvents(householdId, placements, (key) => t(key));
       for (const payload of payloads) {
         await createEvent.mutateAsync(payload);
       }
@@ -89,9 +112,14 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
     }
   };
 
+  const handleBack = () => {
+    if (step === 'place') setStep('pick');
+    else handleSkip();
+  };
+
   return (
     <CenteredPopup
-      onClose={handleSkip}
+      onClose={handleBack}
       onExit={handleSkip}
       size="sheet"
       detents={['half', 'full']}
@@ -99,56 +127,142 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
       zClassName="z-[70]"
     >
       <div className="px-5 pt-1 pb-3 shrink-0">
-        <h2 className="text-2xl font-bold">{t('seed.title')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{t('seed.subtitle')}</p>
+        <h2 className="text-2xl font-bold">
+          {step === 'pick' ? t('seed.title') : t('seed.placeTitle')}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {step === 'pick' ? t('seed.subtitle') : t('seed.placeSubtitle')}
+        </p>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2" data-sheet-scroll>
-        {SEED_TEMPLATES.map((template) => {
-          const active = selected.has(template.id);
-          const Icon = ICONS[template.id];
-          return (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => toggle(template.id)}
-              className={`w-full rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center gap-3 text-left ${
-                active ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted active:bg-muted/80'
-              }`}
-            >
-              <Icon size={18} strokeWidth={2.5} className="shrink-0 text-foreground/80" />
-              <span className="min-w-0 flex-1">
-                <span className="block">{t(template.titleKey)}</span>
-                <span className="block text-xs font-normal text-muted-foreground mt-0.5">
-                  {t(template.hintKey)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
+        {step === 'pick' &&
+          SEED_TEMPLATES.map((template) => {
+            const active = selected.has(template.id);
+            const Icon = ICONS[template.id];
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => toggle(template.id)}
+                className={`w-full rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center gap-3 text-left ${
+                  active ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted active:bg-muted/80'
+                }`}
+              >
+                <Icon size={18} strokeWidth={2.5} className="shrink-0 text-foreground/80" />
+                <span className="min-w-0 flex-1">{t(template.titleKey)}</span>
+              </button>
+            );
+          })}
+
+        {step === 'place' &&
+          placements.map((p) => {
+            const template = SEED_TEMPLATES.find((t) => t.id === p.id)!;
+            const Icon = ICONS[p.id];
+            return (
+              <div key={p.id} className="rounded-xl bg-muted/60 p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Icon size={16} strokeWidth={2.5} className="text-foreground/80" />
+                  <p className="font-semibold text-sm">{t(template.titleKey)}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('event.date')}</p>
+                  <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
+                    {dayOptions.map((d) => {
+                      const key = format(d, 'yyyy-MM-dd');
+                      const active = p.date === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => updatePlacement(p.id, { date: key })}
+                          className={`shrink-0 rounded-lg px-2.5 py-2 text-center min-w-[3.25rem] transition-all ${
+                            active ? 'bg-primary/25 ring-2 ring-primary' : 'bg-background'
+                          }`}
+                        >
+                          <span className="block text-[10px] uppercase text-muted-foreground">
+                            {format(d, 'EEE', { locale: dateLocale })}
+                          </span>
+                          <span className="block text-sm font-semibold">{format(d, 'd')}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('event.dayPart')}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SEED_DAY_PARTS.map((part) => {
+                      const active = p.dayPart === part;
+                      return (
+                        <button
+                          key={part}
+                          type="button"
+                          onClick={() => updatePlacement(p.id, { dayPart: part as DayPart })}
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                            active ? 'bg-primary/25 ring-2 ring-primary' : 'bg-background'
+                          }`}
+                        >
+                          {translateDayPart(locale, part)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  {format(parseISO(p.date), 'EEEE d. MMM', { locale: dateLocale })}
+                  {' · '}
+                  {translateDayPart(locale, p.dayPart)}
+                </p>
+              </div>
+            );
+          })}
       </div>
 
       <PopupStickyFooter className="space-y-2">
-        <button
-          type="button"
-          disabled={selected.size === 0 || saving}
-          onClick={() => void handleSubmit()}
-          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
-        >
-          {saving
-            ? t('seed.saving')
-            : selected.size === 0
-              ? t('seed.pickSome')
-              : t('seed.submit', { count: eventCount })}
-        </button>
-        <button
-          type="button"
-          disabled={saving}
-          onClick={handleSkip}
-          className="w-full py-2 text-sm font-medium text-muted-foreground underline underline-offset-2"
-        >
-          {t('seed.skip')}
-        </button>
+        {step === 'pick' ? (
+          <>
+            <button
+              type="button"
+              disabled={selected.size === 0}
+              onClick={goPlace}
+              className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
+            >
+              {selected.size === 0
+                ? t('seed.pickSome')
+                : t('seed.nextPlace', { count: selected.size })}
+            </button>
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="w-full py-2 text-sm font-medium text-muted-foreground underline underline-offset-2"
+            >
+              {t('seed.skip')}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSubmit()}
+              className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
+            >
+              {saving ? t('seed.saving') : t('seed.submit', { count: placements.length })}
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setStep('pick')}
+              className="w-full py-2 text-sm font-medium text-muted-foreground underline underline-offset-2"
+            >
+              {t('common.back')}
+            </button>
+          </>
+        )}
       </PopupStickyFooter>
     </CenteredPopup>
   );

@@ -9,8 +9,7 @@ interface PopupStickyFooterProps {
 
 /**
  * Footer pinned to the bottom of a CenteredPopup card.
- * Safe-area lives on the overlay frame (outside the card) — do not add it here,
- * or it “floats” inside the card over the CTAs.
+ * Owns bottom safe-area (card itself has none — avoids a white gap under CTAs).
  */
 const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
   const keyboardInset = useKeyboardInset();
@@ -20,7 +19,7 @@ const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
     <div
       className={cn(
         'shrink-0 bg-background border-t border-border/60 px-5 pt-3',
-        keyboardOpen ? 'pb-3' : 'pb-4',
+        keyboardOpen ? 'pb-3' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
         className,
       )}
     >

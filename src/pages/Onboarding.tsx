@@ -10,7 +10,9 @@ import {
   type CalendarKind,
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
+import { setWelcomeIntent } from '@/lib/welcomeIntent';
 import { defaultLocaleForKind } from '@/lib/i18n/types';
+import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
 import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
@@ -31,6 +33,7 @@ type Mode = 'create' | 'join';
 
 const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   const { t, appLocale, setAppLocale } = useLocale();
+  const { signOut } = useAuth();
   const [mode, setMode] = useState<Mode>('create');
   const [displayName, setDisplayName] = useState('');
   const [kind, setKind] = useState<CalendarKind>('home');
@@ -38,6 +41,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   const [inviteCode, setInviteCode] = useState('');
   const [colorToken, setColorToken] = useState('pastel-blue');
   const [error, setError] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
 
   const kindMeta = CALENDAR_KINDS.find((k) => k.value === kind)!;
   const defaultName =
@@ -58,6 +62,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
     },
     onSuccess: (data) => {
       if (data?.id) setStoredActiveHouseholdId(data.id);
+      setWelcomeIntent('create');
       onComplete();
     },
   });
@@ -74,6 +79,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
     },
     onSuccess: (householdId) => {
       if (householdId) setStoredActiveHouseholdId(householdId);
+      setWelcomeIntent('join');
       onComplete();
     },
   });
@@ -98,18 +104,40 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
     }
   };
 
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setError('');
+    try {
+      await signOut();
+    } catch (err: any) {
+      setError(err.message || t('common.error'));
+      setSigningOut(false);
+    }
+  };
+
   return (
     <KeyboardAwareScreen
       asForm
       onSubmit={handleSubmit}
       contentClassName="pb-6"
       footer={
-        <button type="submit" disabled={isPending}
-          className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors active:opacity-90 disabled:opacity-50">
-          {isPending
-            ? (mode === 'create' ? t('onboarding.creating') : t('onboarding.joining'))
-            : (mode === 'create' ? t('onboarding.start') : t('onboarding.joinCta'))}
-        </button>
+        <div className="space-y-3">
+          <button type="submit" disabled={isPending || signingOut}
+            className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-colors active:opacity-90 disabled:opacity-50">
+            {isPending
+              ? (mode === 'create' ? t('onboarding.creating') : t('onboarding.joining'))
+              : (mode === 'create' ? t('onboarding.start') : t('onboarding.joinCta'))}
+          </button>
+          <p className="text-center text-xs text-muted-foreground">{t('onboarding.signOutHint')}</p>
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            disabled={isPending || signingOut}
+            className="w-full rounded-xl py-2.5 text-sm font-medium text-muted-foreground underline underline-offset-2 disabled:opacity-50"
+          >
+            {signingOut ? t('profile.signingOut') : t('onboarding.signOut')}
+          </button>
+        </div>
       }
     >
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm mx-auto">
