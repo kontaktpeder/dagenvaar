@@ -9,9 +9,13 @@ import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
-const AuthPage = () => {
+type AuthPageProps = {
+  initialMode?: Mode;
+};
+
+const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
   const { t } = useLocale();
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
