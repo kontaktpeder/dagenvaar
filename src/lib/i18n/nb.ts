@@ -71,6 +71,10 @@ export const nb = {
   'onboarding.joinCta': 'Bli med',
   'onboarding.signOut': 'Logg ut',
   'onboarding.signOutHint': 'Feil konto, eller vil du starte på nytt?',
+  'onboarding.addPhoto': 'Legg til profilbilde',
+  'onboarding.photoHint': 'Valgfritt — synlig for de du deler kalender med',
+  'onboarding.photoInvalid': 'Filen må være et bilde',
+  'onboarding.photoTooLarge': 'Maks 10 MB',
 
   'auth.accountUnavailable':
     'Kontoen finnes ikke lenger. Logg inn med en annen konto, eller opprett ny. Kontakt support hvis dette er feil.',
@@ -173,6 +177,12 @@ export const nb = {
   'welcome.joinTitle': 'Du er med i kalenderen vår',
   'welcome.joinBody': 'Her ser dere de samme planene. Trykk lenge på en dag for å legge til noe.',
   'welcome.cta': 'Skjønner',
+  'welcome.inviteCta': 'Inviter partner',
+  'welcome.inviteCreating': 'Lager kode...',
+  'welcome.inviteShareAgain': 'Del koden igjen',
+  'welcome.later': 'Senere',
+  'welcome.inviteShareText':
+    'Hei! Bli med i kalenderen vår på Pastelly 🗓️\nKode: {code}\nÅpne pastelly.no og velg «Jeg har kode»',
 } as const;
 
 export type MessageKey = keyof typeof nb;

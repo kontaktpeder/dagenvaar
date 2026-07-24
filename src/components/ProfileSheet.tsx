@@ -12,6 +12,7 @@ import {
   type CalendarKind,
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
+import { uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
@@ -111,33 +112,12 @@ const ProfileSheet = ({
   });
 
   const uploadAvatar = useMutation({
-    mutationFn: async (blob: Blob) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
-      if (!userId) throw new Error('Ikke innlogget');
-
-      const filePath = `${userId}/${household.id}/avatar.jpg`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg' });
-      if (uploadErr) throw uploadErr;
-
-      const { data: publicData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const avatarUrl = `${publicData.publicUrl}?t=${Date.now()}`;
-
-      const { error: updateErr } = await supabase
-        .from('household_members')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', currentMember.id)
-        .eq('household_id', household.id);
-      if (updateErr) throw updateErr;
-
-      return avatarUrl;
-    },
+    mutationFn: async (blob: Blob) =>
+      uploadMemberAvatar({
+        householdId: household.id,
+        memberId: currentMember.id,
+        blob,
+      }),
     onSuccess: () => {
       setUploadError('');
       setCropImageSrc(null);

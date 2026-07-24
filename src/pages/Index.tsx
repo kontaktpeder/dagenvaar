@@ -330,6 +330,7 @@ const Index = () => {
         {welcomeDialog && (
           <WelcomeDialog
             intent={welcomeDialog}
+            householdId={household.id}
             onClose={() => setWelcomeDialog(null)}
           />
         )}

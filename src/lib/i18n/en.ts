@@ -66,6 +66,10 @@ export const en: Record<MessageKey, string> = {
   'onboarding.joinCta': 'Join',
   'onboarding.signOut': 'Sign out',
   'onboarding.signOutHint': 'Wrong account, or want to start over?',
+  'onboarding.addPhoto': 'Add profile photo',
+  'onboarding.photoHint': 'Optional — visible to people you share the calendar with',
+  'onboarding.photoInvalid': 'File must be an image',
+  'onboarding.photoTooLarge': 'Max 10 MB',
 
   'auth.accountUnavailable':
     'This account no longer exists. Sign in with another account, or create a new one. Contact support if this is a mistake.',
@@ -164,4 +168,10 @@ export const en: Record<MessageKey, string> = {
   'welcome.joinTitle': 'You’re in our calendar',
   'welcome.joinBody': 'You’ll see the same plans. Long-press a day to add something.',
   'welcome.cta': 'Got it',
+  'welcome.inviteCta': 'Invite partner',
+  'welcome.inviteCreating': 'Creating code...',
+  'welcome.inviteShareAgain': 'Share code again',
+  'welcome.later': 'Later',
+  'welcome.inviteShareText':
+    'Hey! Join our calendar on Pastelly 🗓️\nCode: {code}\nOpen pastelly.no and choose “I have a code”',
 };
