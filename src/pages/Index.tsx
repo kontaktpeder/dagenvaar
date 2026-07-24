@@ -188,9 +188,19 @@ const Index = () => {
   }
 
   if (!user) {
+    if (!authView) {
+      return (
+        <LocaleProvider>
+          <Landing
+            onGetStarted={() => setAuthView('signup')}
+            onSignIn={() => setAuthView('login')}
+          />
+        </LocaleProvider>
+      );
+    }
     return (
       <LocaleProvider>
-        <AuthPage />
+        <AuthPage initialMode={authView} />
       </LocaleProvider>
     );
   }
