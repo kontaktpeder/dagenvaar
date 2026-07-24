@@ -20,6 +20,18 @@ export function setWelcomeIntent(intent: WelcomeIntent): void {
   }
 }
 
+export function peekWelcomeIntent(): WelcomeIntent | null {
+  const s = storage();
+  if (!s) return null;
+  try {
+    const raw = s.getItem(KEY);
+    if (raw === 'create' || raw === 'join') return raw;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function consumeWelcomeIntent(): WelcomeIntent | null {
   const s = storage();
   if (!s) return null;

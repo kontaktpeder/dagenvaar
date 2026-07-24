@@ -163,4 +163,5 @@ export const en: Record<MessageKey, string> = {
   'welcome.createBody': 'Invite your partner — then it becomes our calendar. Tip: long-press a day to add something.',
   'welcome.joinTitle': 'You’re in our calendar',
   'welcome.joinBody': 'You’ll see the same plans. Long-press a day to add something.',
+  'welcome.cta': 'Got it',
 };

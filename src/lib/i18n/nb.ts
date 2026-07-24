@@ -172,6 +172,7 @@ export const nb = {
   'welcome.createBody': 'Inviter partner — da blir det kalenderen vår. Tips: trykk lenge på en dag for ny aktivitet.',
   'welcome.joinTitle': 'Du er med i kalenderen vår',
   'welcome.joinBody': 'Her ser dere de samme planene. Trykk lenge på en dag for å legge til noe.',
+  'welcome.cta': 'Skjønner',
 } as const;
 
 export type MessageKey = keyof typeof nb;

@@ -28,6 +28,7 @@ import {
   type SeedTemplateId,
 } from '@/lib/seedWeek';
 import { dismissSeedWeek } from '@/lib/seedWeekStorage';
+import { peekWelcomeIntent } from '@/lib/welcomeIntent';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 
@@ -103,7 +104,10 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
         await createEvent.mutateAsync(payload);
       }
       await queryClient.invalidateQueries({ queryKey: ['household-has-events', householdId] });
-      toast.success(t('seed.done', { count: payloads.length }));
+      // Create flow shows WelcomeDialog after close — avoid a competing toast.
+      if (peekWelcomeIntent() !== 'create') {
+        toast.success(t('seed.done', { count: payloads.length }));
+      }
       finish();
     } catch (err: any) {
       toast.error(err?.message || t('common.error'));
@@ -135,7 +139,7 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2" data-sheet-scroll>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4 space-y-3" data-sheet-scroll>
         {step === 'pick' &&
           SEED_TEMPLATES.map((template) => {
             const active = selected.has(template.id);
@@ -160,15 +164,15 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
             const template = SEED_TEMPLATES.find((t) => t.id === p.id)!;
             const Icon = ICONS[p.id];
             return (
-              <div key={p.id} className="rounded-xl bg-muted/60 p-3 space-y-3">
+              <div key={p.id} className="rounded-2xl bg-muted/50 p-4 space-y-4 overflow-visible">
                 <div className="flex items-center gap-2">
                   <Icon size={16} strokeWidth={2.5} className="text-foreground/80" />
                   <p className="font-semibold text-sm">{t(template.titleKey)}</p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('event.date')}</p>
-                  <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t('event.date')}</p>
+                  <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
                     {dayOptions.map((d) => {
                       const key = format(d, 'yyyy-MM-dd');
                       const active = p.date === key;
@@ -177,8 +181,10 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
                           key={key}
                           type="button"
                           onClick={() => updatePlacement(p.id, { date: key })}
-                          className={`shrink-0 rounded-lg px-2.5 py-2 text-center min-w-[3.25rem] transition-all ${
-                            active ? 'bg-primary/25 ring-2 ring-primary' : 'bg-background'
+                          className={`shrink-0 rounded-xl px-2.5 py-2 text-center min-w-[3.25rem] transition-all ${
+                            active
+                              ? 'bg-primary/25 outline outline-2 outline-primary outline-offset-0'
+                              : 'bg-background'
                           }`}
                         >
                           <span className="block text-[10px] uppercase text-muted-foreground">
@@ -192,8 +198,8 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('event.dayPart')}</p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t('event.dayPart')}</p>
+                  <div className="flex flex-wrap gap-2 py-1">
                     {SEED_DAY_PARTS.map((part) => {
                       const active = p.dayPart === part;
                       return (
@@ -201,8 +207,10 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
                           key={part}
                           type="button"
                           onClick={() => updatePlacement(p.id, { dayPart: part as DayPart })}
-                          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                            active ? 'bg-primary/25 ring-2 ring-primary' : 'bg-background'
+                          className={`rounded-xl px-3 py-2 text-xs font-medium transition-all ${
+                            active
+                              ? 'bg-primary/25 outline outline-2 outline-primary outline-offset-0'
+                              : 'bg-background'
                           }`}
                         >
                           {translateDayPart(locale, part)}
@@ -212,7 +220,7 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
                   </div>
                 </div>
 
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground pt-0.5">
                   {format(parseISO(p.date), 'EEEE d. MMM', { locale: dateLocale })}
                   {' · '}
                   {translateDayPart(locale, p.dayPart)}

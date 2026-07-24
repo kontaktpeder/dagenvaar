@@ -20,9 +20,10 @@ import NewEventFlow from '@/components/NewEventFlow';
 import EditEventFlow from '@/components/EditEventFlow';
 import EditEventQuickSheet from '@/components/EditEventQuickSheet';
 import SeedWeekFlow from '@/components/SeedWeekFlow';
-import WelcomeHost from '@/components/WelcomeHost';
+import WelcomeDialog from '@/components/WelcomeDialog';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
+import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
 import type { Event } from '@/hooks/useEvents';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
@@ -55,6 +56,7 @@ const Index = () => {
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [quickEditEvent, setQuickEditEvent] = useState<Event | null>(null);
   const [showSeedWeek, setShowSeedWeek] = useState(false);
+  const [welcomeDialog, setWelcomeDialog] = useState<WelcomeIntent | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
   const [stackDirection, setStackDirection] = useState(0);
   const switchingRef = useRef(false);
@@ -113,6 +115,31 @@ const Index = () => {
     seedAutoOpenedRef.current = household.id;
     setShowSeedWeek(true);
   }, [household, canSeedWeek]);
+
+  // Join welcome: show centered dialog after onboarding (no seed step).
+  // Create welcome: wait until seed finishes / is skipped (see revealWelcomeAfterSeed).
+  useEffect(() => {
+    if (!household || !hasEventsReady) return;
+    const pending = peekWelcomeIntent();
+    if (pending === 'join') {
+      consumeWelcomeIntent();
+      const t = window.setTimeout(() => setWelcomeDialog('join'), 400);
+      return () => window.clearTimeout(t);
+    }
+    if (pending === 'create' && !canSeedWeek) {
+      // Seed won't open (already has events / not home) — welcome now.
+      consumeWelcomeIntent();
+      const t = window.setTimeout(() => setWelcomeDialog('create'), 400);
+      return () => window.clearTimeout(t);
+    }
+  }, [household, hasEventsReady, canSeedWeek]);
+
+  const revealWelcomeAfterSeed = useCallback(() => {
+    const pending = consumeWelcomeIntent();
+    if (pending) {
+      window.setTimeout(() => setWelcomeDialog(pending), 280);
+    }
+  }, []);
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });
@@ -207,7 +234,6 @@ const Index = () => {
       data-calendar-kind={calendarKind}
       className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden"
     >
-      <WelcomeHost />
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}
@@ -273,8 +299,23 @@ const Index = () => {
         {showSeedWeek && (
           <SeedWeekFlow
             householdId={household.id}
-            onClose={() => setShowSeedWeek(false)}
-            onComplete={() => setShowSeedWeek(false)}
+            onClose={() => {
+              setShowSeedWeek(false);
+              revealWelcomeAfterSeed();
+            }}
+            onComplete={() => {
+              setShowSeedWeek(false);
+              revealWelcomeAfterSeed();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {welcomeDialog && (
+          <WelcomeDialog
+            intent={welcomeDialog}
+            onClose={() => setWelcomeDialog(null)}
           />
         )}
       </AnimatePresence>
