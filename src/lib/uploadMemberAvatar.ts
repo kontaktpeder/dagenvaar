@@ -6,15 +6,24 @@ export async function uploadMemberAvatar(opts: {
   memberId: string;
   blob: Blob;
 }): Promise<string> {
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
+  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  if (sessionErr) throw sessionErr;
+  const userId = sessionData.session?.user?.id;
   if (!userId) throw new Error('Ikke innlogget');
 
   const filePath = `${userId}/${opts.householdId}/avatar.jpg`;
+  const file = new File([opts.blob], 'avatar.jpg', { type: 'image/jpeg' });
+
+  // Remove-then-upload avoids upsert edge cases with storage RLS.
+  await supabase.storage.from('avatars').remove([filePath]);
 
   const { error: uploadErr } = await supabase.storage
     .from('avatars')
-    .upload(filePath, opts.blob, { upsert: true, contentType: 'image/jpeg' });
+    .upload(filePath, file, {
+      upsert: false,
+      contentType: 'image/jpeg',
+      cacheControl: '3600',
+    });
   if (uploadErr) throw uploadErr;
 
   const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(filePath);
@@ -24,7 +33,8 @@ export async function uploadMemberAvatar(opts: {
     .from('household_members')
     .update({ avatar_url: avatarUrl })
     .eq('id', opts.memberId)
-    .eq('household_id', opts.householdId);
+    .eq('household_id', opts.householdId)
+    .eq('user_id', userId);
   if (updateErr) throw updateErr;
 
   return avatarUrl;
