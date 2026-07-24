@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
 import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
 import { consumeSessionNotice } from '@/lib/auth/sessionNotice';
+import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import KeyboardAwareScreen from '@/components/KeyboardAwareScreen';
 
@@ -15,7 +16,10 @@ type AuthPageProps = {
 
 const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
   const { t } = useLocale();
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const pendingInvite = peekPendingInviteCode();
+  const [mode, setMode] = useState<Mode>(() =>
+    pendingInvite && initialMode === 'login' ? 'signup' : initialMode,
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +33,10 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
     const pending = consumeSessionNotice();
     if (pending === 'account_unavailable') {
       setNotice(t('auth.accountUnavailable'));
+      return;
     }
+    const code = peekPendingInviteCode();
+    if (code) setNotice(t('auth.inviteReady', { code }));
   }, [t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,9 +118,13 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
     mode === 'login' ? 'Hei igjen 👋' : mode === 'signup' ? 'Lag konto ✨' : 'Glemt passord?';
   const subtitle =
     mode === 'login'
-      ? 'Logg inn for å se kalenderen'
+      ? pendingInvite
+        ? t('auth.loginWithInvite')
+        : 'Logg inn for å se kalenderen'
       : mode === 'signup'
-      ? 'Opprett konto for å komme i gang'
+      ? pendingInvite
+        ? t('auth.signupWithInvite')
+        : 'Opprett konto for å komme i gang'
       : 'Skriv inn e-posten din, så sender vi en lenke';
 
   const submitLabel =

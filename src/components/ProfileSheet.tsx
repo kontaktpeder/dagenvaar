@@ -13,6 +13,7 @@ import {
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
+import { buildInviteShareText, buildInviteUrl } from '@/lib/inviteLink';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
@@ -254,11 +255,39 @@ const ProfileSheet = ({
   const handleCopyCode = async () => {
     if (!inviteCode) return;
     try {
-      await navigator.clipboard.writeText(inviteCode);
+      const text = buildInviteShareText(inviteCode, {
+        greeting: t('welcome.inviteShareGreeting'),
+        codeLabel: t('welcome.inviteShareCodeLabel'),
+        linkHint: t('welcome.inviteShareLinkHint'),
+      });
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // fallback
+    }
+  };
+
+  const handleShareCode = async () => {
+    if (!inviteCode) return;
+    const text = buildInviteShareText(inviteCode, {
+      greeting: t('welcome.inviteShareGreeting'),
+      codeLabel: t('welcome.inviteShareCodeLabel'),
+      linkHint: t('welcome.inviteShareLinkHint'),
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({ text, url: buildInviteUrl(inviteCode), title: 'Pastelly' });
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
     }
   };
 
@@ -354,17 +383,27 @@ const ProfileSheet = ({
                     ) : (
                       <div className="rounded-xl bg-muted/40 p-4 space-y-3">
                         <p className="text-sm font-medium text-center">{t('profile.inviteCode')}</p>
-                        <p className="text-2xl font-bold text-center tracking-widest">{inviteCode}</p>
+                        <p className="text-2xl font-bold text-center tracking-widest select-all">{inviteCode}</p>
                         {inviteExpiry && (
                           <p className="text-xs text-muted-foreground text-center">
                             {new Date(inviteExpiry).toLocaleDateString(intlLocale)}
                           </p>
                         )}
+                        <p className="text-[11px] text-muted-foreground text-center break-all">
+                          {buildInviteUrl(inviteCode)}
+                        </p>
                         <button
-                          onClick={handleCopyCode}
+                          onClick={() => void handleCopyCode()}
                           className="w-full rounded-xl bg-calendar-accent/60 py-2.5 text-sm font-medium transition-colors hover:bg-calendar-accent/80"
                         >
-                          {copied ? t('profile.copied') : t('profile.copy')}
+                          {copied ? t('profile.copied') : t('welcome.copyCode')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleShareCode()}
+                          className="w-full rounded-xl bg-muted py-2.5 text-sm font-medium transition-colors hover:bg-muted/80"
+                        >
+                          {t('welcome.shareCode')}
                         </button>
                       </div>
                     )}

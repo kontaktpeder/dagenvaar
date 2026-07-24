@@ -75,9 +75,17 @@ export const nb = {
   'onboarding.photoHint': 'Valgfritt — synlig for de du deler kalender med',
   'onboarding.photoInvalid': 'Filen må være et bilde',
   'onboarding.photoTooLarge': 'Maks 10 MB',
+  'onboarding.paste': 'Lim inn',
+  'onboarding.pasted': 'Kode limt inn',
+  'onboarding.pasteEmpty': 'Fant ingen kode i utklippstavlen',
+  'onboarding.pasteFailed': 'Kunne ikke lese utklippstavlen — lim inn manuelt',
+  'onboarding.inviteCodeHint': 'Kopier koden fra meldingen først, eller åpne invitasjonslenken',
 
   'auth.accountUnavailable':
     'Kontoen finnes ikke lenger. Logg inn med en annen konto, eller opprett ny. Kontakt support hvis dette er feil.',
+  'auth.inviteReady': 'Invitasjonskode klar: {code}. Opprett konto eller logg inn for å bli med.',
+  'auth.signupWithInvite': 'Opprett konto — så legger vi deg inn i kalenderen',
+  'auth.loginWithInvite': 'Logg inn — så kobler vi deg til kalenderen',
 
   // profile
   'profile.thisCalendar': 'Denne kalenderen',
@@ -181,6 +189,12 @@ export const nb = {
   'welcome.inviteCreating': 'Lager kode...',
   'welcome.inviteShareAgain': 'Del koden igjen',
   'welcome.later': 'Senere',
+  'welcome.copyCode': 'Kopier kode',
+  'welcome.shareCode': 'Del',
+  'welcome.inviteCopiedHint': 'Kopiert — lim inn i Messenger, eller trykk Del',
+  'welcome.inviteShareGreeting': 'Hei! Bli med i kalenderen vår på Pastelly 🗓️',
+  'welcome.inviteShareCodeLabel': 'Kode:',
+  'welcome.inviteShareLinkHint': 'Åpne lenken, eller lim inn koden under «Jeg har kode».',
   'welcome.inviteShareText':
     'Hei! Bli med i kalenderen vår på Pastelly 🗓️\nKode: {code}\nÅpne pastelly.no og velg «Jeg har kode»',
 } as const;

@@ -4,6 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/hooks/useLocale';
 import { burstConfetti } from '@/lib/celebrate';
+import {
+  buildInviteShareText,
+  buildInviteUrl,
+} from '@/lib/inviteLink';
 import type { WelcomeIntent } from '@/lib/welcomeIntent';
 
 interface WelcomeDialogProps {
@@ -29,6 +33,20 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
     return () => window.clearTimeout(id);
   }, []);
 
+  const shareTextFor = (code: string) =>
+    buildInviteShareText(code, {
+      greeting: t('welcome.inviteShareGreeting'),
+      codeLabel: t('welcome.inviteShareCodeLabel'),
+      linkHint: t('welcome.inviteShareLinkHint'),
+    });
+
+  const copyInvite = async (code: string) => {
+    const text = shareTextFor(code);
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2500);
+  };
+
   const createInvite = useMutation({
     mutationFn: async () => {
       if (!householdId) throw new Error(t('common.error'));
@@ -43,49 +61,44 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
     onSuccess: (data) => {
       setInvite(data);
       setShareError('');
+      // Copy first — before any share sheet covers the app.
+      void copyInvite(data.code).catch(() => {
+        /* clipboard may be blocked; user can tap Kopier */
+      });
     },
     onError: (err: any) => {
       setShareError(err?.message || t('common.error'));
     },
   });
 
-  const shareMessage = (code: string) =>
-    t('welcome.inviteShareText', { code });
-
   const handleShare = async (code: string) => {
-    const text = shareMessage(code);
+    const text = shareTextFor(code);
     try {
-      if (navigator.share) {
-        await navigator.share({ text });
-        return;
-      }
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch (err: any) {
-      // User cancelled share — ignore; otherwise fall back to copy
-      if (err?.name === 'AbortError') return;
+      // Ensure clipboard has the code even if they only tap Del.
       try {
         await navigator.clipboard.writeText(text);
         setCopied(true);
-        window.setTimeout(() => setCopied(false), 2000);
+        window.setTimeout(() => setCopied(false), 2500);
       } catch {
-        setShareError(t('common.error'));
+        /* ignore — share may still work */
       }
+      if (navigator.share) {
+        await navigator.share({
+          text,
+          url: buildInviteUrl(code),
+          title: 'Pastelly',
+        });
+        return;
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+      setShareError(t('common.error'));
     }
   };
 
-  const handleInviteClick = async () => {
-    if (invite) {
-      await handleShare(invite.code);
-      return;
-    }
-    try {
-      const data = await createInvite.mutateAsync();
-      await handleShare(data.code);
-    } catch {
-      /* error state set by mutation */
-    }
+  const handleCreateClick = () => {
+    if (invite) return;
+    createInvite.mutate();
   };
 
   const isCreate = intent === 'create';
@@ -127,11 +140,17 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
         {invite && (
           <div className="mb-4 rounded-2xl bg-muted/60 px-4 py-3">
             <p className="text-xs text-muted-foreground mb-1">{t('profile.inviteCode')}</p>
-            <p className="text-2xl font-bold tracking-widest">{invite.code}</p>
+            <p className="text-2xl font-bold tracking-widest select-all">{invite.code}</p>
             {invite.expires_at && (
               <p className="text-[11px] text-muted-foreground mt-1">
                 {new Date(invite.expires_at).toLocaleDateString(intlLocale)}
               </p>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-2 break-all">
+              {buildInviteUrl(invite.code)}
+            </p>
+            {copied && (
+              <p className="text-xs font-medium text-green-800 mt-2">{t('welcome.inviteCopiedHint')}</p>
             )}
           </div>
         )}
@@ -142,20 +161,33 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
 
         {isCreate ? (
           <div className="space-y-2">
-            <button
-              type="button"
-              disabled={createInvite.isPending}
-              onClick={() => void handleInviteClick()}
-              className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold hover:bg-green-300 transition-colors disabled:opacity-50"
-            >
-              {createInvite.isPending
-                ? t('welcome.inviteCreating')
-                : copied
-                  ? t('profile.copied')
-                  : invite
-                    ? t('welcome.inviteShareAgain')
-                    : t('welcome.inviteCta')}
-            </button>
+            {!invite ? (
+              <button
+                type="button"
+                disabled={createInvite.isPending}
+                onClick={handleCreateClick}
+                className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold hover:bg-green-300 transition-colors disabled:opacity-50"
+              >
+                {createInvite.isPending ? t('welcome.inviteCreating') : t('welcome.inviteCta')}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void copyInvite(invite.code).catch(() => setShareError(t('common.error')))}
+                  className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold hover:bg-green-300 transition-colors"
+                >
+                  {copied ? t('profile.copied') : t('welcome.copyCode')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleShare(invite.code)}
+                  className="w-full rounded-2xl bg-muted py-3 font-semibold text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  {t('welcome.shareCode')}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={onClose}

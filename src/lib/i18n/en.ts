@@ -70,9 +70,17 @@ export const en: Record<MessageKey, string> = {
   'onboarding.photoHint': 'Optional — visible to people you share the calendar with',
   'onboarding.photoInvalid': 'File must be an image',
   'onboarding.photoTooLarge': 'Max 10 MB',
+  'onboarding.paste': 'Paste',
+  'onboarding.pasted': 'Code pasted',
+  'onboarding.pasteEmpty': 'No code found on the clipboard',
+  'onboarding.pasteFailed': 'Couldn’t read clipboard — paste manually',
+  'onboarding.inviteCodeHint': 'Copy the code from the message first, or open the invite link',
 
   'auth.accountUnavailable':
     'This account no longer exists. Sign in with another account, or create a new one. Contact support if this is a mistake.',
+  'auth.inviteReady': 'Invite code ready: {code}. Create an account or sign in to join.',
+  'auth.signupWithInvite': 'Create an account — then we’ll add you to the calendar',
+  'auth.loginWithInvite': 'Sign in — then we’ll connect you to the calendar',
 
   'profile.thisCalendar': 'This calendar',
   'profile.thisCalendarHint': 'Only applies to “{name}”',
@@ -172,6 +180,12 @@ export const en: Record<MessageKey, string> = {
   'welcome.inviteCreating': 'Creating code...',
   'welcome.inviteShareAgain': 'Share code again',
   'welcome.later': 'Later',
+  'welcome.copyCode': 'Copy code',
+  'welcome.shareCode': 'Share',
+  'welcome.inviteCopiedHint': 'Copied — paste into Messenger, or tap Share',
+  'welcome.inviteShareGreeting': 'Hey! Join our calendar on Pastelly 🗓️',
+  'welcome.inviteShareCodeLabel': 'Code:',
+  'welcome.inviteShareLinkHint': 'Open the link, or paste the code under “I have a code”.',
   'welcome.inviteShareText':
     'Hey! Join our calendar on Pastelly 🗓️\nCode: {code}\nOpen pastelly.no and choose “I have a code”',
 };

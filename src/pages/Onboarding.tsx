@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
@@ -13,6 +13,11 @@ import {
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { setWelcomeIntent } from '@/lib/welcomeIntent';
 import { defaultLocaleForKind } from '@/lib/i18n/types';
+import {
+  clearPendingInviteCode,
+  normalizeInviteCode,
+  peekPendingInviteCode,
+} from '@/lib/inviteLink';
 import { getCurrentMemberId, uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
@@ -37,18 +42,27 @@ type Mode = 'create' | 'join';
 const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   const { t, appLocale, setAppLocale } = useLocale();
   const { signOut } = useAuth();
-  const [mode, setMode] = useState<Mode>('create');
+  const pendingInvite = peekPendingInviteCode();
+  const [mode, setMode] = useState<Mode>(() => (pendingInvite ? 'join' : 'create'));
   const [displayName, setDisplayName] = useState('');
   const [kind, setKind] = useState<CalendarKind>('home');
   const [householdName, setHouseholdName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(() => pendingInvite ?? '');
   const [colorToken, setColorToken] = useState('pastel-blue');
   const [error, setError] = useState('');
   const [signingOut, setSigningOut] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [pasteHint, setPasteHint] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const code = peekPendingInviteCode();
+    if (!code) return;
+    setInviteCode(code);
+    setMode('join');
+  }, []);
 
   const defaultName =
     kind === 'work' ? t('kind.workDefaultName') : t('kind.homeDefaultName');
@@ -137,6 +151,7 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
       if (householdId) {
         setStoredActiveHouseholdId(householdId);
         setWelcomeIntent(mode === 'create' ? 'create' : 'join');
+        if (mode === 'join') clearPendingInviteCode();
         try {
           await maybeUploadAvatar(householdId);
         } catch {
@@ -310,10 +325,45 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
               </>
             ) : (
               <div>
-                <label className="text-sm font-medium mb-2 block">{t('onboarding.inviteCode')}</label>
-                <input type="text" onFocus={scrollFocusIntoView} value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="text-sm font-medium block">{t('onboarding.inviteCode')}</label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setPasteHint('');
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        // Prefer explicit AB12-CD34 in pasted share text
+                        const match = text.toUpperCase().match(/[A-Z0-9]{4}-[A-Z0-9]{4}/);
+                        const next = normalizeInviteCode(match?.[0] ?? text);
+                        if (!next) {
+                          setPasteHint(t('onboarding.pasteEmpty'));
+                          return;
+                        }
+                        setInviteCode(next);
+                        setPasteHint(t('onboarding.pasted'));
+                      } catch {
+                        setPasteHint(t('onboarding.pasteFailed'));
+                      }
+                    }}
+                    className="text-xs font-semibold text-primary underline underline-offset-2"
+                  >
+                    {t('onboarding.paste')}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  onFocus={scrollFocusIntoView}
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(normalizeInviteCode(e.target.value))}
                   placeholder="AB12-CD34"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary" />
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {pasteHint && (
+                  <p className="text-xs text-muted-foreground mt-1.5">{pasteHint}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1.5">{t('onboarding.inviteCodeHint')}</p>
               </div>
             )}
 

@@ -26,6 +26,7 @@ import WelcomeDialog from '@/components/WelcomeDialog';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
+import { peekPendingInviteCode } from '@/lib/inviteLink';
 import type { Event } from '@/hooks/useEvents';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
@@ -63,9 +64,10 @@ const Index = () => {
   const [stackDirection, setStackDirection] = useState(0);
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
-  const [authView, setAuthView] = useState<null | 'login' | 'signup'>(
-    isNativePlatform() ? 'login' : null,
-  );
+  const [authView, setAuthView] = useState<null | 'login' | 'signup'>(() => {
+    if (isNativePlatform()) return peekPendingInviteCode() ? 'signup' : 'login';
+    return peekPendingInviteCode() ? 'signup' : null;
+  });
 
   const orderedMemberships = useMemo(
     () => sortCalendarMemberships(memberships),
