@@ -63,6 +63,9 @@ const Index = () => {
   const [stackDirection, setStackDirection] = useState(0);
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
+  const [authView, setAuthView] = useState<null | 'login' | 'signup'>(
+    isNativePlatform() ? 'login' : null,
+  );
 
   const orderedMemberships = useMemo(
     () => sortCalendarMemberships(memberships),
