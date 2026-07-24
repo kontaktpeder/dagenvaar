@@ -13,6 +13,8 @@ import { resolveCalendarKind } from '@/lib/calendarKinds';
 import { isSeedWeekDismissed } from '@/lib/seedWeekStorage';
 import { LocaleProvider } from '@/hooks/useLocale';
 import AuthPage from '@/pages/Auth';
+import Landing from '@/pages/Landing';
+import { isNativePlatform } from '@/lib/native/platform';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
 import CalendarSwitcher from '@/components/CalendarSwitcher';
