@@ -53,8 +53,16 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
   const getMemberById = (id: string) => members.find((m) => m.id === id);
 
   return (
-    <CenteredPopup onClose={onClose} onExit={onClose} size="hug" zClassName="z-[60]" backdrop="none">
-      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pt-2 pb-4 min-h-0 max-h-full" data-sheet-scroll>
+    <CenteredPopup
+      onClose={onClose}
+      onExit={onClose}
+      size="sheet"
+      detents={['half', 'full']}
+      initialDetent="half"
+      zClassName="z-[60]"
+      backdrop="none"
+    >
+      <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pt-2 pb-4 min-h-0" data-sheet-scroll>
         <div className={`rounded-2xl p-5 mb-4 ${ownerColor.bg}`}>
           <h2 className="text-xl font-bold mb-1">{event.title}</h2>
           <p className="text-sm text-muted-foreground">

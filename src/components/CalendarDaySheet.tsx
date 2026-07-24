@@ -71,7 +71,14 @@ const CalendarDaySheet = ({
 
   return (
     <>
-    <CenteredPopup onClose={handleDismiss} onExit={onClose} size="sheet" zClassName="z-50">
+    <CenteredPopup
+      onClose={handleDismiss}
+      onExit={onClose}
+      size="sheet"
+      detents={['half', 'full']}
+      initialDetent="half"
+      zClassName="z-50"
+    >
       <div className="px-5 pt-1 pb-3 shrink-0">
         <h2 className="text-lg font-bold capitalize">
           {format(date, 'EEEE d. MMMM', { locale: dateLocale })}

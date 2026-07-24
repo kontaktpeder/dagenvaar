@@ -144,6 +144,7 @@ export const nb = {
   'seed.title': 'Gjør uka deres synlig',
   'seed.subtitle': 'Huk av det som skjer ofte. Du kan endre alt etterpå.',
   'seed.submit': 'Legg inn {count} ting',
+  'seed.pickSome': 'Velg noe først',
   'seed.saving': 'Legger inn...',
   'seed.skip': 'Hopp over',
   'seed.done': 'La til {count} ting i kalenderen',

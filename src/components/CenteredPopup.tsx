@@ -11,32 +11,37 @@ import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
+export type SheetDetent = 'half' | 'full';
+
 interface CenteredPopupProps {
   onClose: () => void;
   children: ReactNode;
   /**
-   * hug — shrinks to content (day preview, event detail)
-   * sheet — fills most of the screen from the bottom
+   * hug — height follows content (small overlays)
+   * sheet — viewport-tall card; use with detents for half/full
    */
   size?: 'hug' | 'sheet';
+  /**
+   * Snap points. Default `['full']` (wizards).
+   * `['half','full']` = Ruter-style browse sheet (calendar peeks behind).
+   */
+  detents?: SheetDetent[];
+  /** Where the sheet opens. Defaults to the largest detent. */
+  initialDetent?: SheetDetent;
   className?: string;
-  /** Higher z when stacked over another popup */
   zClassName?: string;
-  /**
-   * solid — dim behind card (default)
-   * none — no dim (nested over an already-dimmed parent)
-   */
   backdrop?: 'solid' | 'none';
-  /**
-   * Full exit (✕). Defaults to onClose.
-   * Backdrop taps still use onClose (e.g. step-back in wizards).
-   */
   onExit?: () => void;
 }
 
-const DISMISS_DIST = 110;
-const DISMISS_VEL = 650;
+const DISMISS_VEL = 900;
 const PULL_ACTIVATE_PX = 8;
+
+/** Visible fraction of the frame at each detent (full = flush to top inset). */
+const DETENT_VISIBLE: Record<SheetDetent, number> = {
+  full: 1,
+  half: 0.55,
+};
 
 const flyTween = {
   type: 'tween' as const,
@@ -44,9 +49,9 @@ const flyTween = {
   ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
 };
 
-const returnTween = {
+const snapTween = {
   type: 'tween' as const,
-  duration: 0.18,
+  duration: 0.28,
   ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
 };
 
@@ -62,14 +67,30 @@ function getScrollTop(root: HTMLElement | null): number {
   return max;
 }
 
+function yForDetent(detent: SheetDetent, frameH: number): number {
+  const visible = DETENT_VISIBLE[detent];
+  return Math.max(0, Math.round(frameH * (1 - visible)));
+}
+
+function normalizeDetents(detents: SheetDetent[]): SheetDetent[] {
+  const set = new Set(detents);
+  const ordered: SheetDetent[] = [];
+  if (set.has('full')) ordered.push('full');
+  if (set.has('half')) ordered.push('half');
+  // Sort by y ascending later via yForDetent; keep logical: full first in list for "largest"
+  return ordered.length ? ordered : ['full'];
+}
+
 /**
- * Bottom sheet: slides up from the bottom, flush with the screen.
- * Swipe down from grabber anytime; from content when scrolled to the top.
+ * Bottom sheet: follows the finger, snaps to detents (half / full), or dismisses.
+ * Wizards use detents={['full']}; browse sheets use ['half','full'].
  */
 const CenteredPopup = ({
   onClose,
   children,
   size = 'sheet',
+  detents: detentsProp,
+  initialDetent,
   className,
   zClassName = 'z-50',
   backdrop = 'solid',
@@ -80,13 +101,33 @@ const CenteredPopup = ({
   const exit = onExit ?? onClose;
   const dragControls = useDragControls();
   const cardRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const pullRef = useRef<{ y: number; scrollTop: number; pointerId: number } | null>(null);
+  const detentRef = useRef<SheetDetent>('full');
+
+  const detents = normalizeDetents(detentsProp ?? ['full']);
+  const multiDetent = detents.length > 1 && size === 'sheet';
+  const startDetent: SheetDetent =
+    initialDetent && detents.includes(initialDetent)
+      ? initialDetent
+      : detents.includes('half') && multiDetent
+        ? 'half'
+        : 'full';
+
+  const [frameH, setFrameH] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 700,
+  );
 
   const dragY = useMotionValue(
     typeof window !== 'undefined' ? window.innerHeight : 640,
   );
-  const dragProgress = useTransform(dragY, (y) => Math.min(1, Math.max(0, Number(y)) / 160));
-  const backdropOpacity = useTransform(dragProgress, [0, 1], [backdrop === 'solid' ? 0.4 : 0, 0]);
+
+  const maxDim = backdrop === 'solid' ? (multiDetent ? 0.28 : 0.4) : 0;
+  const backdropOpacity = useTransform(dragY, (y) => {
+    if (backdrop !== 'solid' || frameH <= 0) return 0;
+    const t = Math.min(1, Math.max(0, 1 - Number(y) / frameH));
+    return maxDim * (0.35 + 0.65 * t);
+  });
 
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
@@ -97,27 +138,51 @@ const CenteredPopup = ({
     return () => window.cancelAnimationFrame(id);
   }, []);
 
-  // Single y channel for enter + drag + dismiss (avoids nested transform lag on Android)
   useEffect(() => {
-    if (enteredRef.current || flyingOut) return;
-    enteredRef.current = true;
-    void animate(dragY, 0, sheetSpring);
-  }, [dragY, flyingOut]);
+    const el = frameRef.current;
+    if (!el) return;
+    const measure = () => setFrameH(el.clientHeight || window.innerHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
+  const snapTo = (detent: SheetDetent, tween = snapTween) => {
+    detentRef.current = detent;
+    const target = yForDetent(detent, frameH);
+    void animate(dragY, target, tween);
+  };
+
+  // Enter + keep detent aligned when frame height changes
   useEffect(() => {
-    if (flyingOut) return;
-    if (!enteredRef.current) return;
-    // Don't fight enter animation when keyboard toggles mid-open
-    if (dragY.get() > 40) return;
-    dragY.stop();
-    dragY.set(0);
-  }, [keyboardOpen, dragY, flyingOut]);
+    if (flyingOut || frameH <= 0) return;
+    if (!enteredRef.current) {
+      enteredRef.current = true;
+      detentRef.current = startDetent;
+      void animate(dragY, yForDetent(startDetent, frameH), sheetSpring);
+      return;
+    }
+    const target = yForDetent(detentRef.current, frameH);
+    if (Math.abs(dragY.get() - target) < 6) return;
+    void animate(dragY, target, {
+      type: 'tween',
+      duration: 0.15,
+      ease: [0.32, 0.72, 0, 1],
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameH, flyingOut]);
 
-  // Flush to bottom; only lift for keyboard. Safe-area lives inside the card.
+  // Keyboard: expand to full so fields aren't clipped
+  useEffect(() => {
+    if (flyingOut || !enteredRef.current) return;
+    if (!keyboardOpen) return;
+    snapTo('full', { type: 'tween', duration: 0.2, ease: [0.32, 0.72, 0, 1] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyboardOpen, flyingOut]);
+
   const framePad = {
-    paddingTop: size === 'sheet'
-      ? 'max(0.5rem, env(safe-area-inset-top))'
-      : 'max(0.5rem, env(safe-area-inset-top))',
+    paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
     paddingLeft: 'env(safe-area-inset-left)',
     paddingRight: 'env(safe-area-inset-right)',
     paddingBottom: keyboardOpen
@@ -131,7 +196,7 @@ const CenteredPopup = ({
     setFlyingOut(true);
     dragY.stop();
     const curY = dragY.get();
-    const travel = Math.max(window.innerHeight * 1.05 - curY, window.innerHeight * 0.55);
+    const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
     void animate(dragY, curY + travel, flyTween).then(() => {
       exit();
     });
@@ -139,13 +204,33 @@ const CenteredPopup = ({
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (flyingOut) return;
-    const dy = info.offset.y;
+    const y = dragY.get();
     const vy = info.velocity.y;
-    if (dy >= DISMISS_DIST || vy >= DISMISS_VEL) {
+
+    const positions = detents
+      .map((d) => ({ d, y: yForDetent(d, frameH) }))
+      .sort((a, b) => a.y - b.y);
+
+    const peekY = positions[positions.length - 1]?.y ?? 0;
+    const dismissLine = peekY + Math.max(100, (frameH - peekY) * 0.35);
+
+    if (y >= dismissLine || (vy >= DISMISS_VEL && y > peekY * 0.35)) {
       flyOutThenDismiss();
       return;
     }
-    void animate(dragY, 0, returnTween);
+
+    // Velocity-biased nearest detent (follows the finger, then settles)
+    const projected = y + vy * 0.18;
+    let best = positions[0]!;
+    let bestDist = Math.abs(projected - best.y);
+    for (const p of positions) {
+      const dist = Math.abs(projected - p.y);
+      if (dist < bestDist) {
+        best = p;
+        bestDist = dist;
+      }
+    }
+    snapTo(best.d);
   };
 
   const canDrag = !keyboardOpen && !flyingOut;
@@ -153,7 +238,6 @@ const CenteredPopup = ({
   const onCardPointerDown = (e: ReactPointerEvent) => {
     if (!canDrag || e.button !== 0) return;
     const target = e.target as HTMLElement;
-    // Let form controls keep focus / text selection; grabber handles its own drag
     if (target.closest('input, textarea, select, [contenteditable="true"]')) {
       pullRef.current = null;
       return;
@@ -173,14 +257,23 @@ const CenteredPopup = ({
     if (!canDrag || !pullRef.current) return;
     if (pullRef.current.pointerId !== e.pointerId) return;
     const dy = e.clientY - pullRef.current.y;
-    // Re-check live scroll position so overscroll-at-top still dismisses
     const scrollTop = getScrollTop(cardRef.current);
+    // Expand toward full even when scrolled, if pulling up from half
+    if (dy < -PULL_ACTIVATE_PX && multiDetent && detentRef.current !== 'full') {
+      try {
+        cardRef.current?.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      dragControls.start(e);
+      pullRef.current = null;
+      return;
+    }
     if (scrollTop > 0 || pullRef.current.scrollTop > 0) {
       if (dy > PULL_ACTIVATE_PX) pullRef.current = null;
       return;
     }
     if (dy > PULL_ACTIVATE_PX) {
-      // Android: keep receiving moves after scroll gesture would otherwise steal them
       try {
         cardRef.current?.setPointerCapture?.(e.pointerId);
       } catch {
@@ -194,6 +287,8 @@ const CenteredPopup = ({
   const clearPull = () => {
     pullRef.current = null;
   };
+
+  const useSheetLayout = size === 'sheet';
 
   return (
     <motion.div
@@ -214,10 +309,10 @@ const CenteredPopup = ({
       />
 
       <div
+        ref={frameRef}
         className={cn(
           'absolute inset-0 flex justify-center pointer-events-none overflow-hidden',
-          // sheet must stretch full height — items-end collapses to content (short wizards/day sheets)
-          size === 'sheet' ? 'items-stretch' : 'items-end',
+          useSheetLayout ? 'items-stretch' : 'items-end',
         )}
         style={framePad}
       >
@@ -228,14 +323,15 @@ const CenteredPopup = ({
           dragMomentum={false}
           dragElastic={0}
           onDrag={() => {
-            if (dragY.get() < 0) dragY.set(0);
+            const y = dragY.get();
+            if (y < 0) dragY.set(0);
+            if (y > frameH) dragY.set(frameH);
           }}
           onDragEnd={handleDragEnd}
-          // Must keep y + touchAction in ONE style object (duplicate style props overwrite dragY).
           style={{ y: dragY, touchAction: 'none' }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
-            size === 'sheet' ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
+            useSheetLayout ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -248,14 +344,13 @@ const CenteredPopup = ({
             className={cn(
               'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
               'rounded-t-[1.25rem] rounded-b-none',
-              size === 'sheet' ? 'h-full' : 'h-auto max-h-full',
+              useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
             style={{
               paddingBottom: keyboardOpen ? undefined : 'env(safe-area-inset-bottom)',
             }}
           >
-            {/* Grabber + ✕ */}
             <div
               data-sheet-grabber
               className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-1.5 pb-1"
@@ -265,7 +360,7 @@ const CenteredPopup = ({
               <button
                 type="button"
                 className="flex flex-1 items-center justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
-                aria-label="Dra for å lukke"
+                aria-label="Dra sheet"
                 onPointerDown={(e) => {
                   e.stopPropagation();
                   if (!canDrag) return;

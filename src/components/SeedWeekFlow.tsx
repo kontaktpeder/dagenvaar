@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Dumbbell,
@@ -48,7 +47,7 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
   const { t } = useLocale();
   const queryClient = useQueryClient();
   const createEvent = useCreateEvent();
-  const [selected, setSelected] = useState<Set<SeedTemplateId>>(() => new Set(['training', 'date_night', 'dinner_home']));
+  const [selected, setSelected] = useState<Set<SeedTemplateId>>(() => new Set());
   const [saving, setSaving] = useState(false);
 
   const eventCount = useMemo(() => countSeedEvents([...selected]), [selected]);
@@ -91,51 +90,40 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
   };
 
   return (
-    <CenteredPopup onClose={handleSkip} onExit={handleSkip} size="sheet" zClassName="z-[70]">
-      <div className="px-5 pt-1 pb-2 shrink-0">
-        <h2 className="text-xl font-bold">{t('seed.title')}</h2>
+    <CenteredPopup
+      onClose={handleSkip}
+      onExit={handleSkip}
+      size="sheet"
+      detents={['half', 'full']}
+      initialDetent="half"
+      zClassName="z-[70]"
+    >
+      <div className="px-5 pt-1 pb-3 shrink-0">
+        <h2 className="text-2xl font-bold">{t('seed.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1">{t('seed.subtitle')}</p>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2" data-sheet-scroll>
-        {SEED_TEMPLATES.map((template, i) => {
+        {SEED_TEMPLATES.map((template) => {
           const active = selected.has(template.id);
           const Icon = ICONS[template.id];
           return (
-            <motion.button
+            <button
               key={template.id}
               type="button"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
               onClick={() => toggle(template.id)}
-              className={`w-full text-left rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-                active ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted active:bg-muted/70'
+              className={`w-full rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center gap-3 text-left ${
+                active ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted active:bg-muted/80'
               }`}
             >
-              <span
-                className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  active ? 'bg-primary/30' : 'bg-background'
-                }`}
-              >
-                <Icon size={18} strokeWidth={2} className="text-foreground" />
-              </span>
+              <Icon size={18} strokeWidth={2.5} className="shrink-0 text-foreground/80" />
               <span className="min-w-0 flex-1">
-                <span className="font-semibold text-sm block">{t(template.titleKey)}</span>
-                <span className="text-xs text-muted-foreground block mt-0.5">{t(template.hintKey)}</span>
+                <span className="block">{t(template.titleKey)}</span>
+                <span className="block text-xs font-normal text-muted-foreground mt-0.5">
+                  {t(template.hintKey)}
+                </span>
               </span>
-              <span
-                className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  active ? 'border-primary bg-primary' : 'border-border bg-background'
-                }`}
-              >
-                {active && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                    <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-            </motion.button>
+            </button>
           );
         })}
       </div>
@@ -145,17 +133,19 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
           type="button"
           disabled={selected.size === 0 || saving}
           onClick={() => void handleSubmit()}
-          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-50"
+          className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
         >
           {saving
             ? t('seed.saving')
-            : t('seed.submit', { count: eventCount })}
+            : selected.size === 0
+              ? t('seed.pickSome')
+              : t('seed.submit', { count: eventCount })}
         </button>
         <button
           type="button"
           disabled={saving}
           onClick={handleSkip}
-          className="w-full rounded-2xl bg-muted py-3 font-medium text-muted-foreground"
+          className="w-full py-2 text-sm font-medium text-muted-foreground underline underline-offset-2"
         >
           {t('seed.skip')}
         </button>

@@ -136,6 +136,7 @@ export const en: Record<MessageKey, string> = {
   'seed.title': 'Make your week visible',
   'seed.subtitle': 'Tap what happens often. You can change everything later.',
   'seed.submit': 'Add {count} things',
+  'seed.pickSome': 'Pick something first',
   'seed.saving': 'Adding...',
   'seed.skip': 'Skip',
   'seed.done': 'Added {count} things to the calendar',
