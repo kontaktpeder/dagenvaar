@@ -971,6 +971,7 @@ const DayCell = ({
 };
 
 const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number; onSelectMonth: (m: number) => void; onBack: () => void; onChangeYear: (y: number) => void }) => {
+  const { dateLocale } = useLocale();
   const months = Array.from({ length: 12 }, (_, i) => i);
   const now = new Date();
   const theme = getMonthTheme(new Date(year, 0, 1));

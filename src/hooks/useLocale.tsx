@@ -62,7 +62,7 @@ export function LocaleProvider({
         .eq('user_id', user!.id)
         .maybeSingle();
       if (error) throw error;
-      return data as { app_locale: string } | null;
+      return data as unknown as { app_locale: string } | null;
     },
   });
 

@@ -27,8 +27,8 @@ type KindSource = {
 
 /** Resolve home|work even if older rows miss `kind`. */
 export function resolveCalendarKind(source: KindSource | string | null | undefined): CalendarKind {
-  if (typeof source === 'string' || source == null) {
-    const k = (source ?? '').toLowerCase().trim();
+  if (source == null || typeof source === 'string') {
+    const k = (typeof source === 'string' ? source : '').toLowerCase().trim();
     if (k === 'work' || k === 'jobb') return 'work';
     return 'home';
   }

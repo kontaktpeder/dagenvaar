@@ -19,7 +19,7 @@ export function t(
   let text = dictionaries[locale]?.[key] ?? dictionaries.nb[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      text = text.replaceAll(`{${k}}`, String(v));
+      text = text.split(`{${k}}`).join(String(v));
     }
   }
   return text;
