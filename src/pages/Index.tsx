@@ -13,6 +13,8 @@ import { resolveCalendarKind } from '@/lib/calendarKinds';
 import { isSeedWeekDismissed } from '@/lib/seedWeekStorage';
 import { LocaleProvider } from '@/hooks/useLocale';
 import AuthPage from '@/pages/Auth';
+import Landing from '@/pages/Landing';
+import { isNativePlatform } from '@/lib/native/platform';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
 import CalendarSwitcher from '@/components/CalendarSwitcher';
@@ -61,6 +63,9 @@ const Index = () => {
   const [stackDirection, setStackDirection] = useState(0);
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
+  const [authView, setAuthView] = useState<null | 'login' | 'signup'>(
+    isNativePlatform() ? 'login' : null,
+  );
 
   const orderedMemberships = useMemo(
     () => sortCalendarMemberships(memberships),
@@ -183,9 +188,19 @@ const Index = () => {
   }
 
   if (!user) {
+    if (!authView) {
+      return (
+        <LocaleProvider>
+          <Landing
+            onGetStarted={() => setAuthView('signup')}
+            onSignIn={() => setAuthView('login')}
+          />
+        </LocaleProvider>
+      );
+    }
     return (
       <LocaleProvider>
-        <AuthPage />
+        <AuthPage initialMode={authView} />
       </LocaleProvider>
     );
   }

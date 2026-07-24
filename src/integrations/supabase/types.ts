@@ -678,6 +678,42 @@ export type Database = {
           },
         ]
       }
+      member_hidden_overlay_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_hidden_overlay_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_hidden_overlay_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raw_signals: {
         Row: {
           created_at: string
@@ -771,6 +807,24 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          app_locale: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_locale?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_locale?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -787,39 +841,6 @@ export type Database = {
       can_current_user_view_list_item: {
         Args: { p_list_item_id: string }
         Returns: boolean
-      }
-      create_household_invite: {
-        Args: { p_household_id?: string }
-        Returns: {
-          code: string
-          expires_at: string
-          household_id: string
-          invite_id: string
-        }[]
-      }
-      create_household_with_owner: {
-        Args: {
-          p_color_token?: string
-          p_display_name: string
-          p_kind?: string
-          p_name: string
-          p_show_in_other_calendars?: boolean
-        }
-        Returns: {
-          created_at: string
-          created_by: string | null
-          id: string
-          kind: string
-          name: string
-          show_in_other_calendars: boolean
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "households"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       create_event_for_current_member: {
         Args: {
@@ -839,7 +860,69 @@ export type Database = {
           p_title: string
           p_visibility_type?: string
         }
-        Returns: Database["public"]["Tables"]["events"]["Row"]
+        Returns: {
+          category: string
+          category_label_override: string | null
+          created_at: string
+          day_part: string
+          day_part_end: string | null
+          day_part_start: string | null
+          end_date: string | null
+          end_time: string | null
+          event_date: string
+          hide_from_other_calendars: boolean
+          household_id: string
+          id: string
+          location: string | null
+          notes: string | null
+          owner_member_id: string
+          priority: string
+          start_time: string | null
+          title: string
+          updated_at: string
+          visibility_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_household_invite: {
+        Args: { p_household_id?: string }
+        Returns: {
+          code: string
+          expires_at: string
+          household_id: string
+          invite_id: string
+        }[]
+      }
+      create_household_with_owner: {
+        Args: {
+          p_color_token?: string
+          p_display_name: string
+          p_kind?: string
+          p_locale?: string
+          p_name: string
+          p_show_in_other_calendars?: boolean
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          locale: string
+          name: string
+          show_in_other_calendars: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "households"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       current_member_ids: { Args: never; Returns: string[] }
       get_overlay_events_for_household: {
@@ -850,24 +933,20 @@ export type Database = {
         }
         Returns: {
           day_part: string
-          day_part_end: string | null
-          day_part_start: string | null
-          end_date: string | null
-          end_time: string | null
+          day_part_end: string
+          day_part_start: string
+          end_date: string
+          end_time: string
           event_date: string
           id: string
           source_household_id: string
           source_household_kind: string
           source_household_name: string
           source_member_id: string
-          start_time: string | null
+          start_time: string
         }[]
       }
       hide_overlay_event_for_viewer: {
-        Args: { p_event_id: string; p_viewer_household_id: string }
-        Returns: undefined
-      }
-      unhide_overlay_event_for_viewer: {
         Args: { p_event_id: string; p_viewer_household_id: string }
         Returns: undefined
       }
@@ -894,6 +973,10 @@ export type Database = {
       leave_household: { Args: { p_household_id?: string }; Returns: Json }
       sync_event_visible_members: {
         Args: { p_event_id: string; p_member_ids?: string[] }
+        Returns: undefined
+      }
+      unhide_overlay_event_for_viewer: {
+        Args: { p_event_id: string; p_viewer_household_id: string }
         Returns: undefined
       }
     }
