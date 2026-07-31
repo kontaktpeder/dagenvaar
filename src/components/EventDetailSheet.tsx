@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/hooks/useEvents';
@@ -25,6 +26,7 @@ interface EventDetailSheetProps {
 
 const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'home', onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
   const [comment, setComment] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
   const deleteEvent = useDeleteEvent();
@@ -46,8 +48,14 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
   };
 
   const handleDelete = async () => {
-    await deleteEvent.mutateAsync(event.id);
-    onClose();
+    try {
+      await deleteEvent.mutateAsync(event.id);
+      onClose();
+    } catch (err: any) {
+      toast.error('Kunne ikke slette hendelsen', {
+        description: err?.message ?? 'Prøv igjen.',
+      });
+    }
   };
 
   const getMemberById = (id: string) => members.find((m) => m.id === id);
@@ -163,14 +171,40 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
           </button>
         )}
 
-        {editable && (
+        {editable && !confirmDelete && (
           <button
             type="button"
-            onClick={handleDelete}
-            className="w-full rounded-2xl border border-destructive/30 py-3.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            onClick={() => setConfirmDelete(true)}
+            className="min-h-12 w-full rounded-2xl border border-destructive/30 py-3.5 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-colors"
           >
             Slett hendelse
           </button>
+        )}
+
+        {editable && confirmDelete && (
+          <div className="rounded-2xl bg-destructive/10 p-4">
+            <p className="mb-3 text-center text-sm font-medium">
+              Er du sikker på at du vil slette hendelsen?
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleteEvent.isPending}
+                className="min-h-11 rounded-xl border border-border bg-background px-3 font-medium"
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete()}
+                disabled={deleteEvent.isPending}
+                className="min-h-11 rounded-xl bg-destructive px-3 font-semibold text-destructive-foreground disabled:opacity-50"
+              >
+                {deleteEvent.isPending ? 'Sletter…' : 'Slett'}
+              </button>
+            </div>
+          </div>
         )}
       </PopupStickyFooter>
     </CenteredPopup>
