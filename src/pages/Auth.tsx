@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
+import { classifyAuthFormError } from '@/lib/auth/classifyAuthFormError';
+import { normalizeAuthError } from '@/lib/auth/normalizeAuthError';
 import { requestPasswordReset } from '@/lib/auth/requestPasswordReset';
 import { consumeSessionNotice } from '@/lib/auth/sessionNotice';
 import { peekPendingInviteCode } from '@/lib/inviteLink';
@@ -23,6 +25,7 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showCredentialHints, setShowCredentialHints] = useState(false);
   const [notice, setNotice] = useState('');
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -44,25 +47,47 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
     if (code) setNotice(t('auth.inviteReady', { code }));
   }, [t]);
 
+  const applyAuthError = (err: unknown) => {
+    const kind = classifyAuthFormError(err);
+    setShowCredentialHints(mode === 'login' && kind === 'invalid_credentials');
+    switch (kind) {
+      case 'invalid_credentials':
+        setError(t('auth.invalidCredentials'));
+        return;
+      case 'email_not_confirmed':
+        setError(t('auth.emailNotConfirmed'));
+        return;
+      case 'user_already_registered':
+        setError(t('auth.userAlreadyRegistered'));
+        return;
+      case 'rate_limit':
+        setError(t('auth.rateLimited'));
+        return;
+      default:
+        setError(normalizeAuthError(err).message || t('auth.genericError'));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowCredentialHints(false);
     setNotice('');
     setBusy(true);
     try {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
-        if (error) setError(error.message);
+        if (error) applyAuthError(error);
       } else if (mode === 'signup') {
         const { error } = await signUp(email, password);
-        if (error) setError(error.message);
+        if (error) applyAuthError(error);
         else setConfirmationSent(true);
       } else {
         const result = await requestPasswordReset(email);
         if (result.ok === true) {
           setResetSent(true);
         } else {
-          setError(result.error.message);
+          applyAuthError(result.error);
         }
       }
     } finally {
@@ -73,6 +98,7 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
   const switchMode = (next: Mode) => {
     setMode(next);
     setError('');
+    setShowCredentialHints(false);
     setNotice('');
     setConfirmationSent(false);
     setResetSent(false);
@@ -175,13 +201,39 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
             />
           )}
 
-          {error && <p className="text-destructive text-sm text-center">{error}</p>}
+          {error && (
+            <div className="space-y-2 text-center">
+              <p className="text-destructive text-sm">{error}</p>
+              {showCredentialHints && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{t('auth.invalidCredentialsHint')}</p>
+                  <div className="flex items-center justify-center gap-3 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => switchMode('signup')}
+                      className="font-medium text-foreground underline underline-offset-2"
+                    >
+                      {t('auth.createAccount')}
+                    </button>
+                    <span className="text-muted-foreground">·</span>
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot')}
+                      className="font-medium text-foreground underline underline-offset-2"
+                    >
+                      {t('auth.forgotPassword')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {mode === 'login' && (
+        {mode === 'login' && !showCredentialHints && (
           <p className="text-center mt-4 text-sm">
             <button type="button" onClick={() => switchMode('forgot')} className="text-muted-foreground underline underline-offset-2">
-              Glemt passord?
+              {t('auth.forgotPassword')}
             </button>
           </p>
         )}
@@ -195,7 +247,7 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
             <button type="button" onClick={() => switchMode('login')} className="text-foreground font-medium underline underline-offset-2">Tilbake til innlogging</button>
           ) : (
             <>Har du ikke konto?{' '}
-              <button type="button" onClick={() => switchMode('signup')} className="text-foreground font-medium underline underline-offset-2">Opprett konto</button>
+              <button type="button" onClick={() => switchMode('signup')} className="text-foreground font-medium underline underline-offset-2">{t('auth.createAccount')}</button>
             </>
           )}
         </p>

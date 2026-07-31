@@ -88,6 +88,16 @@ export const nb = {
   'auth.inviteReady': 'Invitasjonskode klar: {code}. Opprett konto eller logg inn for å bli med.',
   'auth.signupWithInvite': 'Opprett konto — så legger vi deg inn i kalenderen',
   'auth.loginWithInvite': 'Logg inn — så kobler vi deg til kalenderen',
+  'auth.invalidCredentials': 'Feil e-post eller passord.',
+  'auth.invalidCredentialsHint':
+    'Sjekk at e-posten er riktig. Har du ikke konto ennå, eller har du glemt passordet?',
+  'auth.createAccount': 'Opprett konto',
+  'auth.forgotPassword': 'Glemt passord?',
+  'auth.emailNotConfirmed':
+    'E-posten er ikke bekreftet ennå. Sjekk innboksen (og søppelpost), eller gå til innlogging etter at du har bekreftet.',
+  'auth.userAlreadyRegistered': 'Det finnes allerede en konto med denne e-posten. Logg inn i stedet.',
+  'auth.rateLimited': 'For mange forsøk. Vent litt før du prøver igjen.',
+  'auth.genericError': 'Noe gikk galt. Prøv igjen.',
 
   // profile
   'profile.thisCalendar': 'Denne kalenderen',

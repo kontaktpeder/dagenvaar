@@ -83,6 +83,16 @@ export const en: Record<MessageKey, string> = {
   'auth.inviteReady': 'Invite code ready: {code}. Create an account or sign in to join.',
   'auth.signupWithInvite': 'Create an account — then we’ll add you to the calendar',
   'auth.loginWithInvite': 'Sign in — then we’ll connect you to the calendar',
+  'auth.invalidCredentials': 'Incorrect email or password.',
+  'auth.invalidCredentialsHint':
+    'Check that the email is right. New here, or forgot your password?',
+  'auth.createAccount': 'Create account',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.emailNotConfirmed':
+    'Email not confirmed yet. Check your inbox (and spam), or sign in after confirming.',
+  'auth.userAlreadyRegistered': 'An account with this email already exists. Sign in instead.',
+  'auth.rateLimited': 'Too many attempts. Wait a moment and try again.',
+  'auth.genericError': 'Something went wrong. Try again.',
 
   'profile.thisCalendar': 'This calendar',
   'profile.thisCalendarHint': 'Only applies to “{name}”',
