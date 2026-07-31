@@ -24,7 +24,10 @@ export function isPkceVerifierError(message: string | null | undefined): boolean
 }
 
 const PKCE_CROSS_BROWSER_ERROR =
-  'Lenken åpnet i nettleseren, ikke i Pastelly fra hjemskjermen. Åpne Pastelly fra hjemskjermen, gå til innlogging, og logg inn med e-post og passord. Kontoen er som regel allerede aktivert.';
+  'Lenken åpnet i en annen nettleser enn der du startet. Kontoen er som regel allerede aktivert — logg inn med e-post og passord.';
+
+const NO_PARAMS_LOGIN_HINT =
+  'Bekreftelsen er ofte allerede fullført. Logg inn med e-post og passord for å fortsette.';
 
 const NATIVE_SCHEME = 'pastelly:';
 const NATIVE_HOST = 'auth';
@@ -319,6 +322,22 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     return { ok: true, kind };
   }
 
+  // 4. No auth params — common when Gmail/Safari opens pastelly.no after
+  // confirm already succeeded elsewhere, or redirect stripped ?code=/#tokens.
+  // Prefer an existing session; otherwise soft-prompt login (not a hard failure).
   logAuthDiagnostic('callback:no_params');
-  return { ok: false, error: 'Ingen gyldige auth-parametere i callback' };
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (sessionData.session) {
+    logAuthDiagnostic('callback:no_params_has_session');
+    if (treatAsRecovery || getRecoveryState().isRecoveryFlow || hasPendingRecoveryIntent()) {
+      startRecoveryFlow();
+      markRecoverySessionReady();
+      emitRecoveryNavigate();
+      clearPendingRecoveryIntent();
+      return { ok: true, kind: 'recovery' };
+    }
+    return { ok: true, kind: 'unknown' };
+  }
+
+  return { ok: false, error: NO_PARAMS_LOGIN_HINT, action: 'login' };
 }

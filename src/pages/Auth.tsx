@@ -35,6 +35,11 @@ const AuthPage = ({ initialMode = 'login' }: AuthPageProps = {}) => {
       setNotice(t('auth.accountUnavailable'));
       return;
     }
+    if (pending === 'email_confirmed_login') {
+      setNotice(t('auth.emailConfirmedLogin'));
+      setMode('login');
+      return;
+    }
     const code = peekPendingInviteCode();
     if (code) setNotice(t('auth.inviteReady', { code }));
   }, [t]);

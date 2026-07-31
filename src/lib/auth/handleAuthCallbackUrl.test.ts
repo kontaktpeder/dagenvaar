@@ -243,7 +243,7 @@ describe('handleAuthCallbackUrl PKCE + token_hash', () => {
     expect(result.ok).toBe(false);
     if (result.ok === false) {
       expect(result.action).toBe('login');
-      expect(result.error).toMatch(/hjemskjermen/i);
+      expect(result.error).toMatch(/aktivert|logg inn/i);
     }
   });
 
@@ -257,6 +257,22 @@ describe('handleAuthCallbackUrl PKCE + token_hash', () => {
       type: 'signup',
     });
     expect(result).toEqual({ ok: true, kind: 'signup' });
+  });
+
+  it('no params with session succeeds', async () => {
+    getSessionMock.mockResolvedValue({ data: { session: { access_token: 'x' } } });
+    const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback');
+    expect(result).toEqual({ ok: true, kind: 'unknown' });
+  });
+
+  it('no params without session soft-prompts login', async () => {
+    getSessionMock.mockResolvedValue({ data: { session: null } });
+    const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback');
+    expect(result.ok).toBe(false);
+    if (result.ok === false) {
+      expect(result.action).toBe('login');
+      expect(result.error).toMatch(/bekreftelsen|logg inn/i);
+    }
   });
 });
 

@@ -28,6 +28,7 @@ import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { useToast } from '@/hooks/use-toast';
 import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
 import { peekPendingInviteCode } from '@/lib/inviteLink';
+import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
@@ -68,8 +69,10 @@ const Index = () => {
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
   const [authView, setAuthView] = useState<null | 'login' | 'signup'>(() => {
-    if (isNativePlatform()) return peekPendingInviteCode() ? 'signup' : 'login';
-    return peekPendingInviteCode() ? 'signup' : null;
+    if (peekPendingInviteCode()) return 'signup';
+    if (peekSessionNotice() === 'email_confirmed_login') return 'login';
+    if (isNativePlatform()) return 'login';
+    return null;
   });
 
   const orderedMemberships = useMemo(

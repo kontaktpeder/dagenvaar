@@ -78,6 +78,8 @@ export const en: Record<MessageKey, string> = {
 
   'auth.accountUnavailable':
     'This account no longer exists. Sign in with another account, or create a new one. Contact support if this is a mistake.',
+  'auth.emailConfirmedLogin':
+    'Email confirmed. Sign in with email and password to continue.',
   'auth.inviteReady': 'Invite code ready: {code}. Create an account or sign in to join.',
   'auth.signupWithInvite': 'Create an account — then we’ll add you to the calendar',
   'auth.loginWithInvite': 'Sign in — then we’ll connect you to the calendar',

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { handleAuthCallbackUrl } from '@/lib/auth/handleAuthCallbackUrl';
+import { setSessionNotice } from '@/lib/auth/sessionNotice';
+import { isNativePlatform } from '@/lib/native/platform';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -28,6 +30,11 @@ const AuthCallback = () => {
     })();
   }, [navigate]);
 
+  const goLogin = () => {
+    setSessionNotice('email_confirmed_login');
+    navigate('/', { replace: true });
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
@@ -36,17 +43,31 @@ const AuthCallback = () => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm text-center"
         >
-          <p className="text-5xl mb-4">⚠️</p>
+          <p className="text-5xl mb-4" aria-hidden>
+            {loginHint ? '✨' : '⚠️'}
+          </p>
           <h1 className="text-2xl font-bold mb-2">
             {loginHint ? 'Nesten ferdig' : 'Innlogging feilet'}
           </h1>
           <p className="text-muted-foreground mb-6">{error}</p>
           {loginHint ? (
-            <p className="text-sm font-medium text-foreground">
-              Åpne Pastelly fra hjemskjermen for å logge inn.
-            </p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={goLogin}
+                className="w-full rounded-xl bg-green-200 px-4 py-3 font-semibold text-green-900"
+              >
+                Gå til innlogging
+              </button>
+              {isNativePlatform() && (
+                <p className="text-sm text-muted-foreground">
+                  Åpne Pastelly fra hjemskjermen hvis du bruker appen der.
+                </p>
+              )}
+            </div>
           ) : (
             <button
+              type="button"
               onClick={() => navigate('/', { replace: true })}
               className="rounded-xl bg-green-200 px-4 py-2 font-semibold text-green-900"
             >

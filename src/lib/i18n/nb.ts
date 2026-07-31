@@ -83,6 +83,8 @@ export const nb = {
 
   'auth.accountUnavailable':
     'Kontoen finnes ikke lenger. Logg inn med en annen konto, eller opprett ny. Kontakt support hvis dette er feil.',
+  'auth.emailConfirmedLogin':
+    'E-posten er bekreftet. Logg inn med e-post og passord for å fortsette.',
   'auth.inviteReady': 'Invitasjonskode klar: {code}. Opprett konto eller logg inn for å bli med.',
   'auth.signupWithInvite': 'Opprett konto — så legger vi deg inn i kalenderen',
   'auth.loginWithInvite': 'Logg inn — så kobler vi deg til kalenderen',
