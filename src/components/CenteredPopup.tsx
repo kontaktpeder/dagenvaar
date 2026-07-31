@@ -109,6 +109,15 @@ const CenteredPopup = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const pullRef = useRef<{ y: number; scrollTop: number; pointerId: number } | null>(null);
+  const touchRef = useRef<{
+    startY: number;
+    lastY: number;
+    lastAt: number;
+    startDragY: number;
+    velocityY: number;
+    dragging: boolean;
+    scrollEl: HTMLElement | null;
+  } | null>(null);
   const detentRef = useRef<SheetDetent>('full');
 
   const detents = normalizeDetents(detentsProp ?? ['full']);
@@ -216,10 +225,9 @@ const CenteredPopup = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [flyingOut, onClose]);
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
+  const settleDrag = (vy: number) => {
     if (flyingOut) return;
     const y = dragY.get();
-    const vy = info.velocity.y;
 
     const positions = detents
       .map((d) => ({ d, y: yForDetent(d, frameH) }))
@@ -247,12 +255,88 @@ const CenteredPopup = ({
     snapTo(best.d);
   };
 
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    settleDrag(info.velocity.y);
+  };
+
   const canDrag = !keyboardOpen && !flyingOut;
 
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (!canDrag || event.touches.length !== 1) {
+        touchRef.current = null;
+        return;
+      }
+      const target = event.target as HTMLElement;
+      if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+        touchRef.current = null;
+        return;
+      }
+      const touch = event.touches[0]!;
+      touchRef.current = {
+        startY: touch.clientY,
+        lastY: touch.clientY,
+        lastAt: event.timeStamp,
+        startDragY: dragY.get(),
+        velocityY: 0,
+        dragging: false,
+        scrollEl: (target.closest('[data-sheet-scroll]') as HTMLElement | null) ?? getScrollEl(card),
+      };
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const state = touchRef.current;
+      if (!canDrag || !state || event.touches.length !== 1) return;
+
+      const touch = event.touches[0]!;
+      const dy = touch.clientY - state.startY;
+      const scrollTop = state.scrollEl?.scrollTop ?? 0;
+      const expandFromHalf = dy < -PULL_ACTIVATE_PX && multiDetent && detentRef.current !== 'full';
+      const pullDownFromTop = dy > PULL_ACTIVATE_PX && scrollTop <= 1;
+
+      if (!state.dragging) {
+        if (!expandFromHalf && !pullDownFromTop) return;
+        state.dragging = true;
+        state.startY = touch.clientY;
+        state.lastY = touch.clientY;
+        state.lastAt = event.timeStamp;
+        state.startDragY = dragY.get();
+      }
+
+      event.preventDefault();
+      const elapsed = Math.max(1, event.timeStamp - state.lastAt);
+      state.velocityY = ((touch.clientY - state.lastY) / elapsed) * 1000;
+      state.lastY = touch.clientY;
+      state.lastAt = event.timeStamp;
+      dragY.stop();
+      dragY.set(Math.max(0, Math.min(frameH, state.startDragY + touch.clientY - state.startY)));
+    };
+
+    const finishTouch = () => {
+      const state = touchRef.current;
+      touchRef.current = null;
+      if (state?.dragging) settleDrag(state.velocityY);
+    };
+
+    card.addEventListener('touchstart', handleTouchStart, { passive: true });
+    card.addEventListener('touchmove', handleTouchMove, { passive: false });
+    card.addEventListener('touchend', finishTouch);
+    card.addEventListener('touchcancel', finishTouch);
+    return () => {
+      card.removeEventListener('touchstart', handleTouchStart);
+      card.removeEventListener('touchmove', handleTouchMove);
+      card.removeEventListener('touchend', finishTouch);
+      card.removeEventListener('touchcancel', finishTouch);
+    };
+  }, [canDrag, dragY, frameH, multiDetent, settleDrag]);
+
   const onCardPointerDown = (e: ReactPointerEvent) => {
-    if (!canDrag || e.button !== 0) return;
+    if (!canDrag || e.button !== 0 || e.pointerType === 'touch') return;
     const target = e.target as HTMLElement;
-    if (target.closest('input, textarea, select, [contenteditable="true"], [data-sheet-scroll]')) {
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) {
       pullRef.current = null;
       return;
     }
