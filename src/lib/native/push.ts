@@ -1,6 +1,7 @@
 import OneSignal from '@onesignal/capacitor-plugin';
 import { isNativePlatform } from './platform';
 import { setPendingOpenDay } from './pendingOpenDay';
+import { setPendingOpenCountdown } from './pendingOpenCountdown';
 
 let initPromise: Promise<boolean> | null = null;
 let identifiedUserId: string | null = null;
@@ -17,6 +18,11 @@ function attachClickListener(): void {
   try {
     OneSignal.Notifications.addEventListener('click', (event) => {
       const raw = event?.notification?.additionalData as Record<string, unknown> | undefined;
+      const countdownId =
+        typeof raw?.countdown_id === 'string' && raw.countdown_id ? raw.countdown_id : null;
+      if (countdownId) {
+        setPendingOpenCountdown(countdownId);
+      }
       const date =
         (typeof raw?.date === 'string' && raw.date) ||
         (typeof raw?.event_date === 'string' && raw.event_date) ||

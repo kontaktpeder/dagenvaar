@@ -10,6 +10,9 @@ import { useLocale } from '@/hooks/useLocale';
 import type { Event } from '@/hooks/useEvents';
 import type { DisplayEvent } from '@/hooks/useOverlayEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
+import type { CountdownWithParticipants } from '@/hooks/useCountdowns';
+import { calendarDaysUntil } from '@/lib/countdownTime';
+import { getCountdownTheme } from '@/lib/countdownThemes';
 import type { Highlight } from '@/pages/Index';
 import ListView from '@/components/ListView';
 import CenteredPopup from '@/components/CenteredPopup';
@@ -18,13 +21,16 @@ import PopupStickyFooter from '@/components/PopupStickyFooter';
 interface CalendarDaySheetProps {
   date: Date;
   events: DisplayEvent[];
+  countdowns?: CountdownWithParticipants[];
   members: HouseholdMember[];
   householdId: string;
   currentMemberId: string;
   highlight?: Highlight;
   onClose: () => void;
   onPickEvent: (event: DisplayEvent) => void;
+  onPickCountdown?: (countdown: CountdownWithParticipants) => void;
   onCreateForDate: (date: Date) => void;
+  onCreateCountdown?: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
   calendarKind?: string;
@@ -35,13 +41,16 @@ interface CalendarDaySheetProps {
 const CalendarDaySheet = ({
   date,
   events,
+  countdowns = [],
   members,
   householdId,
   currentMemberId,
   highlight,
   onClose,
   onPickEvent,
+  onPickCountdown,
   onCreateForDate,
+  onCreateCountdown,
   onEditEvent,
   onQuickEditEvent,
   calendarKind = 'home',
@@ -51,6 +60,7 @@ const CalendarDaySheet = ({
   const { t, locale, dateLocale } = useLocale();
   const [showList, setShowList] = useState(false);
   const getMember = (id: string) => members.find((m) => m.id === id);
+  const showCountdownCta = calendarKind === 'home' && !!onCreateCountdown;
 
   const handleDismiss = () => {
     onClose();
@@ -87,7 +97,35 @@ const CalendarDaySheet = ({
 
       <div className="flex flex-col min-h-0 flex-1">
             <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-3 space-y-2 min-h-0" data-sheet-scroll>
-              {events.length === 0 ? (
+              {countdowns.map((cd) => {
+                const theme = getCountdownTheme(cd.theme);
+                const daysFromNow = calendarDaysUntil(cd.target_at);
+                const label =
+                  daysFromNow <= 0
+                    ? t('countdown.itsTime')
+                    : daysFromNow === 1
+                      ? `1 ${t('countdown.dayLeft')}`
+                      : `${daysFromNow} ${t('countdown.daysLeft')}`;
+                return (
+                  <button
+                    key={cd.id}
+                    type="button"
+                    onClick={() => onPickCountdown?.(cd)}
+                    className="w-full text-left rounded-xl p-3"
+                    style={{ background: theme.gradient }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{cd.emoji || '✨'}</span>
+                      <span className="font-semibold text-sm truncate">{cd.title}</span>
+                    </div>
+                    <p className={`text-xs font-medium mt-0.5 ${theme.accentText}`}>
+                      {t('countdown.onDay')} · {label}
+                    </p>
+                  </button>
+                );
+              })}
+
+              {events.length === 0 && countdowns.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[8rem] text-center px-2">
                   <p className="font-medium text-foreground">{t('event.emptyDay')}</p>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -174,6 +212,15 @@ const CalendarDaySheet = ({
               >
                 {t('event.seeList')}
               </button>
+              {showCountdownCta && (
+                <button
+                  type="button"
+                  onClick={() => onCreateCountdown?.(date)}
+                  className="w-full rounded-2xl bg-pink-100 text-pink-900 py-3.5 font-semibold"
+                >
+                  {t('countdown.new')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onCreateForDate(date)}

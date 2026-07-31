@@ -1,6 +1,17 @@
 /** Lightweight confetti burst — no dependency. */
-export function burstConfetti(): void {
+
+export type BurstConfettiOpts = {
+  colors?: string[];
+  count?: number;
+};
+
+const DEFAULT_COLORS = ['#f9a8d4', '#93c5fd', '#a7f3d0', '#fde68a', '#c4b5fd', '#fdba74'];
+
+export function burstConfetti(opts?: BurstConfettiOpts): void {
   if (typeof document === 'undefined') return;
+  const colors = opts?.colors?.length ? opts.colors : DEFAULT_COLORS;
+  const count = opts?.count ?? 36;
+
   const root = document.createElement('div');
   root.setAttribute('aria-hidden', 'true');
   root.style.cssText =
@@ -19,14 +30,13 @@ export function burstConfetti(): void {
     document.head.appendChild(style);
   }
 
-  const colors = ['#f9a8d4', '#93c5fd', '#a7f3d0', '#fde68a', '#c4b5fd', '#fdba74'];
-  for (let i = 0; i < 36; i += 1) {
+  for (let i = 0; i < count; i += 1) {
     const bit = document.createElement('span');
     const left = 8 + Math.random() * 84;
-    const delay = Math.random() * 0.2;
-    const dur = 0.95 + Math.random() * 0.65;
-    const size = 6 + Math.random() * 6;
-    const dx = `${(Math.random() - 0.5) * 120}px`;
+    const delay = Math.random() * 0.25;
+    const dur = 0.95 + Math.random() * 0.75;
+    const size = 6 + Math.random() * 8;
+    const dx = `${(Math.random() - 0.5) * 140}px`;
     bit.style.cssText = `
       position:absolute;top:-12px;left:${left}%;
       width:${size}px;height:${size * 0.55}px;
@@ -39,5 +49,5 @@ export function burstConfetti(): void {
     root.appendChild(bit);
   }
 
-  window.setTimeout(() => root.remove(), 2200);
+  window.setTimeout(() => root.remove(), 2400);
 }

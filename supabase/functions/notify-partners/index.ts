@@ -11,6 +11,9 @@ type Body = {
   title?: string;
   body?: string;
   event_id?: string | null;
+  countdown_id?: string | null;
+  target_user_ids?: string[] | null;
+  date?: string | null;
 };
 
 Deno.serve(async (req) => {
@@ -62,24 +65,41 @@ Deno.serve(async (req) => {
       return json({ error: 'Not a member of this household' }, 403);
     }
 
-    // Comment pushes: make sender clear on the lock screen
     if (kind === 'comment_added' && self.display_name) {
       title = 'Ny kommentar';
       body = `${self.display_name}: ${body}`;
     }
 
-    const { data: partners, error: partnersError } = await supabase
-      .from('household_members')
-      .select('user_id')
-      .eq('household_id', householdId)
-      .eq('is_active', true)
-      .neq('user_id', user.id);
+    let externalIds: string[] = [];
 
-    if (partnersError) {
-      return json({ error: partnersError.message }, 500);
+    if (payload.target_user_ids && payload.target_user_ids.length > 0) {
+      const wanted = [...new Set(payload.target_user_ids.filter(Boolean))];
+      const { data: targets, error: targetsError } = await supabase
+        .from('household_members')
+        .select('user_id')
+        .eq('household_id', householdId)
+        .eq('is_active', true)
+        .in('user_id', wanted)
+        .neq('user_id', user.id);
+
+      if (targetsError) {
+        return json({ error: targetsError.message }, 500);
+      }
+      externalIds = [...new Set((targets ?? []).map((p) => p.user_id).filter(Boolean))];
+    } else {
+      const { data: partners, error: partnersError } = await supabase
+        .from('household_members')
+        .select('user_id')
+        .eq('household_id', householdId)
+        .eq('is_active', true)
+        .neq('user_id', user.id);
+
+      if (partnersError) {
+        return json({ error: partnersError.message }, 500);
+      }
+      externalIds = [...new Set((partners ?? []).map((p) => p.user_id).filter(Boolean))];
     }
 
-    const externalIds = [...new Set((partners ?? []).map((p) => p.user_id).filter(Boolean))];
     if (externalIds.length === 0) {
       return json({ ok: true, sent: 0, reason: 'no_partners' });
     }
@@ -100,6 +120,8 @@ Deno.serve(async (req) => {
           kind,
           household_id: householdId,
           event_id: payload.event_id ?? null,
+          countdown_id: payload.countdown_id ?? null,
+          date: payload.date ?? null,
         },
       }),
     });
@@ -110,7 +132,6 @@ Deno.serve(async (req) => {
       return json({ error: 'OneSignal send failed', detail: osJson }, 502);
     }
 
-    // OneSignal often returns 200 with empty id when nobody is subscribed yet
     const onesignalId = typeof osJson?.id === 'string' ? osJson.id : '';
     if (!onesignalId) {
       console.warn('OneSignal accepted request but no recipients', osJson);

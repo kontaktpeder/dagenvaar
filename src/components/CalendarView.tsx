@@ -7,6 +7,7 @@ import {
   useOverlayEventsForRange,
   type DisplayEvent,
 } from '@/hooks/useOverlayEvents';
+import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
 import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
@@ -18,6 +19,7 @@ import {
   MAX_SPAN_LANES,
   type SpanSegment,
 } from '@/lib/multiDaySpans';
+import { targetDateStr } from '@/lib/countdownTime';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { Highlight } from '@/pages/Index';
 import { useLocale } from '@/hooks/useLocale';
@@ -26,9 +28,15 @@ import ViewHeader from '@/components/ViewHeader';
 import CalendarDaySheet from '@/components/CalendarDaySheet';
 import EventDetailSheet from '@/components/EventDetailSheet';
 import OverlayEventSheet from '@/components/OverlayEventSheet';
+import CountdownDetailSheet from '@/components/CountdownDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
 import { fadeQuick } from '@/lib/motion';
 import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
+import {
+  consumePendingOpenCountdown,
+  peekPendingOpenCountdown,
+  subscribePendingOpenCountdown,
+} from '@/lib/native/pendingOpenCountdown';
 
 interface CalendarViewProps {
   householdId: string;
@@ -39,6 +47,7 @@ interface CalendarViewProps {
   onCurrentDateChange?: Dispatch<SetStateAction<Date>>;
   onSelectDate: (date: Date) => void;
   onCreateEvent: (date: Date) => void;
+  onCreateCountdown?: (date: Date) => void;
   onEditEvent?: (event: Event) => void;
   onQuickEditEvent?: (event: Event) => void;
   onSwitchCalendar?: (householdId: string) => void;
@@ -131,7 +140,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
@@ -146,7 +155,26 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
   const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
   const [detailEvent, setDetailEvent] = useState<Event | null>(null);
   const [overlayEvent, setOverlayEvent] = useState<DisplayEvent | null>(null);
+  const [detailCountdown, setDetailCountdown] = useState<CountdownWithParticipants | null>(null);
   const [paging, setPaging] = useState(false);
+  const { data: activeCountdowns = [] } = useActiveCountdowns(householdId);
+
+  const countdownsByDate = useMemo(() => {
+    const map: Record<string, CountdownWithParticipants[]> = {};
+    for (const cd of activeCountdowns) {
+      const key = targetDateStr(cd.target_at);
+      (map[key] ??= []).push(cd);
+    }
+    return map;
+  }, [activeCountdowns]);
+
+  const countdownEmojiByDate = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const [key, list] of Object.entries(countdownsByDate)) {
+      map[key] = list[0]?.emoji || '✨';
+    }
+    return map;
+  }, [countdownsByDate]);
 
   const openDayFromPush = useCallback(
     (dateStr: string) => {
@@ -165,6 +193,26 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
     if (pending) openDayFromPush(pending);
     return subscribePendingOpenDay(openDayFromPush);
   }, [openDayFromPush]);
+
+  const openCountdownFromPush = useCallback(
+    (countdownId: string) => {
+      const cd = activeCountdowns.find((c) => c.id === countdownId);
+      if (!cd) return false;
+      consumePendingOpenCountdown();
+      openDayFromPush(targetDateStr(cd.target_at));
+      setDetailCountdown(cd);
+      return true;
+    },
+    [activeCountdowns, openDayFromPush],
+  );
+
+  useEffect(() => {
+    const pending = peekPendingOpenCountdown();
+    if (pending) openCountdownFromPush(pending);
+    return subscribePendingOpenCountdown((id) => {
+      openCountdownFromPush(id);
+    });
+  }, [openCountdownFromPush]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -531,6 +579,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   onPressLock={lockStripForPress}
                   onPressUnlock={unlockStripForPress}
                   getMemberForEvent={getMemberForEvent}
+                  countdownEmojiByDate={countdownEmojiByDate}
                 />
               );
             })}
@@ -567,6 +616,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
           <CalendarDaySheet
             date={daySheetDate}
             events={daySheetEvents}
+            countdowns={countdownsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
             members={members}
             householdId={householdId}
             currentMemberId={currentMemberId}
@@ -581,10 +631,12 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
               // Keep day sheet under detail — backdrop pops one level
               setDetailEvent(ev);
             }}
+            onPickCountdown={(cd) => setDetailCountdown(cd)}
             onCreateForDate={(d) => {
               // Keep day sheet under create flow
               onCreateEvent(d);
             }}
+            onCreateCountdown={onCreateCountdown}
             onEditEvent={onEditEvent}
             onQuickEditEvent={onQuickEditEvent}
             calendarKind={calendarKind}
@@ -593,6 +645,19 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
               setDaySheetDate(null);
               onSeedWeek?.();
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {detailCountdown && (
+          <CountdownDetailSheet
+            countdown={
+              activeCountdowns.find((c) => c.id === detailCountdown.id) ?? detailCountdown
+            }
+            members={members}
+            currentMemberId={currentMemberId}
+            onClose={() => setDetailCountdown(null)}
           />
         )}
       </AnimatePresence>
@@ -677,6 +742,7 @@ interface MonthPanelProps {
   onPressLock: () => void;
   onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
+  countdownEmojiByDate?: Record<string, string>;
 }
 
 const MonthPanel = ({
@@ -694,6 +760,7 @@ const MonthPanel = ({
   onPressLock,
   onPressUnlock,
   getMemberForEvent,
+  countdownEmojiByDate,
 }: MonthPanelProps) => {
   const spanByDate = useMemo(
     () => buildSpanSegmentsByDate(days, eventsByDate, neighbourEventsByDate),
@@ -732,6 +799,7 @@ const MonthPanel = ({
             onPressLock={onPressLock}
             onPressUnlock={onPressUnlock}
             getMemberForEvent={getMemberForEvent}
+            countdownEmoji={countdownEmojiByDate?.[dateStr]}
           />
         );
       })}
@@ -758,6 +826,7 @@ interface DayCellProps {
   onPressLock: () => void;
   onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
+  countdownEmoji?: string;
 }
 
 /** Max single-day marks shown before +N overflow */
@@ -817,6 +886,7 @@ const DayCell = ({
   onPressLock,
   onPressUnlock,
   getMemberForEvent,
+  countdownEmoji,
 }: DayCellProps) => {
   const { longPressHandlers, didFire } = useLongPress({
     onRecognize: onPressLock,
@@ -896,6 +966,12 @@ const DayCell = ({
       >
         {format(day, 'd')}
       </span>
+
+      {countdownEmoji && (
+        <span className="text-[11px] leading-none mt-0.5" aria-hidden>
+          {countdownEmoji}
+        </span>
+      )}
 
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
