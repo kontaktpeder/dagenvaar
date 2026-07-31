@@ -9,6 +9,7 @@ import {
   CALENDAR_KINDS,
   calendarKindLabelLocalized,
   defaultShowInOtherCalendars,
+  resolveCalendarKind,
   type CalendarKind,
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
@@ -20,6 +21,10 @@ import CategoryColorSettings from '@/components/CategoryColorSettings';
 import DailyDigestSettings from '@/components/DailyDigestSettings';
 import { AppLocaleSettings, CalendarLocaleSettings } from '@/components/LocaleSettings';
 import CenteredPopup from '@/components/CenteredPopup';
+import { CountdownDigits } from '@/components/CountdownDigits';
+import CountdownDetailSheet from '@/components/CountdownDetailSheet';
+import NewCountdownFlow from '@/components/NewCountdownFlow';
+import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
 import { useLocale } from '@/hooks/useLocale';
 import { defaultLocaleForKind } from '@/lib/i18n/types';
 
@@ -86,8 +91,12 @@ const ProfileSheet = ({
   const [uploadError, setUploadError] = useState('');
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+  const [showNewCountdown, setShowNewCountdown] = useState(false);
+  const [selectedCountdown, setSelectedCountdown] = useState<CountdownWithParticipants | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { data: activeCountdowns = [] } = useActiveCountdowns(household.id);
+  const isHomeCalendar = resolveCalendarKind(household) === 'home';
 
   const leaveHousehold = useMutation({
     mutationFn: async () => {
@@ -305,7 +314,45 @@ const ProfileSheet = ({
 
   const isOwner = currentMember.role === 'owner';
 
+  const countdownSection = isHomeCalendar ? (
+    <section className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+        {t('countdown.profileSection')}
+      </p>
+      {activeCountdowns.length === 0 ? (
+        <p className="text-sm text-muted-foreground px-0.5">
+          {t('countdown.profileEmpty')}
+        </p>
+      ) : (
+        activeCountdowns.map((cd) => (
+          <button
+            key={cd.id}
+            type="button"
+            onClick={() => setSelectedCountdown(cd)}
+            className="w-full text-left"
+          >
+            <CountdownDigits
+              targetAt={cd.target_at}
+              themeId={cd.theme}
+              emoji={cd.emoji}
+              title={cd.title}
+              compact
+            />
+          </button>
+        ))
+      )}
+      <button
+        type="button"
+        onClick={() => setShowNewCountdown(true)}
+        className="w-full rounded-2xl bg-pink-100 text-pink-900 py-3.5 text-sm font-semibold"
+      >
+        {t('countdown.new')}
+      </button>
+    </section>
+  ) : null;
+
   return (
+    <>
     <CenteredPopup
       onClose={onClose}
       onExit={onClose}
@@ -346,6 +393,8 @@ const ProfileSheet = ({
                   </div>
                 ))}
               </section>
+
+              {countdownSection}
 
               <section className="space-y-3">
                 <label className="flex items-start gap-3 rounded-xl bg-muted/40 p-3 cursor-pointer">
@@ -499,6 +548,8 @@ const ProfileSheet = ({
                   {t('profile.avatarHint')}
                 </p>
               </section>
+
+              {countdownSection}
 
               <section className="space-y-3 rounded-2xl bg-muted/40 px-4 py-4">
                 <p className="text-xs text-muted-foreground px-0.5 -mt-1">
@@ -656,6 +707,31 @@ const ProfileSheet = ({
         )}
       </AnimatePresence>
     </CenteredPopup>
+
+    <AnimatePresence>
+      {showNewCountdown && (
+        <NewCountdownFlow
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          onClose={() => setShowNewCountdown(false)}
+        />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {selectedCountdown && (
+        <CountdownDetailSheet
+          countdown={
+            activeCountdowns.find((c) => c.id === selectedCountdown.id) ?? selectedCountdown
+          }
+          members={members}
+          currentMemberId={currentMember.id}
+          onClose={() => setSelectedCountdown(null)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 };
 
