@@ -40,7 +40,10 @@ const KeyboardAwareScreen = ({
     wasOpenRef.current = false;
 
     const el = scrollRef.current;
-    if (el) el.scrollTop = 0;
+    if (el) {
+      const maxScrollTop = Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTop = Math.min(el.scrollTop, maxScrollTop);
+    }
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' in window ? 'instant' : 'auto' } as ScrollToOptions);
     } catch {
