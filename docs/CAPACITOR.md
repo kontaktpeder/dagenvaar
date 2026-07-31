@@ -68,15 +68,20 @@ går gjennom én felles handler i `src/lib/auth/handleAuthCallbackUrl.ts`.
   token-suffix i minnet, så React Strict Mode og cold+warm dobbel-fyring
   ikke gir "invalid grant"-feil.
 
-### Supabase Redirect URLs (må konfigureres i Supabase-dashboardet)
+### Supabase URL Configuration (må settes i dashboardet)
 
-Legg til alle disse under **Authentication → URL Configuration → Redirect URLs**:
+Under **Authentication → URL Configuration**:
 
-- `https://pastelly.no/auth/callback`
-- `https://dagenvaar.lovable.app/auth/callback`
-- `https://id-preview--ccf85415-947c-4482-ab63-775e8d1619d6.lovable.app/auth/callback`
-- `http://localhost:8080/auth/callback` (dev)
-- `pastelly://auth/callback` (native)
+- **Site URL**: `https://pastelly.no` (ikke Lovable web.app)
+- **Redirect URLs** (allowlist):
+  - `https://pastelly.no/auth/callback`
+  - `pastelly://auth/callback` (native)
+  - `http://localhost:8080/auth/callback` (Vite/Capacitor local)
+  - `http://localhost:5173/auth/callback` (valgfri Vite-port)
+
+Appen sender alltid `https://pastelly.no/auth/callback` for web i
+produksjon (se `getAuthRedirectUrl`). Preview-hosts (Lovable) skal ikke
+være Site URL — e-postlenker skal lande på pastelly.no.
 
 ### Native URL scheme
 
