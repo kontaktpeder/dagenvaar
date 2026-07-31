@@ -15,6 +15,9 @@ dist-ssr
 # iOS local archives / exports
 ios/build/
 
+# Supabase CLI link state
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
