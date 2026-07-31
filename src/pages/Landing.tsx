@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 type LandingProps = {
@@ -95,6 +96,10 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
 
         <footer className="pb-6 pt-8 text-center text-xs text-muted-foreground/80">
           © {new Date().getFullYear()} Pastelly
+          {' · '}
+          <Link to="/personvern" className="underline underline-offset-2 hover:text-foreground">
+            Personvern
+          </Link>
         </footer>
       </main>
     </div>

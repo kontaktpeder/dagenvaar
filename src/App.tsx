@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { captureInviteCodeFromLocation } from "@/lib/inviteLink";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Privacy from "./pages/Privacy.tsx";
 import AuthCallback from "./pages/AuthCallback.tsx";
 import AuthUpdatePassword from "./pages/AuthUpdatePassword.tsx";
 import RecoveryRouter from "./components/RecoveryRouter";
@@ -24,6 +25,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/join" element={<Index />} />
           <Route path="/join/:code" element={<Index />} />
+          <Route path="/personvern" element={<Privacy />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/update-password" element={<AuthUpdatePassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
