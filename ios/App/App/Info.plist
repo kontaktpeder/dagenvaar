@@ -37,6 +37,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pastelly bruker ikke posisjonen din. Denne teksten kreves fordi push-varslingsbiblioteket kan referere til posisjons-API-er som appen ikke bruker.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
