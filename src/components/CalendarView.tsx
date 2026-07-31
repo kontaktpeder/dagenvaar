@@ -30,6 +30,7 @@ import EventDetailSheet from '@/components/EventDetailSheet';
 import OverlayEventSheet from '@/components/OverlayEventSheet';
 import CountdownDetailSheet from '@/components/CountdownDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { fadeQuick } from '@/lib/motion';
 import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 import {
@@ -142,6 +143,7 @@ function buildMonthDays(monthDate: Date): Date[] {
 
 const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
+  const isMobile = useIsMobile();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
   const setCurrentDate = useCallback(
@@ -457,8 +459,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
   };
 
   const handleDayTap = (day: Date) => {
-    // Paint sheet first; defer parent date update so calendar doesn't re-render mid-open
-    setDaySheetDate(day);
+    // iPhone uses a sheet; iPad updates the persistent day inspector.
+    if (isMobile) setDaySheetDate(day);
     requestAnimationFrame(() => onSelectDate(day));
   };
 
@@ -508,6 +510,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
                   gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
+                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
@@ -518,7 +521,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 px-2.5 py-1 rounded-full bg-white/25 active:bg-white/40 text-white text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm"
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 min-h-11 px-3 rounded-full bg-foreground/10 active:bg-foreground/15 text-foreground text-xs font-semibold tracking-wide backdrop-blur-sm"
             >
               I dag
             </button>
@@ -700,11 +703,13 @@ const MonthHeaderPanel = ({
   width,
   label,
   gradient,
+  textColor,
   onTitleClick,
 }: {
   width: number;
   label: string;
   gradient: string;
+  textColor: string;
   onTitleClick?: () => void;
 }) => (
   <div
@@ -712,14 +717,15 @@ const MonthHeaderPanel = ({
     style={{
       width: width || '33.333%',
       background: gradient,
+      color: textColor,
     }}
   >
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="text-center">
-        <h2 className="text-xl font-extrabold capitalize text-white tracking-wide">{label}</h2>
+        <h2 className="text-xl font-extrabold capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="text-xl font-extrabold capitalize text-white tracking-wide text-center">{label}</h2>
+      <h2 className="text-xl font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
@@ -888,6 +894,8 @@ const DayCell = ({
   getMemberForEvent,
   countdownEmoji,
 }: DayCellProps) => {
+  const { dateLocale } = useLocale();
+  const dayAriaLabel = format(day, 'EEEE d. MMMM yyyy', { locale: dateLocale });
   const { longPressHandlers, didFire } = useLongPress({
     onRecognize: onPressLock,
     onLongPress: () => {
@@ -950,6 +958,7 @@ const DayCell = ({
     <button
       {...longPressHandlers}
       onClick={handleClick}
+      aria-label={dayAriaLabel}
       className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
         isHighlighted ? 'ring-2 ring-primary/40' : ''
       }`}
