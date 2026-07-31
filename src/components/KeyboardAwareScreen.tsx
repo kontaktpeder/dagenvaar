@@ -61,7 +61,7 @@ const KeyboardAwareScreen = ({
       <div
         ref={scrollRef}
         className={cn(
-          'flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-6 pt-[max(1.5rem,env(safe-area-inset-top))]',
+          'flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]',
           contentClassName,
           // Drop vertical centering while typing — avoids stuck offset after dismiss.
           keyboardOpen && 'justify-start',
