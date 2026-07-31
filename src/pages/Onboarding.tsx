@@ -151,7 +151,9 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
       if (householdId) {
         setStoredActiveHouseholdId(householdId);
         setWelcomeIntent(mode === 'create' ? 'create' : 'join');
-        if (mode === 'join') clearPendingInviteCode();
+        // Consumed on join, abandoned on create — either way it must not
+        // resurface for the next onboarding or account on this device.
+        clearPendingInviteCode();
         try {
           await maybeUploadAvatar(householdId);
         } catch {

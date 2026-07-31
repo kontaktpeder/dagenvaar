@@ -1,0 +1,3 @@
+# Permanently delete the calling user's account
+# Secrets: SUPABASE_SERVICE_ROLE_KEY (provided by the platform)
+verify_jwt = true

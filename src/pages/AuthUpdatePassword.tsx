@@ -72,6 +72,13 @@ const AuthUpdatePassword = () => {
     const pollId = window.setInterval(async () => {
       if (disposed) return;
       pollAttempts += 1;
+      // A session alone is not proof of recovery: a normally signed-in user
+      // opening this URL must not be pushed into the recovery flow.
+      const rs = getRecoveryState();
+      if (!rs.isRecoveryFlow && !rs.recoverySessionReady && !hasPendingRecoveryIntent()) {
+        if (pollAttempts >= 13) window.clearInterval(pollId);
+        return;
+      }
       const { data } = await supabase.auth.getSession();
       if (disposed) return;
       if (data.session) {
@@ -89,7 +96,13 @@ const AuthUpdatePassword = () => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (disposed) return;
       logAuthDiagnostic('auth:event', { event });
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+      // PASSWORD_RECOVERY is authoritative; SIGNED_IN only counts while a
+      // recovery flow / pending intent is active (native PKCE fallback).
+      if (
+        shouldPromoteRecoveryPage(getRecoveryState(), event, {
+          pendingIntent: hasPendingRecoveryIntent(),
+        })
+      ) {
         startRecoveryFlow();
         markRecoverySessionReady();
         promote();

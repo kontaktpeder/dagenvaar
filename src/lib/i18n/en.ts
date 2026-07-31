@@ -109,6 +109,11 @@ export const en: Record<MessageKey, string> = {
   'profile.signingOut': 'Signing out...',
   'profile.privacy': 'Privacy',
   'profile.deleteAccount': 'Delete account',
+  'profile.deleteAccountConfirm': 'Delete your account permanently?',
+  'profile.deleteAccountHint':
+    'Calendars where you are the only member are deleted. In shared calendars you are removed, but what you added stays.',
+  'profile.deleteAccountYes': 'Yes, delete',
+  'profile.deletingAccount': 'Deleting...',
   'profile.signOut': 'Sign out',
   'profile.createCalendar': 'New calendar',
   'profile.joinCalendar': 'Join a calendar',

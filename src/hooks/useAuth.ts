@@ -1,27 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
-import { clearPendingRecoveryIntent } from '@/lib/auth/recoveryState';
+import { clearLocalUserState } from '@/lib/auth/localReset';
+import { classifySessionUserError, type SessionUserCheck } from '@/lib/auth/sessionValidity';
 import { setSessionNotice } from '@/lib/auth/sessionNotice';
-import { clearStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { clearPushUser, identifyPushUser } from '@/lib/native/push';
 import type { User, Session } from '@supabase/supabase-js';
 
 async function clearInvalidSession(): Promise<void> {
   setSessionNotice('account_unavailable');
-  clearPendingRecoveryIntent();
-  clearStoredActiveHouseholdId();
-  await clearPushUser();
+  await clearLocalUserState();
   await supabase.auth.signOut({ scope: 'local' });
 }
 
-/** Server-roundtrip check: local JWT may outlive a deleted auth.users row. */
-async function sessionUserStillExists(): Promise<boolean> {
+/**
+ * Server-roundtrip check: a local JWT can outlive a deleted auth.users row.
+ * Network failures return `unknown` so we never sign out on a flaky connection.
+ */
+async function checkSessionUser(): Promise<SessionUserCheck> {
   const { data, error } = await supabase.auth.getUser();
-  return !error && !!data.user;
+  if (error) return classifySessionUserError(error);
+  return data.user ? 'valid' : 'gone';
 }
 
 export function useAuth() {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,8 +47,7 @@ export function useAuth() {
       if (validatingRef.current) return;
       validatingRef.current = true;
       try {
-        const ok = await sessionUserStillExists();
-        if (!ok) {
+        if ((await checkSessionUser()) === 'gone') {
           await clearInvalidSession();
           applySession(null);
           return;
@@ -83,8 +86,7 @@ export function useAuth() {
       void (async () => {
         const { data: { session: current } } = await supabase.auth.getSession();
         if (!current) return;
-        const ok = await sessionUserStillExists();
-        if (!ok) {
+        if ((await checkSessionUser()) === 'gone') {
           await clearInvalidSession();
           applySession(null);
         }
@@ -113,11 +115,15 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    clearPendingRecoveryIntent();
-    clearStoredActiveHouseholdId();
-    await clearPushUser();
-    const { error } = await supabase.auth.signOut({ scope: 'local' });
-    if (error) throw error;
+    await clearLocalUserState();
+    // Revoke refresh tokens on every device; fall back to local when the
+    // session is already invalid server-side.
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    if (error) {
+      const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
+      if (localError) throw localError;
+    }
+    queryClient.clear();
   };
 
   return { user, session, loading, signIn, signUp, signOut };

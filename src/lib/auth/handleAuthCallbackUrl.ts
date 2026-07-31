@@ -221,12 +221,16 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     clearPendingRecoveryIntent();
   }
 
-  // Recovery only when: URL explicitly marked recovery, or a pending
-  // recovery intent exists (native PKCE strips `type=recovery`). We do NOT
+  // Recovery only when: URL explicitly marked recovery, or a native deep link
+  // arrives while a recovery intent is pending (native PKCE strips
+  // `type=recovery`). Web links always carry `type`, so a pending intent must
+  // never turn a web signup confirm into a password reset. We also do NOT
   // treat every native `pastelly://` link as recovery — signup deep links
   // arrive on the same scheme and must route normally.
+  const isNativeCallback = parsed.protocol === NATIVE_SCHEME;
   const pendingIntent = hasPendingRecoveryIntent();
-  const treatAsRecovery = isRecoveryFlag || (pendingIntent && !isExplicitNonRecovery);
+  const treatAsRecovery =
+    isRecoveryFlag || (isNativeCallback && pendingIntent && !isExplicitNonRecovery);
   if (treatAsRecovery) {
     startRecoveryFlow();
   }

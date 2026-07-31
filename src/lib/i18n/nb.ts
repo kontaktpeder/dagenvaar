@@ -115,6 +115,11 @@ export const nb = {
   'profile.signingOut': 'Logger ut...',
   'profile.privacy': 'Personvern',
   'profile.deleteAccount': 'Slett konto',
+  'profile.deleteAccountConfirm': 'Slette kontoen din for godt?',
+  'profile.deleteAccountHint':
+    'Kalendere der du er alene blir slettet. I delte kalendere blir du fjernet, men det dere har lagt inn blir stående.',
+  'profile.deleteAccountYes': 'Ja, slett',
+  'profile.deletingAccount': 'Sletter...',
   'profile.signOut': 'Logg ut',
   'profile.createCalendar': 'Ny kalender',
   'profile.joinCalendar': 'Bli med i kalender',

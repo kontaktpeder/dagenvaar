@@ -15,6 +15,7 @@ import {
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
 import { buildInviteShareText, buildInviteUrl } from '@/lib/inviteLink';
+import { deleteAccount } from '@/lib/auth/deleteAccount';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
 import CategoryColorSettings from '@/components/CategoryColorSettings';
@@ -91,6 +92,8 @@ const ProfileSheet = ({
   const [uploadError, setUploadError] = useState('');
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [showNewCountdown, setShowNewCountdown] = useState(false);
   const [selectedCountdown, setSelectedCountdown] = useState<CountdownWithParticipants | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +121,18 @@ const ProfileSheet = ({
     },
     onError: (err: any) => {
       setLeaveError(err?.message ?? 'Kunne ikke forlate kalenderen');
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: () => {
+      setDeleteError('');
+      queryClient.clear();
+      onClose();
+    },
+    onError: (err: any) => {
+      setDeleteError(err?.message ?? 'Kunne ikke slette kontoen');
     },
   });
 
@@ -672,23 +687,59 @@ const ProfileSheet = ({
                   )}
                 </div>
 
-                <div className="pt-1 space-y-3 text-center text-xs text-muted-foreground">
-                  <div className="flex items-center justify-center gap-4">
-                    <a
-                      href="https://pastelly.no/personvern"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2"
-                    >
-                      {t('profile.privacy')}
-                    </a>
-                    <a
-                      href="mailto:hei@pastelly.no?subject=Slett%20kontoen%20min"
-                      className="underline underline-offset-2"
+                <div className="pt-2 border-t border-border/50">
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteError(''); setShowDeleteConfirm(true); }}
+                      className="w-full rounded-xl py-2.5 text-sm font-medium text-destructive underline underline-offset-2"
                     >
                       {t('profile.deleteAccount')}
-                    </a>
-                  </div>
+                    </button>
+                  ) : (
+                    <div className="rounded-xl bg-muted p-4 space-y-3">
+                      <p className="text-sm font-medium text-center">
+                        {t('profile.deleteAccountConfirm')}
+                      </p>
+                      <p className="text-xs text-muted-foreground text-center">
+                        {t('profile.deleteAccountHint')}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                          disabled={deleteAccountMutation.isPending}
+                          className="rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-background transition-colors disabled:opacity-50"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteAccountMutation.mutate()}
+                          disabled={deleteAccountMutation.isPending}
+                          className="rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground hover:opacity-90 disabled:opacity-50"
+                        >
+                          {deleteAccountMutation.isPending
+                            ? t('profile.deletingAccount')
+                            : t('profile.deleteAccountYes')}
+                        </button>
+                      </div>
+                      {deleteError && (
+                        <p className="text-destructive text-sm text-center">{deleteError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-1 space-y-3 text-center text-xs text-muted-foreground">
+                  <a
+                    href="https://pastelly.no/personvern"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {t('profile.privacy')}
+                  </a>
                   <p>Pastelly v{import.meta.env.VITE_APP_VERSION ?? '1.0.0'}</p>
                 </div>
               </section>

@@ -184,6 +184,18 @@ describe('handleAuthCallbackUrl recovery state', () => {
     expect(window.localStorage.getItem('pastelly:recovery-state')).toBeNull();
   });
 
+  it('web code exchange with pending intent but no type is NOT recovery', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    window.localStorage.setItem(
+      'pastelly:pending-recovery-intent',
+      JSON.stringify({ at: Date.now() }),
+    );
+    const result = await handleAuthCallbackUrl('https://pastelly.no/auth/callback?code=websignup');
+    expect(result.ok).toBe(true);
+    expect((result as { kind: string }).kind).toBe('signup');
+    expect(window.localStorage.getItem('pastelly:recovery-state')).toBeNull();
+  });
+
   it('explicit type=signup clears stale pendingRecoveryIntent and routes as signup', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     window.localStorage.setItem(
