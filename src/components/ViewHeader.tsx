@@ -15,9 +15,9 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
     const isCalendar = variant === 'calendar';
 
     const bg = isCalendar ? '' : 'bg-list-accent';
-    const textColor = isCalendar ? 'text-white' : 'text-foreground';
-    const arrowColor = isCalendar ? 'stroke-white' : 'stroke-current';
-    const hoverBg = isCalendar ? 'hover:bg-white/15' : 'hover:bg-white/40';
+    const textColor = 'text-foreground';
+    const arrowColor = 'stroke-current';
+    const hoverBg = isCalendar ? 'hover:bg-foreground/10' : 'hover:bg-white/40';
 
     return (
       <div
@@ -26,12 +26,12 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
         style={isCalendar ? calendarStyle : undefined}
       >
         <div className="flex items-center justify-between px-5 py-4">
-          <button onClick={onPrev} className={`p-2 rounded-full ${hoverBg}`}>
+          <button type="button" onClick={onPrev} aria-label="Forrige" className={`w-11 h-11 flex items-center justify-center rounded-full ${hoverBg}`}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M12 15L7 10L12 5" className={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={onTitleClick} className="text-center" disabled={!onTitleClick}>
+          <button type="button" onClick={onTitleClick} className="min-h-11 px-2 text-center" disabled={!onTitleClick}>
             <h2 className={`text-xl font-extrabold capitalize ${textColor} tracking-wide`}>
               {children}
             </h2>
@@ -41,7 +41,7 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
               </p>
             )}
           </button>
-          <button onClick={onNext} className={`p-2 rounded-full ${hoverBg}`}>
+          <button type="button" onClick={onNext} aria-label="Neste" className={`w-11 h-11 flex items-center justify-center rounded-full ${hoverBg}`}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M8 5L13 10L8 15" className={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
