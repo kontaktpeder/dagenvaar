@@ -29,14 +29,14 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
           className="flex items-center justify-between pt-6"
         >
           <span
-            className="font-heading text-lg font-extrabold tracking-tight text-foreground"
+            className="font-display text-lg font-extrabold tracking-tight text-foreground"
           >
             Pastelly
           </span>
           <button
             type="button"
             onClick={onSignIn}
-            className="rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground"
+            className="min-h-11 rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground"
           >
             Logg inn
           </button>
@@ -47,7 +47,7 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut', delay: 0.05 }}
-            className="font-heading text-[15vw] font-extrabold leading-[0.95] tracking-tight text-foreground sm:text-8xl"
+            className="font-display text-[15vw] font-extrabold leading-[0.95] tracking-tight text-foreground sm:text-8xl"
           >
             Pastelly
           </motion.h1>
@@ -56,7 +56,7 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.18 }}
-            className="mt-6 max-w-md font-heading text-2xl font-semibold text-foreground/85 sm:text-3xl"
+            className="mt-6 max-w-md font-display text-2xl font-semibold text-foreground/85 sm:text-3xl"
           >
             Delt kalender gjort enkelt
           </motion.h2>
@@ -86,7 +86,7 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
             <button
               type="button"
               onClick={onSignIn}
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              className="min-h-11 px-3 text-sm text-muted-foreground underline-offset-4 hover:underline"
             >
               Har du konto? Logg inn
             </button>

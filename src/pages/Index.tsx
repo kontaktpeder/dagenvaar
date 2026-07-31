@@ -17,6 +17,7 @@ import Landing from '@/pages/Landing';
 import { isNativePlatform } from '@/lib/native/platform';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
+import ListView from '@/components/ListView';
 import CalendarSwitcher from '@/components/CalendarSwitcher';
 import NewEventFlow from '@/components/NewEventFlow';
 import NewCountdownFlow from '@/components/NewCountdownFlow';
@@ -25,7 +26,7 @@ import EditEventQuickSheet from '@/components/EditEventQuickSheet';
 import SeedWeekFlow from '@/components/SeedWeekFlow';
 import WelcomeDialog from '@/components/WelcomeDialog';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
 import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { peekSessionNotice } from '@/lib/auth/sessionNotice';
@@ -48,12 +49,13 @@ const Index = () => {
     memberships,
     setActiveHouseholdId,
     loading: ctxLoading,
+    error: ctxError,
+    refetch: refetchContext,
     invalidate,
   } = useCurrentHouseholdContext();
   const { data: members = [] } = useMembers(household?.id);
   const { data: hasEvents, isSuccess: hasEventsReady } = useHouseholdHasEvents(household?.id);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventDate, setNewEventDate] = useState<Date | undefined>();
@@ -213,6 +215,29 @@ const Index = () => {
     );
   }
 
+  if (ctxError) {
+    return (
+      <LocaleProvider>
+        <div className="h-[100dvh] bg-background flex items-center justify-center px-6 py-safe">
+          <div className="w-full max-w-sm text-center">
+            <p className="text-4xl mb-4" aria-hidden>📡</p>
+            <h1 className="text-2xl font-bold mb-2">Kunne ikke hente kalenderen</h1>
+            <p className="text-muted-foreground mb-6">
+              Kalenderen din er fortsatt trygg. Kontroller forbindelsen og prøv igjen.
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetchContext()}
+              className="min-h-12 w-full rounded-2xl bg-primary px-5 py-3 font-semibold text-primary-foreground"
+            >
+              Prøv igjen
+            </button>
+          </div>
+        </div>
+      </LocaleProvider>
+    );
+  }
+
   if (!household || !currentMember) {
     return (
       <LocaleProvider>
@@ -246,10 +271,8 @@ const Index = () => {
       queryClient.clear();
     } catch (err: any) {
       console.error('Sign out error:', err);
-      toast({
-        title: 'Feil ved utlogging',
+      toast.error('Feil ved utlogging', {
         description: err?.message ?? 'Kunne ikke logge ut. Prøv igjen.',
-        variant: 'destructive',
       });
     }
   };
@@ -260,7 +283,7 @@ const Index = () => {
     <LocaleProvider calendarLocale={(household as any).locale}>
     <div
       data-calendar-kind={calendarKind}
-      className="h-[100dvh] bg-background flex flex-col max-w-lg mx-auto relative overflow-hidden"
+      className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
     >
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
@@ -293,14 +316,14 @@ const Index = () => {
         </button>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden relative bg-background">
+      <main className="flex-1 min-h-0 overflow-hidden relative bg-background md:grid md:grid-cols-[minmax(0,1fr)_22rem] lg:grid-cols-[minmax(0,1fr)_24rem]">
         {/* Single instance — no exit/enter overlap (avoids layered calendars) */}
         <motion.div
           key={household.id}
           initial={{ y: stackDirection >= 0 ? 36 : -36 }}
           animate={{ y: 0 }}
           transition={stackTransition}
-          className="h-full flex flex-col bg-background"
+          className="h-full min-w-0 flex flex-col bg-background"
         >
           <CalendarView
             householdId={household.id}
@@ -322,6 +345,33 @@ const Index = () => {
             onSeedWeek={() => setShowSeedWeek(true)}
           />
         </motion.div>
+
+        <aside className="hidden min-h-0 flex-col border-l border-border/70 bg-card/70 md:flex">
+          <div className="shrink-0 border-b border-border/60 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Valgt dag
+            </p>
+            <h2 className="mt-1 text-lg font-bold capitalize">
+              {focusedDate.toLocaleDateString(
+                (household as any).locale === 'en' ? 'en-GB' : 'nb-NO',
+                { weekday: 'long', day: 'numeric', month: 'long' },
+              )}
+            </h2>
+          </div>
+          <div className="min-h-0 flex-1">
+            <ListView
+              householdId={household.id}
+              members={members}
+              currentMemberId={currentMember.id}
+              calendarKind={calendarKind}
+              initialDate={focusedDate}
+              embedded
+              highlight={highlight}
+              onEditEvent={handleEditEvent}
+              onQuickEditEvent={setQuickEditEvent}
+            />
+          </div>
+        </aside>
       </main>
 
       <AnimatePresence>

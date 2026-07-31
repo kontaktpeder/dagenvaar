@@ -208,6 +208,14 @@ const CenteredPopup = ({
     });
   };
 
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !flyingOut) onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [flyingOut, onClose]);
+
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (flyingOut) return;
     const y = dragY.get();
@@ -323,7 +331,7 @@ const CenteredPopup = ({
         ref={frameRef}
         className={cn(
           'absolute inset-0 flex justify-center pointer-events-none overflow-hidden',
-          useSheetLayout ? 'items-stretch' : 'items-end',
+          useSheetLayout ? 'items-stretch md:items-center' : 'items-end',
         )}
         style={framePad}
       >
@@ -342,19 +350,23 @@ const CenteredPopup = ({
           style={{ y: dragY, touchAction: 'none' }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
-            useSheetLayout ? 'h-full max-h-full self-stretch' : 'h-auto max-h-[min(92dvh,100%)]',
+            useSheetLayout
+              ? 'h-full max-h-full self-stretch md:h-[min(90dvh,52rem)] md:max-h-[52rem] md:max-w-xl md:self-center'
+              : 'h-auto max-h-[min(92dvh,100%)]',
           )}
           onClick={(e) => e.stopPropagation()}
         >
           <motion.div
             ref={cardRef}
+            role="dialog"
+            aria-modal="true"
             onPointerDown={onCardPointerDown}
             onPointerMove={onCardPointerMove}
             onPointerUp={clearPull}
             onPointerCancel={clearPull}
             className={cn(
               'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
-              'rounded-t-[1.25rem] rounded-b-none',
+              'rounded-t-[1.25rem] rounded-b-none md:rounded-[1.75rem]',
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
