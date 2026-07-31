@@ -15,9 +15,9 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
     const isCalendar = variant === 'calendar';
 
     const bg = isCalendar ? '' : 'bg-list-accent';
-    const textColor = 'text-foreground';
-    const arrowColor = 'stroke-current';
-    const hoverBg = isCalendar ? 'hover:bg-foreground/10' : 'hover:bg-white/40';
+    const textColor = isCalendar ? 'text-white' : 'text-foreground';
+    const arrowColor = isCalendar ? 'stroke-white' : 'stroke-current';
+    const hoverBg = isCalendar ? 'hover:bg-white/15' : 'hover:bg-white/40';
 
     return (
       <div
