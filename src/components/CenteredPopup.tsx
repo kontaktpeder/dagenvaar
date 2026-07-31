@@ -252,7 +252,7 @@ const CenteredPopup = ({
   const onCardPointerDown = (e: ReactPointerEvent) => {
     if (!canDrag || e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+    if (target.closest('input, textarea, select, [contenteditable="true"], [data-sheet-scroll]')) {
       pullRef.current = null;
       return;
     }
@@ -331,7 +331,7 @@ const CenteredPopup = ({
         ref={frameRef}
         className={cn(
           'absolute inset-0 flex justify-center pointer-events-none overflow-hidden',
-          useSheetLayout ? 'items-stretch md:items-center' : 'items-end',
+          useSheetLayout ? 'items-stretch' : 'items-end',
         )}
         style={framePad}
       >
@@ -347,11 +347,11 @@ const CenteredPopup = ({
             if (y > frameH) dragY.set(frameH);
           }}
           onDragEnd={handleDragEnd}
-          style={{ y: dragY, touchAction: 'none' }}
+          style={{ y: dragY }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
             useSheetLayout
-              ? 'h-full max-h-full self-stretch md:h-[min(90dvh,52rem)] md:max-h-[52rem] md:max-w-xl md:self-center'
+              ? 'h-full max-h-full self-stretch md:max-w-xl'
               : 'h-auto max-h-[min(92dvh,100%)]',
           )}
           onClick={(e) => e.stopPropagation()}
@@ -366,7 +366,7 @@ const CenteredPopup = ({
             onPointerCancel={clearPull}
             className={cn(
               'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
-              'rounded-t-[1.25rem] rounded-b-none md:rounded-[1.75rem]',
+              'rounded-t-[1.25rem] rounded-b-none',
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
