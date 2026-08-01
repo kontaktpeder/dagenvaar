@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion, useMotionValue, animate } from 'framer-motion';
+import { useMotionValue, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
@@ -71,6 +71,11 @@ function normalizeDetents(detents: SheetDetent[]): SheetDetent[] {
   return ordered.length ? ordered : ['full'];
 }
 
+function writeSheetY(el: HTMLElement | null, y: number) {
+  if (!el) return;
+  el.style.transform = `translate3d(0, ${y}px, 0)`;
+}
+
 type GestureState = {
   pointerId: number;
   startY: number;
@@ -85,10 +90,7 @@ type GestureState = {
 
 /**
  * Bottom sheet: follows the finger, snaps to detents (half / full), or dismisses.
- * Wizards use detents={['full']}; browse sheets use ['half','full'].
- *
- * Gesture path is a single pointer pipeline (no Framer drag). Backdrop opacity
- * stays fixed while dragging — only the sheet transform moves.
+ * Mid-drag writes translate3d directly (no Framer / React). Framer only snaps open/close.
  */
 const CenteredPopup = ({
   onClose,
@@ -105,12 +107,16 @@ const CenteredPopup = ({
   const keyboardOpen = keyboardInset > 24;
   const exit = onExit ?? onClose;
   const cardRef = useRef<HTMLDivElement>(null);
+  const sheetLayerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef<GestureState | null>(null);
   const detentRef = useRef<SheetDetent>('full');
   const canDragRef = useRef(true);
   const frameHRef = useRef(700);
   const multiDetentRef = useRef(false);
+  const yRef = useRef(
+    typeof window !== 'undefined' ? window.innerHeight : 640,
+  );
   const settleDragRef = useRef<(vy: number) => void>(() => {});
 
   const detents = normalizeDetents(detentsProp ?? ['full']);
@@ -126,14 +132,10 @@ const CenteredPopup = ({
     typeof window !== 'undefined' ? window.innerHeight : 700,
   );
 
-  const dragY = useMotionValue(
-    typeof window !== 'undefined' ? window.innerHeight : 640,
-  );
+  const dragY = useMotionValue(yRef.current);
 
   const maxDim = backdrop === 'solid' ? (multiDetent ? 0.28 : 0.4) : 0;
   const [backdropOpen, setBackdropOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
   const enteredRef = useRef(false);
@@ -142,6 +144,16 @@ const CenteredPopup = ({
   canDragRef.current = canDrag;
   frameHRef.current = frameH;
   multiDetentRef.current = multiDetent;
+
+  // Keep DOM transform in sync for animated (non-gesture) motion
+  useEffect(() => {
+    writeSheetY(sheetLayerRef.current, dragY.get());
+    return dragY.on('change', (v) => {
+      yRef.current = v;
+      if (gestureRef.current?.dragging) return;
+      writeSheetY(sheetLayerRef.current, v);
+    });
+  }, [dragY]);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -161,9 +173,22 @@ const CenteredPopup = ({
     return () => ro.disconnect();
   }, []);
 
+  const setDragVisual = (on: boolean) => {
+    const layer = sheetLayerRef.current;
+    const card = cardRef.current;
+    if (layer) {
+      layer.style.willChange = on ? 'transform' : '';
+    }
+    if (card) {
+      // Inline so React className re-renders can't put the shadow back mid-drag
+      card.style.boxShadow = on ? 'none' : '';
+    }
+  };
+
   const snapTo = (detent: SheetDetent, tween = snapTween) => {
     detentRef.current = detent;
     const target = yForDetent(detent, frameH);
+    dragY.set(yRef.current);
     void animate(dragY, target, tween);
   };
 
@@ -173,11 +198,13 @@ const CenteredPopup = ({
     if (!enteredRef.current) {
       enteredRef.current = true;
       detentRef.current = startDetent;
+      dragY.set(yRef.current);
       void animate(dragY, yForDetent(startDetent, frameH), sheetSpring);
       return;
     }
     const target = yForDetent(detentRef.current, frameH);
-    if (Math.abs(dragY.get() - target) < 6) return;
+    if (Math.abs(yRef.current - target) < 6) return;
+    dragY.set(yRef.current);
     void animate(dragY, target, {
       type: 'tween',
       duration: 0.15,
@@ -208,10 +235,11 @@ const CenteredPopup = ({
     if (flyingOut) return;
     setFlyingOut(true);
     setBackdropOpen(false);
-    setIsDragging(false);
+    setDragVisual(false);
     gestureRef.current = null;
     dragY.stop();
-    const curY = dragY.get();
+    const curY = yRef.current;
+    dragY.set(curY);
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
     void animate(dragY, curY + travel, flyTween).then(() => {
       exit();
@@ -228,7 +256,7 @@ const CenteredPopup = ({
 
   const settleDrag = (vy: number) => {
     if (flyingOut) return;
-    const y = dragY.get();
+    const y = yRef.current;
     const h = frameHRef.current;
 
     const positions = detents
@@ -257,7 +285,7 @@ const CenteredPopup = ({
   };
   settleDragRef.current = settleDrag;
 
-  // Single gesture path: pointer → dragY.set (no Framer dragControls)
+  // Single gesture path: pointer → direct translate3d (no Framer mid-drag)
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
@@ -267,9 +295,9 @@ const CenteredPopup = ({
       state.startY = clientY;
       state.lastY = clientY;
       state.lastAt = timeStamp;
-      state.startDragY = dragY.get();
+      state.startDragY = yRef.current;
       dragY.stop();
-      setIsDragging(true);
+      setDragVisual(true);
       try {
         card.setPointerCapture(state.pointerId);
       } catch {
@@ -298,7 +326,7 @@ const CenteredPopup = ({
         startY: event.clientY,
         lastY: event.clientY,
         lastAt: event.timeStamp,
-        startDragY: dragY.get(),
+        startDragY: yRef.current,
         velocityY: 0,
         dragging: false,
         fromGrabber,
@@ -307,7 +335,6 @@ const CenteredPopup = ({
       };
       gestureRef.current = state;
 
-      // Grabber: follow immediately (no dead zone)
       if (fromGrabber) {
         beginDrag(state, event.clientY, event.timeStamp);
       }
@@ -335,7 +362,8 @@ const CenteredPopup = ({
 
       const h = frameHRef.current;
       const nextY = Math.max(0, Math.min(h, state.startDragY + event.clientY - state.startY));
-      dragY.set(nextY);
+      yRef.current = nextY;
+      writeSheetY(sheetLayerRef.current, nextY);
     };
 
     const finishPointer = (event: PointerEvent) => {
@@ -343,12 +371,12 @@ const CenteredPopup = ({
       if (!state || event.pointerId !== state.pointerId) return;
       gestureRef.current = null;
       if (state.dragging) {
-        setIsDragging(false);
+        setDragVisual(false);
+        dragY.set(yRef.current);
         settleDragRef.current(state.velocityY);
       }
     };
 
-    // Block native scroll only while the sheet itself is being dragged
     const onTouchMove = (event: TouchEvent) => {
       if (gestureRef.current?.dragging) {
         event.preventDefault();
@@ -371,27 +399,17 @@ const CenteredPopup = ({
   }, [dragY]);
 
   const useSheetLayout = size === 'sheet';
+  const initialY = yRef.current;
 
   return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 1 }}
-      transition={{ duration: 0 }}
-      className={cn('fixed inset-0', zClassName)}
-    >
-      <motion.div
-        className="absolute inset-0"
-        initial={false}
-        animate={{
-          opacity: backdrop === 'solid' && backdropOpen ? maxDim : 0,
-        }}
-        transition={{
-          duration: flyingOut ? 0.24 : 0.2,
-          ease: fadeEase,
-        }}
+    <div className={cn('fixed inset-0', zClassName)}>
+      <div
+        className="absolute inset-0 transition-opacity"
         style={{
           backgroundColor: backdrop === 'solid' ? 'hsl(var(--foreground))' : 'transparent',
+          opacity: backdrop === 'solid' && backdropOpen ? maxDim : 0,
+          transitionDuration: flyingOut ? '240ms' : '200ms',
+          transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
         }}
         onClick={flyingOut ? undefined : onClose}
         aria-hidden
@@ -405,17 +423,15 @@ const CenteredPopup = ({
         )}
         style={framePad}
       >
-        <motion.div
-          style={{
-            y: dragY,
-            willChange: isDragging ? 'transform' : 'auto',
-          }}
+        <div
+          ref={sheetLayerRef}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
             useSheetLayout
               ? 'h-full max-h-full self-stretch md:max-w-xl'
               : 'h-auto max-h-[min(92dvh,100%)]',
           )}
+          style={{ transform: `translate3d(0, ${initialY}px, 0)` }}
           onClick={(e) => e.stopPropagation()}
         >
           <div
@@ -423,9 +439,8 @@ const CenteredPopup = ({
             role="dialog"
             aria-modal="true"
             className={cn(
-              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background',
+              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
               'rounded-t-[1.25rem] rounded-b-none',
-              !isDragging && 'shadow-soft-lg',
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
@@ -461,9 +476,9 @@ const CenteredPopup = ({
             </div>
             {children}
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
