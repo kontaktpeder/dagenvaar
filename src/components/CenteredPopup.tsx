@@ -125,6 +125,8 @@ const CenteredPopup = ({
   const canDragRef = useRef(true);
   const frameHRef = useRef(700);
   const multiDetentRef = useRef(false);
+  /** True while an editable inside this sheet is focused — gates drag with keyboard. */
+  const [editableFocused, setEditableFocused] = useState(false);
   const yRef = useRef(
     typeof window !== 'undefined' ? window.innerHeight : 640,
   );
@@ -153,11 +155,38 @@ const CenteredPopup = ({
   const enteredRef = useRef(false);
   const dismissLockedRef = useRef(false);
 
-  const canDrag = !keyboardOpen && !flyingOut;
+  // Don't lock drag on stale keyboardInset alone (native hide can miss).
+  const canDrag = !flyingOut && !(keyboardOpen && editableFocused);
   canDragRef.current = canDrag;
   flyingOutRef.current = flyingOut;
   frameHRef.current = frameH;
   multiDetentRef.current = multiDetent;
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const syncEditableFocus = () => {
+      const ae = document.activeElement;
+      setEditableFocused(
+        !!(
+          ae instanceof HTMLElement &&
+          card.contains(ae) &&
+          ae.matches('input, textarea, select, [contenteditable="true"]')
+        ),
+      );
+    };
+    const onFocusOut = () => {
+      // activeElement still points at the field until the next tick
+      window.setTimeout(syncEditableFocus, 0);
+    };
+    card.addEventListener('focusin', syncEditableFocus);
+    card.addEventListener('focusout', onFocusOut);
+    syncEditableFocus();
+    return () => {
+      card.removeEventListener('focusin', syncEditableFocus);
+      card.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -445,7 +474,7 @@ const CenteredPopup = ({
     };
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!canDragRef.current || event.button !== 0) {
+      if (flyingOutRef.current || event.button !== 0) {
         gestureRef.current = null;
         return;
       }
@@ -460,6 +489,12 @@ const CenteredPopup = ({
       }
 
       const fromGrabber = !!target.closest('[data-sheet-grabber]');
+      // Grabber always starts drag (except fly-out). Body pull needs canDrag.
+      if (!fromGrabber && !canDragRef.current) {
+        gestureRef.current = null;
+        return;
+      }
+
       const state: GestureState = {
         pointerId: event.pointerId,
         startY: event.clientY,
@@ -481,11 +516,13 @@ const CenteredPopup = ({
 
     const onPointerMove = (event: PointerEvent) => {
       const state = gestureRef.current;
-      if (!canDragRef.current || !state || event.pointerId !== state.pointerId) return;
+      if (!state || event.pointerId !== state.pointerId) return;
 
       const dy = event.clientY - state.startY;
 
       if (!state.dragging) {
+        // Body activate only when drag is allowed; grabber already began on down.
+        if (!canDragRef.current) return;
         const scrollTop = state.scrollEl?.scrollTop ?? 0;
         const expandFromHalf =
           dy < -BODY_ACTIVATE_PX && multiDetentRef.current && detentRef.current !== 'full';

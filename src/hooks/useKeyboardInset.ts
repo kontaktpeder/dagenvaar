@@ -2,9 +2,21 @@ import { useEffect, useState } from 'react';
 import { Keyboard } from '@capacitor/keyboard';
 import { isNativePlatform } from '@/lib/native/platform';
 
+const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable="true"]';
+
+function isEditableFocused(): boolean {
+  const ae = document.activeElement;
+  if (!ae || ae === document.body) return false;
+  return ae.matches(EDITABLE_SELECTOR);
+}
+
 /**
  * Returns the current keyboard overlap in px so sticky CTAs can sit above it.
  * Uses Capacitor Keyboard on native; visualViewport on web / as fallback.
+ *
+ * With Keyboard.resize: 'none', visualViewport often stays full-height while the
+ * keyboard is open — Capacitor events own the inset. Hide events can miss on iOS,
+ * so we also clear when focus leaves editable fields.
  */
 export function useKeyboardInset(): number {
   const [inset, setInset] = useState(0);
@@ -33,6 +45,12 @@ export function useKeyboardInset(): number {
 
     const syncViewport = () => setSafe(fromVisualViewport());
 
+    /** Clear stale inset when nothing editable is focused (native hide can miss). */
+    const clearIfBlurred = () => {
+      if (!isEditableFocused()) setSafe(0);
+      else if (!isNativePlatform()) syncViewport();
+    };
+
     const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener('resize', syncViewport);
@@ -41,16 +59,18 @@ export function useKeyboardInset(): number {
     window.addEventListener('resize', syncViewport);
 
     const onFocusOut = () => {
-      // iOS PWA sometimes leaves a stale offset after blur; re-sync twice.
       window.clearTimeout(focusOutTimerA);
       window.clearTimeout(focusOutTimerB);
-      focusOutTimerA = window.setTimeout(syncViewport, 120);
-      focusOutTimerB = window.setTimeout(syncViewport, 320);
+      // After blur, activeElement may still be the field for a tick — recheck twice.
+      focusOutTimerA = window.setTimeout(clearIfBlurred, 120);
+      focusOutTimerB = window.setTimeout(clearIfBlurred, 360);
     };
+
+    // Web + native: focusout clears stuck inset when keyboard hide events miss.
+    document.addEventListener('focusout', onFocusOut);
 
     if (isNativePlatform()) {
       void Keyboard.addListener('keyboardWillShow', (info) => {
-        // Prefer Capacitor height on native — more stable than visualViewport during animation.
         setSafe(info.keyboardHeight || fromVisualViewport());
       }).then((h) => {
         if (!cancelled) handles.push(h);
@@ -76,7 +96,6 @@ export function useKeyboardInset(): number {
       });
     } else {
       syncViewport();
-      document.addEventListener('focusout', onFocusOut);
     }
 
     return () => {
