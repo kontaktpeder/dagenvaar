@@ -1,12 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  animate,
-  useDragControls,
-  type PanInfo,
-} from 'framer-motion';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion, useMotionValue, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
@@ -35,7 +28,8 @@ interface CenteredPopupProps {
 }
 
 const DISMISS_VEL = 900;
-const PULL_ACTIVATE_PX = 8;
+/** Tiny body threshold only to separate scroll intent from sheet drag. Grabber is 0. */
+const BODY_ACTIVATE_PX = 2;
 
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
 const DETENT_VISIBLE: Record<SheetDetent, number> = {
@@ -55,22 +49,13 @@ const snapTween = {
   ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
 };
 
+const fadeEase = [0.32, 0.72, 0, 1] as [number, number, number, number];
+
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
   if (!root) return null;
   const marked = root.querySelector('[data-sheet-scroll]') as HTMLElement | null;
   if (marked) return marked;
   return root.querySelector('.overflow-y-auto, .overflow-y-scroll') as HTMLElement | null;
-}
-
-function getScrollTop(root: HTMLElement | null): number {
-  return getScrollEl(root)?.scrollTop ?? 0;
-}
-
-/** True when the sheet body can actually scroll (content taller than viewport). */
-function contentCanScroll(root: HTMLElement | null): boolean {
-  const el = getScrollEl(root);
-  if (!el) return false;
-  return el.scrollHeight > el.clientHeight + 2;
 }
 
 function yForDetent(detent: SheetDetent, frameH: number): number {
@@ -83,13 +68,27 @@ function normalizeDetents(detents: SheetDetent[]): SheetDetent[] {
   const ordered: SheetDetent[] = [];
   if (set.has('full')) ordered.push('full');
   if (set.has('half')) ordered.push('half');
-  // Sort by y ascending later via yForDetent; keep logical: full first in list for "largest"
   return ordered.length ? ordered : ['full'];
 }
+
+type GestureState = {
+  pointerId: number;
+  startY: number;
+  lastY: number;
+  lastAt: number;
+  startDragY: number;
+  velocityY: number;
+  dragging: boolean;
+  fromGrabber: boolean;
+  scrollEl: HTMLElement | null;
+};
 
 /**
  * Bottom sheet: follows the finger, snaps to detents (half / full), or dismisses.
  * Wizards use detents={['full']}; browse sheets use ['half','full'].
+ *
+ * Gesture path is a single pointer pipeline (no Framer drag). Backdrop opacity
+ * stays fixed while dragging — only the sheet transform moves.
  */
 const CenteredPopup = ({
   onClose,
@@ -105,20 +104,14 @@ const CenteredPopup = ({
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
   const exit = onExit ?? onClose;
-  const dragControls = useDragControls();
   const cardRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  const pullRef = useRef<{ y: number; scrollTop: number; pointerId: number } | null>(null);
-  const touchRef = useRef<{
-    startY: number;
-    lastY: number;
-    lastAt: number;
-    startDragY: number;
-    velocityY: number;
-    dragging: boolean;
-    scrollEl: HTMLElement | null;
-  } | null>(null);
+  const gestureRef = useRef<GestureState | null>(null);
   const detentRef = useRef<SheetDetent>('full');
+  const canDragRef = useRef(true);
+  const frameHRef = useRef(700);
+  const multiDetentRef = useRef(false);
+  const settleDragRef = useRef<(vy: number) => void>(() => {});
 
   const detents = normalizeDetents(detentsProp ?? ['full']);
   const multiDetent = detents.length > 1 && size === 'sheet';
@@ -138,20 +131,25 @@ const CenteredPopup = ({
   );
 
   const maxDim = backdrop === 'solid' ? (multiDetent ? 0.28 : 0.4) : 0;
-  const backdropOpacity = useTransform(dragY, (y) => {
-    if (backdrop !== 'solid' || frameH <= 0) return 0;
-    const t = Math.min(1, Math.max(0, 1 - Number(y) / frameH));
-    return maxDim * (0.35 + 0.65 * t);
-  });
+  const [backdropOpen, setBackdropOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
   const enteredRef = useRef(false);
 
+  const canDrag = !keyboardOpen && !flyingOut;
+  canDragRef.current = canDrag;
+  frameHRef.current = frameH;
+  multiDetentRef.current = multiDetent;
+
   useEffect(() => {
-    const id = window.requestAnimationFrame(() => setPadReady(true));
+    const id = window.requestAnimationFrame(() => {
+      setPadReady(true);
+      if (backdrop === 'solid') setBackdropOpen(true);
+    });
     return () => window.cancelAnimationFrame(id);
-  }, []);
+  }, [backdrop]);
 
   useEffect(() => {
     const el = frameRef.current;
@@ -183,7 +181,7 @@ const CenteredPopup = ({
     void animate(dragY, target, {
       type: 'tween',
       duration: 0.15,
-      ease: [0.32, 0.72, 0, 1],
+      ease: fadeEase,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameH, flyingOut]);
@@ -192,7 +190,7 @@ const CenteredPopup = ({
   useEffect(() => {
     if (flyingOut || !enteredRef.current) return;
     if (!keyboardOpen) return;
-    snapTo('full', { type: 'tween', duration: 0.2, ease: [0.32, 0.72, 0, 1] });
+    snapTo('full', { type: 'tween', duration: 0.2, ease: fadeEase });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardOpen, flyingOut]);
 
@@ -209,6 +207,9 @@ const CenteredPopup = ({
   const flyOutThenDismiss = () => {
     if (flyingOut) return;
     setFlyingOut(true);
+    setBackdropOpen(false);
+    setIsDragging(false);
+    gestureRef.current = null;
     dragY.stop();
     const curY = dragY.get();
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
@@ -228,20 +229,20 @@ const CenteredPopup = ({
   const settleDrag = (vy: number) => {
     if (flyingOut) return;
     const y = dragY.get();
+    const h = frameHRef.current;
 
     const positions = detents
-      .map((d) => ({ d, y: yForDetent(d, frameH) }))
+      .map((d) => ({ d, y: yForDetent(d, h) }))
       .sort((a, b) => a.y - b.y);
 
     const peekY = positions[positions.length - 1]?.y ?? 0;
-    const dismissLine = peekY + Math.max(100, (frameH - peekY) * 0.35);
+    const dismissLine = peekY + Math.max(100, (h - peekY) * 0.35);
 
     if (y >= dismissLine || (vy >= DISMISS_VEL && y > peekY * 0.35)) {
       flyOutThenDismiss();
       return;
     }
 
-    // Velocity-biased nearest detent (follows the finger, then settles)
     const projected = y + vy * 0.18;
     let best = positions[0]!;
     let bestDist = Math.abs(projected - best.y);
@@ -254,142 +255,120 @@ const CenteredPopup = ({
     }
     snapTo(best.d);
   };
+  settleDragRef.current = settleDrag;
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    settleDrag(info.velocity.y);
-  };
-
-  const canDrag = !keyboardOpen && !flyingOut;
-
+  // Single gesture path: pointer → dragY.set (no Framer dragControls)
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
 
-    const handleTouchStart = (event: TouchEvent) => {
-      if (!canDrag || event.touches.length !== 1) {
-        touchRef.current = null;
+    const beginDrag = (state: GestureState, clientY: number, timeStamp: number) => {
+      state.dragging = true;
+      state.startY = clientY;
+      state.lastY = clientY;
+      state.lastAt = timeStamp;
+      state.startDragY = dragY.get();
+      dragY.stop();
+      setIsDragging(true);
+      try {
+        card.setPointerCapture(state.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!canDragRef.current || event.button !== 0) {
+        gestureRef.current = null;
         return;
       }
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable="true"]')) {
-        touchRef.current = null;
+        gestureRef.current = null;
         return;
       }
-      const touch = event.touches[0]!;
-      touchRef.current = {
-        startY: touch.clientY,
-        lastY: touch.clientY,
+      if (target.closest('[data-sheet-close]')) {
+        gestureRef.current = null;
+        return;
+      }
+
+      const fromGrabber = !!target.closest('[data-sheet-grabber]');
+      const state: GestureState = {
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        lastY: event.clientY,
         lastAt: event.timeStamp,
         startDragY: dragY.get(),
         velocityY: 0,
         dragging: false,
-        scrollEl: (target.closest('[data-sheet-scroll]') as HTMLElement | null) ?? getScrollEl(card),
+        fromGrabber,
+        scrollEl:
+          (target.closest('[data-sheet-scroll]') as HTMLElement | null) ?? getScrollEl(card),
       };
+      gestureRef.current = state;
+
+      // Grabber: follow immediately (no dead zone)
+      if (fromGrabber) {
+        beginDrag(state, event.clientY, event.timeStamp);
+      }
     };
 
-    const handleTouchMove = (event: TouchEvent) => {
-      const state = touchRef.current;
-      if (!canDrag || !state || event.touches.length !== 1) return;
+    const onPointerMove = (event: PointerEvent) => {
+      const state = gestureRef.current;
+      if (!canDragRef.current || !state || event.pointerId !== state.pointerId) return;
 
-      const touch = event.touches[0]!;
-      const dy = touch.clientY - state.startY;
-      const scrollTop = state.scrollEl?.scrollTop ?? 0;
-      const expandFromHalf = dy < -PULL_ACTIVATE_PX && multiDetent && detentRef.current !== 'full';
-      const pullDownFromTop = dy > PULL_ACTIVATE_PX && scrollTop <= 1;
+      const dy = event.clientY - state.startY;
 
       if (!state.dragging) {
+        const scrollTop = state.scrollEl?.scrollTop ?? 0;
+        const expandFromHalf =
+          dy < -BODY_ACTIVATE_PX && multiDetentRef.current && detentRef.current !== 'full';
+        const pullDownFromTop = dy > BODY_ACTIVATE_PX && scrollTop <= 1;
         if (!expandFromHalf && !pullDownFromTop) return;
-        state.dragging = true;
-        state.startY = touch.clientY;
-        state.lastY = touch.clientY;
-        state.lastAt = event.timeStamp;
-        state.startDragY = dragY.get();
+        beginDrag(state, event.clientY, event.timeStamp);
       }
 
-      event.preventDefault();
       const elapsed = Math.max(1, event.timeStamp - state.lastAt);
-      state.velocityY = ((touch.clientY - state.lastY) / elapsed) * 1000;
-      state.lastY = touch.clientY;
+      state.velocityY = ((event.clientY - state.lastY) / elapsed) * 1000;
+      state.lastY = event.clientY;
       state.lastAt = event.timeStamp;
-      dragY.stop();
-      dragY.set(Math.max(0, Math.min(frameH, state.startDragY + touch.clientY - state.startY)));
+
+      const h = frameHRef.current;
+      const nextY = Math.max(0, Math.min(h, state.startDragY + event.clientY - state.startY));
+      dragY.set(nextY);
     };
 
-    const finishTouch = () => {
-      const state = touchRef.current;
-      touchRef.current = null;
-      if (state?.dragging) settleDrag(state.velocityY);
+    const finishPointer = (event: PointerEvent) => {
+      const state = gestureRef.current;
+      if (!state || event.pointerId !== state.pointerId) return;
+      gestureRef.current = null;
+      if (state.dragging) {
+        setIsDragging(false);
+        settleDragRef.current(state.velocityY);
+      }
     };
 
-    card.addEventListener('touchstart', handleTouchStart, { passive: true });
-    card.addEventListener('touchmove', handleTouchMove, { passive: false });
-    card.addEventListener('touchend', finishTouch);
-    card.addEventListener('touchcancel', finishTouch);
+    // Block native scroll only while the sheet itself is being dragged
+    const onTouchMove = (event: TouchEvent) => {
+      if (gestureRef.current?.dragging) {
+        event.preventDefault();
+      }
+    };
+
+    card.addEventListener('pointerdown', onPointerDown);
+    card.addEventListener('pointermove', onPointerMove);
+    card.addEventListener('pointerup', finishPointer);
+    card.addEventListener('pointercancel', finishPointer);
+    card.addEventListener('touchmove', onTouchMove, { passive: false });
+
     return () => {
-      card.removeEventListener('touchstart', handleTouchStart);
-      card.removeEventListener('touchmove', handleTouchMove);
-      card.removeEventListener('touchend', finishTouch);
-      card.removeEventListener('touchcancel', finishTouch);
+      card.removeEventListener('pointerdown', onPointerDown);
+      card.removeEventListener('pointermove', onPointerMove);
+      card.removeEventListener('pointerup', finishPointer);
+      card.removeEventListener('pointercancel', finishPointer);
+      card.removeEventListener('touchmove', onTouchMove);
     };
-  }, [canDrag, dragY, frameH, multiDetent, settleDrag]);
-
-  const onCardPointerDown = (e: ReactPointerEvent) => {
-    if (!canDrag || e.button !== 0 || e.pointerType === 'touch') return;
-    const target = e.target as HTMLElement;
-    if (target.closest('input, textarea, select, [contenteditable="true"]')) {
-      pullRef.current = null;
-      return;
-    }
-    if (target.closest('[data-sheet-grabber]')) {
-      pullRef.current = null;
-      return;
-    }
-    pullRef.current = {
-      y: e.clientY,
-      scrollTop: getScrollTop(cardRef.current),
-      pointerId: e.pointerId,
-    };
-  };
-
-  const onCardPointerMove = (e: ReactPointerEvent) => {
-    if (!canDrag || !pullRef.current) return;
-    if (pullRef.current.pointerId !== e.pointerId) return;
-    const dy = e.clientY - pullRef.current.y;
-    const scrollTop = getScrollTop(cardRef.current);
-    const scrollable = contentCanScroll(cardRef.current);
-
-    // Expand toward full even when scrolled, if pulling up from half
-    if (dy < -PULL_ACTIVATE_PX && multiDetent && detentRef.current !== 'full') {
-      try {
-        cardRef.current?.setPointerCapture?.(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      dragControls.start(e);
-      pullRef.current = null;
-      return;
-    }
-
-    // Only block sheet-drag when the body is mid-scroll. Short lists / empty
-    // space (scrollTop 0 or not scrollable) can always drag the sheet down.
-    if (scrollable && scrollTop > 1) {
-      if (dy > PULL_ACTIVATE_PX) pullRef.current = null;
-      return;
-    }
-    if (Math.abs(dy) > PULL_ACTIVATE_PX) {
-      try {
-        cardRef.current?.setPointerCapture?.(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      dragControls.start(e);
-      pullRef.current = null;
-    }
-  };
-
-  const clearPull = () => {
-    pullRef.current = null;
-  };
+  }, [dragY]);
 
   const useSheetLayout = size === 'sheet';
 
@@ -403,9 +382,16 @@ const CenteredPopup = ({
     >
       <motion.div
         className="absolute inset-0"
+        initial={false}
+        animate={{
+          opacity: backdrop === 'solid' && backdropOpen ? maxDim : 0,
+        }}
+        transition={{
+          duration: flyingOut ? 0.24 : 0.2,
+          ease: fadeEase,
+        }}
         style={{
           backgroundColor: backdrop === 'solid' ? 'hsl(var(--foreground))' : 'transparent',
-          opacity: backdrop === 'solid' ? backdropOpacity : 0,
         }}
         onClick={flyingOut ? undefined : onClose}
         aria-hidden
@@ -420,18 +406,10 @@ const CenteredPopup = ({
         style={framePad}
       >
         <motion.div
-          drag={canDrag ? 'y' : false}
-          dragControls={dragControls}
-          dragListener={false}
-          dragMomentum={false}
-          dragElastic={0}
-          onDrag={() => {
-            const y = dragY.get();
-            if (y < 0) dragY.set(0);
-            if (y > frameH) dragY.set(frameH);
+          style={{
+            y: dragY,
+            willChange: isDragging ? 'transform' : 'auto',
           }}
-          onDragEnd={handleDragEnd}
-          style={{ y: dragY }}
           className={cn(
             'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
             useSheetLayout
@@ -440,17 +418,14 @@ const CenteredPopup = ({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <motion.div
+          <div
             ref={cardRef}
             role="dialog"
             aria-modal="true"
-            onPointerDown={onCardPointerDown}
-            onPointerMove={onCardPointerMove}
-            onPointerUp={clearPull}
-            onPointerCancel={clearPull}
             className={cn(
-              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
+              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background',
               'rounded-t-[1.25rem] rounded-b-none',
+              !isDragging && 'shadow-soft-lg',
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
               className,
             )}
@@ -465,21 +440,13 @@ const CenteredPopup = ({
                 type="button"
                 className="flex flex-1 items-center justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
                 aria-label="Dra sheet"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  if (!canDrag) return;
-                  try {
-                    e.currentTarget.setPointerCapture?.(e.pointerId);
-                  } catch {
-                    /* ignore */
-                  }
-                  dragControls.start(e);
-                }}
+                tabIndex={-1}
               >
                 <span className="block h-1.5 w-12 rounded-full bg-muted-foreground/40" />
               </button>
               <button
                 type="button"
+                data-sheet-close
                 onClick={(e) => {
                   e.stopPropagation();
                   flyOutThenDismiss();
@@ -493,7 +460,7 @@ const CenteredPopup = ({
               </button>
             </div>
             {children}
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </motion.div>
