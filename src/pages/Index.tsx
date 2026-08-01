@@ -17,7 +17,7 @@ import Landing from '@/pages/Landing';
 import { isNativePlatform } from '@/lib/native/platform';
 import OnboardingPage from '@/pages/Onboarding';
 import CalendarView from '@/components/CalendarView';
-import ListView from '@/components/ListView';
+import DesktopDayPanel from '@/components/DesktopDayPanel';
 import CalendarSwitcher from '@/components/CalendarSwitcher';
 import NewEventFlow from '@/components/NewEventFlow';
 import NewCountdownFlow from '@/components/NewCountdownFlow';
@@ -348,30 +348,21 @@ const Index = () => {
         </motion.div>
 
         <aside className="hidden min-h-0 flex-col border-l border-border/70 bg-card/70 md:flex">
-          <div className="shrink-0 border-b border-border/60 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Valgt dag
-            </p>
-            <h2 className="mt-1 text-lg font-bold capitalize">
-              {focusedDate.toLocaleDateString(
-                (household as any).locale === 'en' ? 'en-GB' : 'nb-NO',
-                { weekday: 'long', day: 'numeric', month: 'long' },
-              )}
-            </h2>
-          </div>
-          <div className="min-h-0 flex-1">
-            <ListView
-              householdId={household.id}
-              members={members}
-              currentMemberId={currentMember.id}
-              calendarKind={calendarKind}
-              initialDate={focusedDate}
-              embedded
-              highlight={highlight}
-              onEditEvent={handleEditEvent}
-              onQuickEditEvent={setQuickEditEvent}
-            />
-          </div>
+          <DesktopDayPanel
+            date={focusedDate}
+            householdId={household.id}
+            members={members}
+            currentMemberId={currentMember.id}
+            calendarKind={calendarKind}
+            highlight={highlight}
+            canSeedWeek={canSeedWeek}
+            onCreateForDate={handleCreateEvent}
+            onCreateCountdown={calendarKind === 'home' ? handleCreateCountdown : undefined}
+            onEditEvent={handleEditEvent}
+            onQuickEditEvent={setQuickEditEvent}
+            onSeedWeek={() => setShowSeedWeek(true)}
+            onSwitchCalendar={(id) => selectCalendar(id)}
+          />
         </aside>
       </main>
 
