@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useMotionValue, animate } from 'framer-motion';
+import { useMotionValue, animate, type Transition } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
-import { sheetSpring, KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
+import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 
 export type SheetDetent = 'half' | 'full';
 
@@ -43,13 +43,30 @@ const flyTween = {
   ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
 };
 
-const snapTween = {
-  type: 'tween' as const,
-  duration: 0.28,
-  ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
-};
-
 const fadeEase = [0.32, 0.72, 0, 1] as [number, number, number, number];
+
+/** iOS-like detent settle — velocity handoff + light bounce */
+function detentSpring(velocity = 0): Transition {
+  return {
+    type: 'spring',
+    stiffness: 480,
+    damping: 38,
+    mass: 0.78,
+    velocity,
+    restDelta: 0.4,
+    restSpeed: 8,
+  };
+}
+
+/** Soft enter / resize spring (no fling) */
+const settleSpring: Transition = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 40,
+  mass: 0.85,
+  restDelta: 0.5,
+  restSpeed: 10,
+};
 
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
   if (!root) return null;
@@ -76,6 +93,20 @@ function writeSheetY(el: HTMLElement | null, y: number) {
   el.style.transform = `translate3d(0, ${y}px, 0)`;
 }
 
+/** iOS-style rubber band for overscroll past an edge (overshoot in px). */
+function rubber(overshoot: number, dimension = 200, constant = 0.55): number {
+  const sign = Math.sign(overshoot);
+  const x = Math.abs(overshoot);
+  return sign * ((x * dimension * constant) / (dimension + constant * x));
+}
+
+/** Map raw drag Y through rubber at top (past full) and soft resistance past frame bottom. */
+function resistDragY(raw: number, frameH: number): number {
+  if (raw < 0) return rubber(raw);
+  if (raw > frameH) return frameH + rubber(raw - frameH, 160, 0.4);
+  return raw;
+}
+
 type GestureState = {
   pointerId: number;
   startY: number;
@@ -90,7 +121,7 @@ type GestureState = {
 
 /**
  * Bottom sheet: follows the finger, snaps to detents (half / full), or dismisses.
- * Mid-drag writes translate3d directly (no Framer / React). Framer only snaps open/close.
+ * Mid-drag writes translate3d directly. Settle uses spring + finger velocity.
  */
 const CenteredPopup = ({
   onClose,
@@ -185,11 +216,18 @@ const CenteredPopup = ({
     }
   };
 
-  const snapTo = (detent: SheetDetent, tween = snapTween) => {
+  const snapTo = (
+    detent: SheetDetent,
+    opts?: { velocity?: number; transition?: Transition },
+  ) => {
     detentRef.current = detent;
     const target = yForDetent(detent, frameH);
     dragY.set(yRef.current);
-    void animate(dragY, target, tween);
+    void animate(
+      dragY,
+      target,
+      opts?.transition ?? detentSpring(opts?.velocity ?? 0),
+    );
   };
 
   // Enter + keep detent aligned when frame height changes
@@ -199,17 +237,13 @@ const CenteredPopup = ({
       enteredRef.current = true;
       detentRef.current = startDetent;
       dragY.set(yRef.current);
-      void animate(dragY, yForDetent(startDetent, frameH), sheetSpring);
+      void animate(dragY, yForDetent(startDetent, frameH), settleSpring);
       return;
     }
     const target = yForDetent(detentRef.current, frameH);
     if (Math.abs(yRef.current - target) < 6) return;
     dragY.set(yRef.current);
-    void animate(dragY, target, {
-      type: 'tween',
-      duration: 0.15,
-      ease: fadeEase,
-    });
+    void animate(dragY, target, settleSpring);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameH, flyingOut]);
 
@@ -217,7 +251,7 @@ const CenteredPopup = ({
   useEffect(() => {
     if (flyingOut || !enteredRef.current) return;
     if (!keyboardOpen) return;
-    snapTo('full', { type: 'tween', duration: 0.2, ease: fadeEase });
+    snapTo('full', { transition: settleSpring });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardOpen, flyingOut]);
 
@@ -231,7 +265,7 @@ const CenteredPopup = ({
     transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
   };
 
-  const flyOutThenDismiss = () => {
+  const flyOutThenDismiss = (velocity = 0) => {
     if (flyingOut) return;
     setFlyingOut(true);
     setBackdropOpen(false);
@@ -241,7 +275,12 @@ const CenteredPopup = ({
     const curY = yRef.current;
     dragY.set(curY);
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
-    void animate(dragY, curY + travel, flyTween).then(() => {
+    // Prefer spring with fling when dismissing from a fast swipe
+    const transition: Transition =
+      Math.abs(velocity) > 200
+        ? detentSpring(velocity)
+        : flyTween;
+    void animate(dragY, curY + travel, transition).then(() => {
       exit();
     });
   };
@@ -267,11 +306,12 @@ const CenteredPopup = ({
     const dismissLine = peekY + Math.max(100, (h - peekY) * 0.35);
 
     if (y >= dismissLine || (vy >= DISMISS_VEL && y > peekY * 0.35)) {
-      flyOutThenDismiss();
+      flyOutThenDismiss(vy);
       return;
     }
 
-    const projected = y + vy * 0.18;
+    // Project with stronger velocity bias so flicks feel decisive
+    const projected = y + vy * 0.22;
     let best = positions[0]!;
     let bestDist = Math.abs(projected - best.y);
     for (const p of positions) {
@@ -281,7 +321,7 @@ const CenteredPopup = ({
         bestDist = dist;
       }
     }
-    snapTo(best.d);
+    snapTo(best.d, { velocity: vy });
   };
   settleDragRef.current = settleDrag;
 
@@ -361,7 +401,8 @@ const CenteredPopup = ({
       state.lastAt = event.timeStamp;
 
       const h = frameHRef.current;
-      const nextY = Math.max(0, Math.min(h, state.startDragY + event.clientY - state.startY));
+      const raw = state.startDragY + event.clientY - state.startY;
+      const nextY = resistDragY(raw, h);
       yRef.current = nextY;
       writeSheetY(sheetLayerRef.current, nextY);
     };
