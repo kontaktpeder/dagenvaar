@@ -97,6 +97,14 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
         <footer className="pb-6 pt-8 text-center text-xs text-muted-foreground/80">
           © {new Date().getFullYear()} Pastelly
           {' · '}
+          <Link to="/hjelp" className="underline underline-offset-2 hover:text-foreground">
+            Hjelp
+          </Link>
+          {' · '}
+          <Link to="/support" className="underline underline-offset-2 hover:text-foreground">
+            Support
+          </Link>
+          {' · '}
           <Link to="/personvern" className="underline underline-offset-2 hover:text-foreground">
             Personvern
           </Link>
