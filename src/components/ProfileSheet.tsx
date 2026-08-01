@@ -13,6 +13,7 @@ import {
   type CalendarKind,
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
+import { setWelcomeIntent } from '@/lib/welcomeIntent';
 import { uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
 import {
   buildInviteShareText,
@@ -204,6 +205,7 @@ const ProfileSheet = ({
       if (newId) {
         setStoredActiveHouseholdId(newId);
         onSelectCalendar(newId);
+        setWelcomeIntent('join', newId);
       }
       await queryClient.invalidateQueries();
       onClose();
@@ -236,6 +238,7 @@ const ProfileSheet = ({
       if (data?.id) {
         setStoredActiveHouseholdId(data.id);
         onSelectCalendar(data.id);
+        setWelcomeIntent('create', data.id);
       }
       await queryClient.invalidateQueries();
       onClose();

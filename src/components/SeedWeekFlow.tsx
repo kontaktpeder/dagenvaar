@@ -105,7 +105,7 @@ const SeedWeekFlow = ({ householdId, onClose, onComplete }: SeedWeekFlowProps) =
       }
       await queryClient.invalidateQueries({ queryKey: ['household-has-events', householdId] });
       // Create flow shows WelcomeDialog after close — avoid a competing toast.
-      if (peekWelcomeIntent() !== 'create') {
+      if (peekWelcomeIntent(householdId) !== 'create') {
         toast.success(t('seed.done', { count: payloads.length }));
       }
       finish();

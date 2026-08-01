@@ -236,8 +236,8 @@ export const nb = {
   // one-shot welcome
   'welcome.createTitle': 'Kalenderen er klar',
   'welcome.createBody': 'Inviter partner — da blir det kalenderen vår. Tips: trykk lenge på en dag for ny aktivitet.',
-  'welcome.joinTitle': 'Du er med i kalenderen vår',
-  'welcome.joinBody': 'Her ser dere de samme planene. Trykk lenge på en dag for å legge til noe.',
+  'welcome.joinTitle': 'Velkommen inn!',
+  'welcome.joinBody': 'Du er med i kalenderen. Nå ser dere de samme planene — trykk lenge på en dag for å legge til noe.',
   'welcome.cta': 'Skjønner',
   'welcome.inviteCta': 'Inviter partner',
   'welcome.inviteCreating': 'Lager kode...',

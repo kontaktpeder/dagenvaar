@@ -131,30 +131,31 @@ const Index = () => {
     setShowSeedWeek(true);
   }, [household, canSeedWeek]);
 
-  // Join welcome: show centered dialog after onboarding (no seed step).
+  // Join welcome: after onboarding or joining via profile (no seed step).
   // Create welcome: wait until seed finishes / is skipped (see revealWelcomeAfterSeed).
   useEffect(() => {
     if (!household || !hasEventsReady) return;
-    const pending = peekWelcomeIntent();
+    const pending = peekWelcomeIntent(household.id);
     if (pending === 'join') {
-      consumeWelcomeIntent();
+      consumeWelcomeIntent(household.id);
       const t = window.setTimeout(() => setWelcomeDialog('join'), 400);
       return () => window.clearTimeout(t);
     }
     if (pending === 'create' && !canSeedWeek) {
       // Seed won't open (already has events / not home) — welcome now.
-      consumeWelcomeIntent();
+      consumeWelcomeIntent(household.id);
       const t = window.setTimeout(() => setWelcomeDialog('create'), 400);
       return () => window.clearTimeout(t);
     }
   }, [household, hasEventsReady, canSeedWeek]);
 
   const revealWelcomeAfterSeed = useCallback(() => {
-    const pending = consumeWelcomeIntent();
+    if (!household) return;
+    const pending = consumeWelcomeIntent(household.id);
     if (pending) {
       window.setTimeout(() => setWelcomeDialog(pending), 280);
     }
-  }, []);
+  }, [household]);
 
   const flashHighlight = useCallback((eventId: string, dateStr: string) => {
     setHighlight({ eventId, dateStr, ts: Date.now() });

@@ -2,6 +2,11 @@ const KEY = 'pastelly:welcome-intent';
 
 export type WelcomeIntent = 'create' | 'join';
 
+type StoredWelcome = {
+  intent: WelcomeIntent;
+  householdId: string;
+};
+
 function storage(): Storage | null {
   try {
     return typeof window !== 'undefined' ? window.localStorage : null;
@@ -10,37 +15,62 @@ function storage(): Storage | null {
   }
 }
 
-export function setWelcomeIntent(intent: WelcomeIntent): void {
+function readStored(): StoredWelcome | null {
   const s = storage();
-  if (!s) return;
+  if (!s) return null;
   try {
-    s.setItem(KEY, intent);
+    const raw = s.getItem(KEY);
+    if (!raw) return null;
+    // Legacy: bare "create" | "join" uten household-scope
+    if (raw === 'create' || raw === 'join') {
+      return { intent: raw, householdId: '' };
+    }
+    const parsed = JSON.parse(raw) as Partial<StoredWelcome>;
+    if (
+      (parsed.intent === 'create' || parsed.intent === 'join') &&
+      typeof parsed.householdId === 'string'
+    ) {
+      return { intent: parsed.intent, householdId: parsed.householdId };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setWelcomeIntent(intent: WelcomeIntent, householdId: string): void {
+  const s = storage();
+  if (!s || !householdId) return;
+  try {
+    const payload: StoredWelcome = { intent, householdId };
+    s.setItem(KEY, JSON.stringify(payload));
   } catch {
     /* ignore */
   }
 }
 
-export function peekWelcomeIntent(): WelcomeIntent | null {
-  const s = storage();
-  if (!s) return null;
-  try {
-    const raw = s.getItem(KEY);
-    if (raw === 'create' || raw === 'join') return raw;
-    return null;
-  } catch {
+/** Peek pending welcome for this household (or any if householdId omitted). */
+export function peekWelcomeIntent(householdId?: string): WelcomeIntent | null {
+  const stored = readStored();
+  if (!stored) return null;
+  if (householdId && stored.householdId && stored.householdId !== householdId) {
     return null;
   }
+  return stored.intent;
 }
 
-export function consumeWelcomeIntent(): WelcomeIntent | null {
+export function consumeWelcomeIntent(householdId?: string): WelcomeIntent | null {
   const s = storage();
   if (!s) return null;
-  try {
-    const raw = s.getItem(KEY);
-    s.removeItem(KEY);
-    if (raw === 'create' || raw === 'join') return raw;
-    return null;
-  } catch {
+  const stored = readStored();
+  if (!stored) return null;
+  if (householdId && stored.householdId && stored.householdId !== householdId) {
     return null;
   }
+  try {
+    s.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+  return stored.intent;
 }
