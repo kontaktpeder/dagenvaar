@@ -1,8 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocale } from '@/hooks/useLocale';
 import { DAY_PART_LABELS } from '@/lib/colors';
 import { translateDayPart } from '@/lib/i18n';
 import type { DisplayEvent } from '@/hooks/useOverlayEvents';
-import { useHideOverlayEvent } from '@/hooks/useHideOverlayEvent';
+import {
+  useHideOverlayEvent,
+  useUnhideOverlayEvent,
+  useSetEventHiddenFromOtherCalendars,
+} from '@/hooks/useHideOverlayEvent';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 
@@ -21,6 +28,20 @@ const OverlayEventSheet = ({
 }: OverlayEventSheetProps) => {
   const { t, locale } = useLocale();
   const hideOverlay = useHideOverlayEvent(viewerHouseholdId);
+  const unhideOverlay = useUnhideOverlayEvent(viewerHouseholdId);
+  const setHiddenForAll = useSetEventHiddenFromOtherCalendars();
+
+  // Owners (and home co-editors) also get "hide for everyone".
+  const { data: canEditSource = false } = useQuery({
+    queryKey: ['can-edit-event', event.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('can_current_user_edit_event', {
+        p_event_id: event.id,
+      });
+      if (error) throw error;
+      return !!data;
+    },
+  });
 
   const timeLabel = (() => {
     if (event.start_time) {
@@ -31,14 +52,46 @@ const OverlayEventSheet = ({
     return translateDayPart(locale, dps) || DAY_PART_LABELS[dps] || dps || null;
   })();
 
-  const handleHide = async () => {
+  const handleHideForMe = async () => {
     try {
       await hideOverlay.mutateAsync(event.id);
       onClose();
+      toast(t('event.overlayHiddenForMe'), {
+        action: {
+          label: t('common.undo'),
+          onClick: () => void unhideOverlay.mutateAsync(event.id).catch(() => {
+            toast.error(t('common.error'));
+          }),
+        },
+      });
     } catch (err) {
-      console.error('[OverlayEventSheet] hide failed', err);
+      console.error('[OverlayEventSheet] hide for me failed', err);
+      toast.error(t('common.error'));
     }
   };
+
+  const handleHideForAll = async () => {
+    try {
+      await setHiddenForAll.mutateAsync({ eventId: event.id, hidden: true });
+      onClose();
+      toast(t('event.overlayHiddenForAll'), {
+        action: {
+          label: t('common.undo'),
+          onClick: () =>
+            void setHiddenForAll
+              .mutateAsync({ eventId: event.id, hidden: false })
+              .catch(() => {
+                toast.error(t('common.error'));
+              }),
+        },
+      });
+    } catch (err) {
+      console.error('[OverlayEventSheet] hide for all failed', err);
+      toast.error(t('common.error'));
+    }
+  };
+
+  const pending = hideOverlay.isPending || setHiddenForAll.isPending;
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="hug" nest zClassName="z-[60]" backdrop="none">
@@ -57,12 +110,22 @@ const OverlayEventSheet = ({
       <PopupStickyFooter className="space-y-2">
         <button
           type="button"
-          onClick={handleHide}
-          disabled={hideOverlay.isPending}
+          onClick={handleHideForMe}
+          disabled={pending}
           className="w-full rounded-2xl border border-border py-3.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
-          {hideOverlay.isPending ? t('common.loading') : t('event.hideOverlayHere')}
+          {hideOverlay.isPending ? t('common.loading') : t('event.hideOverlayForMe')}
         </button>
+        {canEditSource && (
+          <button
+            type="button"
+            onClick={handleHideForAll}
+            disabled={pending}
+            className="w-full rounded-2xl border border-border py-3.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {setHiddenForAll.isPending ? t('common.loading') : t('event.hideOverlayForAll')}
+          </button>
+        )}
         {event.sourceHouseholdId && (
           <button
             type="button"

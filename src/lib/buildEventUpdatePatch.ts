@@ -43,6 +43,10 @@ export function buildEventUpdatePatch(input: EventUpdatePatchInput) {
     category: input.category,
     category_label_override:
       input.category === 'other' ? input.otherLabel.trim() || null : null,
-    hide_from_other_calendars: input.hideFromOtherCalendars ?? false,
+    // Only touch the flag when the caller manages it — otherwise a save from
+    // a flow without the checkbox would silently reset it to false.
+    ...(input.hideFromOtherCalendars !== undefined
+      ? { hide_from_other_calendars: input.hideFromOtherCalendars }
+      : {}),
   } as any;
 }

@@ -25,6 +25,7 @@ interface EditEventQuickSheetProps {
   currentMemberId: string;
   members?: HouseholdMember[];
   calendarKind?: string | null;
+  showInOtherCalendars?: boolean;
   onClose: () => void;
   onSaved?: (eventId: string, dateStr: string) => void;
   onOpenFullEdit?: (event: Event) => void;
@@ -35,7 +36,7 @@ const FIELD =
 const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
-const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', showInOtherCalendars = false, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const { t } = useLocale();
   const updateEvent = useUpdateEvent();
   const dayPartLabel = (key: string) => {
@@ -99,6 +100,9 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   }, [existingVisibleIds]);
   const [location, setLocation] = useState(event.location || '');
   const [notes, setNotes] = useState(event.notes || '');
+  const [hideFromOtherCalendars, setHideFromOtherCalendars] = useState(
+    !!event.hide_from_other_calendars,
+  );
 
   const dayPartStart = DAY_PART_ORDER[selectedDayParts[0]];
   const dayPartEnd = DAY_PART_ORDER[selectedDayParts[1]];
@@ -241,6 +245,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
           visibility,
           location,
           notes,
+          hideFromOtherCalendars,
         }),
       });
       try {
@@ -501,6 +506,22 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                 </button>
               ))}
             </div>
+            {showInOtherCalendars && (
+              <label className="mt-3 flex items-start gap-3 rounded-xl bg-muted/50 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1 rounded border-border"
+                  checked={hideFromOtherCalendars}
+                  onChange={(e) => setHideFromOtherCalendars(e.target.checked)}
+                />
+                <span>
+                  <span className="block font-semibold text-sm">{t('event.hideFromOther')}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {t('event.hideFromOtherHint')}
+                  </span>
+                </span>
+              </label>
+            )}
             {visibility === 'selected_members' && (
               <div className="mt-3 rounded-xl bg-muted/50 p-3">
                 <div className="flex flex-col gap-1.5">

@@ -446,6 +446,7 @@ const Index = () => {
           members={members}
           currentMemberId={currentMember.id}
           calendarKind={household.kind}
+          showInOtherCalendars={!!currentMember.show_in_other_calendars}
           onClose={() => setQuickEditEvent(null)}
           onSaved={(eventId, dateStr) => {
             flashHighlight(eventId, dateStr);
