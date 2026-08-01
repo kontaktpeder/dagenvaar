@@ -32,6 +32,7 @@ import CountdownDetailSheet from '@/components/CountdownDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fadeQuick } from '@/lib/motion';
+import { isSheetDismissLocked } from '@/lib/sheetGate';
 import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 import {
   consumePendingOpenCountdown,
@@ -185,7 +186,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       const day = new Date(y, m - 1, d);
       setCurrentDate(startOfMonth(day));
       onSelectDate?.(day);
-      setDaySheetDate(day);
+      if (!isSheetDismissLocked()) setDaySheetDate(day);
     },
     [onSelectDate, setCurrentDate],
   );
@@ -460,7 +461,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   const handleDayTap = (day: Date) => {
     // iPhone uses a sheet; iPad updates the persistent day inspector.
-    if (isMobile) setDaySheetDate(day);
+    if (isMobile && !isSheetDismissLocked()) setDaySheetDate(day);
     requestAnimationFrame(() => onSelectDate(day));
   };
 
@@ -614,85 +615,77 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {daySheetDate && (
-          <CalendarDaySheet
-            date={daySheetDate}
-            events={daySheetEvents}
-            countdowns={countdownsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
-            members={members}
-            householdId={householdId}
-            currentMemberId={currentMemberId}
-            highlight={highlight}
-            onClose={() => setDaySheetDate(null)}
-            onPickEvent={(ev) => {
-              const display = ev as DisplayEvent;
-              if (display.isOverlay) {
-                setOverlayEvent(display);
-                return;
-              }
-              // Keep day sheet under detail — backdrop pops one level
-              setDetailEvent(ev);
-            }}
-            onPickCountdown={(cd) => setDetailCountdown(cd)}
-            onCreateForDate={(d) => {
-              // Keep day sheet under create flow
-              onCreateEvent(d);
-            }}
-            onCreateCountdown={onCreateCountdown}
-            onEditEvent={onEditEvent}
-            onQuickEditEvent={onQuickEditEvent}
-            calendarKind={calendarKind}
-            canSeedWeek={canSeedWeek}
-            onSeedWeek={() => {
-              setDaySheetDate(null);
-              onSeedWeek?.();
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {detailCountdown && (
-          <CountdownDetailSheet
-            countdown={
-              activeCountdowns.find((c) => c.id === detailCountdown.id) ?? detailCountdown
+      {daySheetDate && (
+        <CalendarDaySheet
+          date={daySheetDate}
+          events={daySheetEvents}
+          countdowns={countdownsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
+          members={members}
+          householdId={householdId}
+          currentMemberId={currentMemberId}
+          highlight={highlight}
+          onClose={() => setDaySheetDate(null)}
+          onPickEvent={(ev) => {
+            const display = ev as DisplayEvent;
+            if (display.isOverlay) {
+              setOverlayEvent(display);
+              return;
             }
-            members={members}
-            currentMemberId={currentMemberId}
-            onClose={() => setDetailCountdown(null)}
-          />
-        )}
-      </AnimatePresence>
+            // Keep day sheet under detail — backdrop pops one level
+            setDetailEvent(ev);
+          }}
+          onPickCountdown={(cd) => setDetailCountdown(cd)}
+          onCreateForDate={(d) => {
+            // Keep day sheet under create flow
+            onCreateEvent(d);
+          }}
+          onCreateCountdown={onCreateCountdown}
+          onEditEvent={onEditEvent}
+          onQuickEditEvent={onQuickEditEvent}
+          calendarKind={calendarKind}
+          canSeedWeek={canSeedWeek}
+          onSeedWeek={() => {
+            setDaySheetDate(null);
+            onSeedWeek?.();
+          }}
+        />
+      )}
 
-      <AnimatePresence>
-        {overlayEvent && (
-          <OverlayEventSheet
-            event={overlayEvent}
-            viewerHouseholdId={householdId}
-            onClose={() => setOverlayEvent(null)}
-            onOpenSourceCalendar={(id) => {
-              setOverlayEvent(null);
-              setDaySheetDate(null);
-              onSwitchCalendar?.(id);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {detailCountdown && (
+        <CountdownDetailSheet
+          countdown={
+            activeCountdowns.find((c) => c.id === detailCountdown.id) ?? detailCountdown
+          }
+          members={members}
+          currentMemberId={currentMemberId}
+          onClose={() => setDetailCountdown(null)}
+        />
+      )}
 
-      <AnimatePresence>
-        {detailEvent && (
-          <EventDetailSheet
-            event={detailEvent}
-            members={members}
-            currentMemberId={currentMemberId}
-            calendarKind={calendarKind}
-            onClose={() => setDetailEvent(null)}
-            onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
-            onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
-          />
-        )}
-      </AnimatePresence>
+      {overlayEvent && (
+        <OverlayEventSheet
+          event={overlayEvent}
+          viewerHouseholdId={householdId}
+          onClose={() => setOverlayEvent(null)}
+          onOpenSourceCalendar={(id) => {
+            setOverlayEvent(null);
+            setDaySheetDate(null);
+            onSwitchCalendar?.(id);
+          }}
+        />
+      )}
+
+      {detailEvent && (
+        <EventDetailSheet
+          event={detailEvent}
+          members={members}
+          currentMemberId={currentMemberId}
+          calendarKind={calendarKind}
+          onClose={() => setDetailEvent(null)}
+          onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
+          onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
+        />
+      )}
     </>
   );
 };

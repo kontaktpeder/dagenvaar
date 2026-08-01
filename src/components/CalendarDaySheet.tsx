@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { useLocale } from '@/hooks/useLocale';
 import type { Event } from '@/hooks/useEvents';
@@ -86,39 +85,37 @@ const CalendarDaySheet = ({
         />
       </CenteredPopup>
 
-      <AnimatePresence>
-        {showList && (
-          <CenteredPopup
-            onClose={() => setShowList(false)}
-            onExit={() => setShowList(false)}
-            size="sheet"
-            zClassName="z-[55]"
-          >
-            <div className="shrink-0 px-5 pb-2 pt-1">
-              <h2 className="text-lg font-bold">
-                {t('event.list')}
-                <span className="text-base font-medium text-muted-foreground">
-                  {' · '}
-                  {format(date, 'd. MMM', { locale: dateLocale })}
-                </span>
-              </h2>
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <ListView
-                householdId={householdId}
-                members={members}
-                currentMemberId={currentMemberId}
-                calendarKind={calendarKind}
-                initialDate={date}
-                embedded
-                highlight={highlight}
-                onEditEvent={onEditEvent}
-                onQuickEditEvent={onQuickEditEvent}
-              />
-            </div>
-          </CenteredPopup>
-        )}
-      </AnimatePresence>
+      {showList && (
+        <CenteredPopup
+          onClose={() => setShowList(false)}
+          onExit={() => setShowList(false)}
+          size="sheet"
+          zClassName="z-[55]"
+        >
+          <div className="shrink-0 px-5 pb-2 pt-1">
+            <h2 className="text-lg font-bold">
+              {t('event.list')}
+              <span className="text-base font-medium text-muted-foreground">
+                {' · '}
+                {format(date, 'd. MMM', { locale: dateLocale })}
+              </span>
+            </h2>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ListView
+              householdId={householdId}
+              members={members}
+              currentMemberId={currentMemberId}
+              calendarKind={calendarKind}
+              initialDate={date}
+              embedded
+              highlight={highlight}
+              onEditEvent={onEditEvent}
+              onQuickEditEvent={onQuickEditEvent}
+            />
+          </div>
+        </CenteredPopup>
+      )}
     </>
   );
 };

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
+import { lockSheetDismiss, unlockSheetDismiss } from '@/lib/sheetGate';
 
 export type SheetDetent = 'half' | 'full';
 
@@ -305,10 +306,13 @@ const CenteredPopup = ({
   const [backdropOpen, setBackdropOpen] = useState(false);
   const [padReady, setPadReady] = useState(false);
   const [flyingOut, setFlyingOut] = useState(false);
+  const flyingOutRef = useRef(false);
   const enteredRef = useRef(false);
+  const dismissLockedRef = useRef(false);
 
   const canDrag = !keyboardOpen && !flyingOut;
   canDragRef.current = canDrag;
+  flyingOutRef.current = flyingOut;
   frameHRef.current = frameH;
   multiDetentRef.current = multiDetent;
 
@@ -333,6 +337,10 @@ const CenteredPopup = ({
   useEffect(() => {
     return () => {
       cancelSpringRef.current?.();
+      if (dismissLockedRef.current) {
+        dismissLockedRef.current = false;
+        unlockSheetDismiss();
+      }
     };
   }, []);
 
@@ -453,26 +461,41 @@ const CenteredPopup = ({
   };
 
   const flyOutThenDismiss = (_velocity = 0) => {
-    if (flyingOut) return;
+    if (flyingOutRef.current) return;
+    flyingOutRef.current = true;
     setFlyingOut(true);
     setBackdropOpen(false);
     gestureRef.current = null;
+    if (!dismissLockedRef.current) {
+      dismissLockedRef.current = true;
+      lockSheetDismiss();
+    }
     const curY = yRef.current;
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
     animateTo(curY + travel, {
       mode: 'easeOut',
       keepCompositor: true,
-      onComplete: () => exit(),
+      onComplete: () => {
+        if (dismissLockedRef.current) {
+          dismissLockedRef.current = false;
+          unlockSheetDismiss();
+        }
+        exit();
+      },
     });
   };
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !flyingOut) onClose();
+      if (event.key === 'Escape' && !flyingOutRef.current) {
+        event.preventDefault();
+        flyOutThenDismiss();
+      }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [flyingOut, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const settleDrag = (vy: number) => {
     if (flyingOut) return;
@@ -647,7 +670,9 @@ const CenteredPopup = ({
   const initialY = yRef.current;
 
   return (
-    <div className={cn('fixed inset-0', zClassName)}>
+    <div
+      className={cn('fixed inset-0', zClassName, flyingOut && 'pointer-events-none')}
+    >
       <div
         className="absolute inset-0 transition-opacity"
         style={{
@@ -656,7 +681,7 @@ const CenteredPopup = ({
           transitionDuration: flyingOut ? '240ms' : '200ms',
           transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
         }}
-        onClick={flyingOut ? undefined : onClose}
+        onClick={flyingOut ? undefined : () => flyOutThenDismiss()}
         aria-hidden
       />
 
