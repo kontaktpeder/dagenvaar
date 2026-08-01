@@ -5,10 +5,10 @@ const UPDATED = '31. juli 2026';
 
 const Privacy = () => {
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-background">
+    <div className="relative h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-contain scroll-touch bg-background">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-x-0 top-0 min-h-full"
         style={{
           background:
             'radial-gradient(60% 45% at 20% 15%, hsl(var(--member-rose) / 0.35), transparent 70%),' +
