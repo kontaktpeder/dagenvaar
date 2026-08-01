@@ -8,7 +8,8 @@ import { localDateAndTimeToIso } from '@/lib/countdownTime';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import { useLocale } from '@/hooks/useLocale';
 import { getMemberColor } from '@/lib/colors';
-import { CountdownModalShell } from '@/components/CountdownModalShell';
+import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
 import CountdownCelebrateDialog from '@/components/CountdownCelebrateDialog';
 import { stepForward, stepSpring } from '@/lib/motion';
 
@@ -58,11 +59,7 @@ const NewCountdownFlow = ({
 
   const others = members.filter((m) => m.id !== currentMemberId);
 
-  const handleDismiss = () => {
-    if (celebrate) {
-      onClose();
-      return;
-    }
+  const handleBack = () => {
     if (step > 1) setStep((s) => s - 1);
     else onClose();
   };
@@ -138,155 +135,162 @@ const NewCountdownFlow = ({
     t('countdown.whoHint');
 
   return (
-    <CountdownModalShell onClose={handleDismiss} labelledBy="countdown-new-title">
-      <p className="text-4xl mb-3" aria-hidden>
-        {emoji || '✨'}
-      </p>
-      <p className="text-xs font-medium text-muted-foreground mb-1">
-        {t('countdown.step', { n: String(step), total: String(STEPS) })}
-      </p>
-      <h2 id="countdown-new-title" className="text-2xl font-bold tracking-tight mb-2">
-        {heading}
-      </h2>
-      <p className="text-sm text-muted-foreground leading-relaxed mb-5">{hint}</p>
+    <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[70]">
+      <div className="shrink-0 px-5 pt-1 pb-3 text-center">
+        <p className="text-3xl mb-2" aria-hidden>
+          {emoji || '✨'}
+        </p>
+        <p className="text-xs font-medium text-muted-foreground mb-1">
+          {t('countdown.step', { n: String(step), total: String(STEPS) })}
+        </p>
+        <h2 id="countdown-new-title" className="text-2xl font-bold tracking-tight mb-1">
+          {heading}
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">{hint}</p>
+      </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={stepForward.initial}
-          animate={stepForward.animate}
-          exit={stepForward.exit}
-          transition={stepSpring}
-          className="space-y-4 text-left"
-        >
-          {step === 1 && (
-            <>
-              <input
-                className={FIELD}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('countdown.titlePlaceholder')}
-                autoFocus
-                maxLength={80}
-              />
-              <div className="flex flex-wrap justify-center gap-2">
-                {EMOJI_SUGGESTIONS.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    onClick={() => setEmoji(e)}
-                    className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-colors ${
-                      emoji === e ? 'bg-green-200 ring-2 ring-green-300/60' : 'bg-muted'
-                    }`}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-3">
-              <label className="block">
-                <span className="text-sm font-medium mb-1.5 block text-center">{t('event.date')}</span>
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4"
+        data-sheet-scroll
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            initial={stepForward.initial}
+            animate={stepForward.animate}
+            exit={stepForward.exit}
+            transition={stepSpring}
+            className="space-y-4 text-left"
+          >
+            {step === 1 && (
+              <>
                 <input
-                  type="date"
                   className={FIELD}
-                  value={format(date, 'yyyy-MM-dd')}
-                  onChange={(e) => {
-                    const [y, m, d] = e.target.value.split('-').map(Number);
-                    if (y && m && d) setDate(new Date(y, m - 1, d));
-                  }}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('countdown.titlePlaceholder')}
+                  autoFocus
+                  maxLength={80}
                 />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium mb-1.5 block text-center">{t('event.clock')}</span>
-                <input
-                  type="time"
-                  className={FIELD}
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                />
-              </label>
-              <p className="text-sm text-muted-foreground text-center capitalize">
-                {format(date, 'EEEE d. MMMM', { locale: dateLocale })} · {time}
-              </p>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="grid grid-cols-2 gap-2.5">
-              {COUNTDOWN_THEME_IDS.map((id) => {
-                const meta = getCountdownTheme(id);
-                const selected = theme === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setTheme(id)}
-                    className={`rounded-2xl p-4 text-center transition-shadow ${
-                      selected ? 'ring-2 ring-foreground/25 shadow-soft' : ''
-                    }`}
-                    style={{ background: meta.gradient }}
-                  >
-                    <span className="font-semibold text-sm text-foreground/90">
-                      {locale === 'en' ? meta.labelEn : meta.labelNb}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-2">
-              {others.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  {t('countdown.noMembers')}
-                </p>
-              ) : (
-                others.map((m) => {
-                  const selected = inviteIds.includes(m.id);
-                  const color = getMemberColor(m.color_token);
-                  return (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {EMOJI_SUGGESTIONS.map((e) => (
                     <button
-                      key={m.id}
+                      key={e}
                       type="button"
-                      onClick={() => toggleInvite(m.id)}
-                      className={`w-full flex items-center gap-3 rounded-2xl p-3 text-left transition-colors ${
-                        selected ? `${color.bg} ring-2 ring-foreground/15` : 'bg-muted/60'
+                      onClick={() => setEmoji(e)}
+                      className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-colors ${
+                        emoji === e ? 'bg-green-200 ring-2 ring-green-300/60' : 'bg-muted'
                       }`}
                     >
-                      <span
-                        className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0"
-                        style={
-                          !m.avatar_url
-                            ? { backgroundColor: `hsl(var(--member-${m.color_token.replace('pastel-', '')}))` }
-                            : undefined
-                        }
-                      >
-                        {m.avatar_url ? (
-                          <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          m.display_name.charAt(0)
-                        )}
-                      </span>
-                      <span className="font-semibold flex-1 text-sm">{m.display_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {selected ? t('countdown.willInvite') : t('countdown.tapToInvite')}
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="text-sm font-medium mb-1.5 block text-center">{t('event.date')}</span>
+                  <input
+                    type="date"
+                    className={FIELD}
+                    value={format(date, 'yyyy-MM-dd')}
+                    onChange={(e) => {
+                      const [y, m, d] = e.target.value.split('-').map(Number);
+                      if (y && m && d) setDate(new Date(y, m - 1, d));
+                    }}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium mb-1.5 block text-center">{t('event.clock')}</span>
+                  <input
+                    type="time"
+                    className={FIELD}
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                  />
+                </label>
+                <p className="text-sm text-muted-foreground text-center capitalize">
+                  {format(date, 'EEEE d. MMMM', { locale: dateLocale })} · {time}
+                </p>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="grid grid-cols-2 gap-2.5">
+                {COUNTDOWN_THEME_IDS.map((id) => {
+                  const meta = getCountdownTheme(id);
+                  const selected = theme === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTheme(id)}
+                      className={`rounded-2xl p-4 text-center transition-shadow ${
+                        selected ? 'ring-2 ring-foreground/25 shadow-soft' : ''
+                      }`}
+                      style={{ background: meta.gradient }}
+                    >
+                      <span className="font-semibold text-sm text-foreground/90">
+                        {locale === 'en' ? meta.labelEn : meta.labelNb}
                       </span>
                     </button>
                   );
-                })
-              )}
-              <p className="text-xs text-muted-foreground pt-1 text-center">{t('countdown.inviteNote')}</p>
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+                })}
+              </div>
+            )}
 
-      <div className="mt-6 space-y-2">
+            {step === 4 && (
+              <div className="space-y-2">
+                {others.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    {t('countdown.noMembers')}
+                  </p>
+                ) : (
+                  others.map((m) => {
+                    const selected = inviteIds.includes(m.id);
+                    const color = getMemberColor(m.color_token);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => toggleInvite(m.id)}
+                        className={`w-full flex items-center gap-3 rounded-2xl p-3 text-left transition-colors ${
+                          selected ? `${color.bg} ring-2 ring-foreground/15` : 'bg-muted/60'
+                        }`}
+                      >
+                        <span
+                          className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0"
+                          style={
+                            !m.avatar_url
+                              ? { backgroundColor: `hsl(var(--member-${m.color_token.replace('pastel-', '')}))` }
+                              : undefined
+                          }
+                        >
+                          {m.avatar_url ? (
+                            <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            m.display_name.charAt(0)
+                          )}
+                        </span>
+                        <span className="font-semibold flex-1 text-sm">{m.display_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {selected ? t('countdown.willInvite') : t('countdown.tapToInvite')}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+                <p className="text-xs text-muted-foreground pt-1 text-center">{t('countdown.inviteNote')}</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <PopupStickyFooter>
         {step < STEPS ? (
           <button
             type="button"
@@ -308,13 +312,13 @@ const NewCountdownFlow = ({
         )}
         <button
           type="button"
-          onClick={handleDismiss}
+          onClick={handleBack}
           className="w-full py-2 text-sm font-medium text-muted-foreground underline underline-offset-2"
         >
           {step === 1 ? t('common.cancel') : t('common.back')}
         </button>
-      </div>
-    </CountdownModalShell>
+      </PopupStickyFooter>
+    </CenteredPopup>
   );
 };
 

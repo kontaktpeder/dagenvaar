@@ -978,8 +978,12 @@ const DayCell = ({
         {format(day, 'd')}
       </span>
 
+      {/* Corner badge — must not sit in the flex column (breaks multi-day rails) */}
       {countdownEmoji && (
-        <span className="text-[11px] leading-none mt-0.5" aria-hidden>
+        <span
+          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2]"
+          aria-hidden
+        >
           {countdownEmoji}
         </span>
       )}

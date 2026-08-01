@@ -11,7 +11,8 @@ import {
 import { getMemberColor } from '@/lib/colors';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import { useLocale } from '@/hooks/useLocale';
-import { CountdownModalShell } from '@/components/CountdownModalShell';
+import CenteredPopup from '@/components/CenteredPopup';
+import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { CountdownDigits } from '@/components/CountdownDigits';
 import CountdownCelebrateDialog from '@/components/CountdownCelebrateDialog';
 
@@ -123,81 +124,90 @@ const CountdownDetailSheet = ({
   }
 
   return (
-    <CountdownModalShell onClose={onClose} labelledBy="countdown-detail-title" zClassName="z-[70]">
-      <CountdownDigits
-        targetAt={countdown.target_at}
-        themeId={countdown.theme}
-        emoji={countdown.emoji}
-        title={countdown.title}
-      />
-
-      <p
-        id="countdown-detail-title"
-        className="sr-only"
+    <CenteredPopup
+      onClose={onClose}
+      onExit={onClose}
+      size="sheet"
+      detents={['half', 'full']}
+      initialDetent="half"
+      zClassName="z-[70]"
+    >
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4"
+        data-sheet-scroll
       >
-        {countdown.title}
-      </p>
+        <CountdownDigits
+          targetAt={countdown.target_at}
+          themeId={countdown.theme}
+          emoji={countdown.emoji}
+          title={countdown.title}
+        />
 
-      <p className="text-sm text-muted-foreground mt-4 capitalize">
-        {format(target, 'EEEE d. MMMM · HH:mm', { locale: dateLocale })}
-      </p>
-
-      <div className="mt-5 space-y-2 text-left">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-center mb-2">
-          {t('countdown.participants')}
+        <p id="countdown-detail-title" className="sr-only">
+          {countdown.title}
         </p>
-        {countdown.countdown_participants
-          .filter((p) => p.status !== 'declined')
-          .map((p) => {
-            const m = getMember(p.member_id);
-            if (!m) return null;
-            const color = getMemberColor(m.color_token);
-            return (
-              <div key={p.id} className={`flex items-center gap-3 rounded-2xl p-3 ${color.bg}`}>
-                <span className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm shrink-0 bg-white/50">
-                  {m.avatar_url ? (
-                    <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    m.display_name.charAt(0)
-                  )}
-                </span>
-                <span className="font-medium flex-1 text-sm">{m.display_name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {p.status === 'joined'
-                    ? t('countdown.statusJoined')
-                    : t('countdown.statusInvited')}
-                </span>
-              </div>
-            );
-          })}
+
+        <p className="text-sm text-muted-foreground mt-4 capitalize text-center">
+          {format(target, 'EEEE d. MMMM · HH:mm', { locale: dateLocale })}
+        </p>
+
+        <div className="mt-5 space-y-2 text-left">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-center mb-2">
+            {t('countdown.participants')}
+          </p>
+          {countdown.countdown_participants
+            .filter((p) => p.status !== 'declined')
+            .map((p) => {
+              const m = getMember(p.member_id);
+              if (!m) return null;
+              const color = getMemberColor(m.color_token);
+              return (
+                <div key={p.id} className={`flex items-center gap-3 rounded-2xl p-3 ${color.bg}`}>
+                  <span className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm shrink-0 bg-white/50">
+                    {m.avatar_url ? (
+                      <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      m.display_name.charAt(0)
+                    )}
+                  </span>
+                  <span className="font-medium flex-1 text-sm">{m.display_name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {p.status === 'joined'
+                      ? t('countdown.statusJoined')
+                      : t('countdown.statusInvited')}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+
+        {isJoined && inviteable.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {!showInvite ? (
+              <button
+                type="button"
+                onClick={() => setShowInvite(true)}
+                className="text-sm font-semibold text-foreground underline underline-offset-2"
+              >
+                {t('countdown.inviteMore')}
+              </button>
+            ) : (
+              inviteable.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => void handleInvite(m.id)}
+                  className="w-full rounded-2xl bg-muted px-4 py-3 text-sm font-medium"
+                >
+                  {t('countdown.invitePerson', { name: m.display_name })}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
-      {isJoined && inviteable.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {!showInvite ? (
-            <button
-              type="button"
-              onClick={() => setShowInvite(true)}
-              className="text-sm font-semibold text-foreground underline underline-offset-2"
-            >
-              {t('countdown.inviteMore')}
-            </button>
-          ) : (
-            inviteable.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => void handleInvite(m.id)}
-                className="w-full rounded-2xl bg-muted px-4 py-3 text-sm font-medium"
-              >
-                {t('countdown.invitePerson', { name: m.display_name })}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-
-      <div className="mt-6 space-y-2">
+      <PopupStickyFooter>
         {isInvited ? (
           <>
             <button
@@ -236,8 +246,8 @@ const CountdownDetailSheet = ({
             {t('countdown.cancel')}
           </button>
         )}
-      </div>
-    </CountdownModalShell>
+      </PopupStickyFooter>
+    </CenteredPopup>
   );
 };
 
