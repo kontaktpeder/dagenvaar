@@ -37,8 +37,8 @@ const SAME_DETENT_VEL_CAP = 260;
 /** Max raw handoff before animation scaling (px/s). */
 const HANDOFF_VEL_CAP = 1600;
 /** Spring is driven softer than commit velocity — avoids mid-flight brake hitch. */
-const ANIM_VEL_SCALE = 0.38;
-const ANIM_VEL_CAP = 640;
+const ANIM_VEL_SCALE = 0.28;
+const ANIM_VEL_CAP = 480;
 /** Fixed spring integration step (seconds). */
 const SPRING_DT = 1 / 120;
 /** EMA blend for touch velocity (higher = trust latest sample more). */
@@ -60,20 +60,20 @@ type SpringOpts = {
 
 /** Detent settle — light bounce, stable mid-path */
 const DETENT_SPRING: SpringOpts = {
-  stiffness: 390,
-  damping: 48,
-  mass: 0.85,
-  restDelta: 0.85,
-  restSpeed: 20,
+  stiffness: 360,
+  damping: 52,
+  mass: 0.88,
+  restDelta: 0.9,
+  restSpeed: 22,
 };
 
 /** Enter / resize / return-home — softer, no fling */
 const SETTLE_SPRING: SpringOpts = {
-  stiffness: 360,
-  damping: 46,
-  mass: 0.9,
-  restDelta: 0.85,
-  restSpeed: 18,
+  stiffness: 340,
+  damping: 50,
+  mass: 0.92,
+  restDelta: 0.9,
+  restSpeed: 20,
 };
 
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
@@ -128,7 +128,7 @@ function animationHandoffVelocity(from: number, to: number, vy: number): number 
     v = 0;
   }
   v *= ANIM_VEL_SCALE;
-  const distCap = Math.abs(travel) * 2.8;
+  const distCap = Math.abs(travel) * 2.2;
   if (Math.abs(v) > distCap) v = toward * distCap;
   if (Math.abs(v) > ANIM_VEL_CAP) v = toward * ANIM_VEL_CAP;
   if (Math.abs(v) > HANDOFF_VEL_CAP) v = toward * HANDOFF_VEL_CAP;
@@ -214,7 +214,7 @@ function runEaseOut(options: {
 }): () => void {
   const { from, to, onUpdate, onComplete } = options;
   const distance = Math.abs(to - from);
-  const duration = options.duration ?? Math.min(0.38, Math.max(0.22, distance / 2200));
+  const duration = options.duration ?? Math.min(0.45, Math.max(0.26, distance / 1800));
   const start = performance.now();
   let raf = 0;
   let cancelled = false;
@@ -224,7 +224,8 @@ function runEaseOut(options: {
   const step = (now: number) => {
     if (cancelled) return;
     const t = Math.min(1, (now - start) / (duration * 1000));
-    const eased = 1 - (1 - t) ** 3;
+    // Quartic ease-out — softer landing than cubic
+    const eased = 1 - (1 - t) ** 4;
     const y = from + (to - from) * eased;
     onUpdate(y);
     if (t >= 1) {
