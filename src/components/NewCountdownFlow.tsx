@@ -183,7 +183,7 @@ const NewCountdownFlow = ({
   );
 
   const stepBody = (
-    <AnimatePresence initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={step}
         initial={stepForward.initial}

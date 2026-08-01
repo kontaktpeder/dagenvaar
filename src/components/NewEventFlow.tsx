@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -22,6 +21,7 @@ import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { focusSheetField } from '@/lib/focusSheetField';
 import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { stepForward, stepSpring } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
 /** Shared size for date/time inputs — equality = simplicity */
 const FIELD =
@@ -71,6 +71,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
   const locationRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  /** Title UI in-flow only after previous step has finished exiting (avoids stacked glitch). */
+  const [whatVisible, setWhatVisible] = useState(false);
 
   const addOneHour = (time: string) => {
     const [h, m] = time.split(':').map(Number);
@@ -100,17 +104,28 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
     return () => window.clearTimeout(t);
   }, [showNotes]);
 
-  /** Advance steps; on «Hva?» focus in the same tap turn so iOS opens the keyboard. */
+  useEffect(() => {
+    if (step !== 3) setWhatVisible(false);
+  }, [step]);
+
+  /**
+   * Title input is pre-mounted (offscreen) on step 2 so we can focus it in the
+   * same tap as Next/category — iOS only opens the keyboard for a real gesture.
+   * Stays offscreen until the previous step’s exit finishes, then reveals in-flow.
+   */
+  const goToWhatStep = () => {
+    setWhatVisible(false);
+    focusSheetField(titleRef.current, { footerReserve: 128 });
+    setStep(3);
+  };
+
   const goNext = () => {
     if (step >= STEPS) return;
-    const next = step + 1;
-    if (next === 3) {
-      // mode=wait would delay mount past the user gesture — mount sync, then focus.
-      flushSync(() => setStep(3));
-      focusSheetField(titleRef.current, { footerReserve: 128 });
+    if (step + 1 === 3) {
+      goToWhatStep();
       return;
     }
-    setStep(next);
+    setStep((s) => s + 1);
   };
 
   const canProceed =
@@ -316,8 +331,42 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch" data-sheet-scroll>
-        <AnimatePresence initial={false}>
+      <div className="relative flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch" data-sheet-scroll>
+        {/* Shared title field: offscreen until step-2 exit completes, then in-flow on step 3 */}
+        {(step === 2 || step === 3) && (
+          <div
+            className={cn(
+              whatVisible
+                ? 'space-y-6'
+                : 'pointer-events-none fixed left-0 top-0 z-[-1] w-[min(100vw,28rem)] opacity-0',
+            )}
+            aria-hidden={!whatVisible}
+          >
+            {whatVisible && (
+              <h2 className="text-2xl font-bold">{t('event.what')}</h2>
+            )}
+            <input
+              ref={titleRef}
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
+              enterKeyHint="next"
+              autoComplete="off"
+              autoCorrect="off"
+              tabIndex={whatVisible ? 0 : -1}
+              className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg caret-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15"
+            />
+          </div>
+        )}
+
+        <AnimatePresence
+          mode="wait"
+          initial={false}
+          onExitComplete={() => {
+            if (stepRef.current === 3) setWhatVisible(true);
+          }}
+        >
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">{t('event.when')}</h2>
@@ -557,7 +606,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                         setCategory(key);
                         if (key !== 'other') {
                           setOtherLabel('');
-                          setStep((s) => s + 1);
+                          goToWhatStep();
                         }
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
@@ -585,23 +634,6 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                   <p className="text-xs text-muted-foreground mt-2">La stå tom hvis du bare vil bruke "Annet".</p>
                 </motion.div>
               )}
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div key="step3" {...stepForward} className="space-y-6">
-              <h2 className="text-2xl font-bold">{t('event.what')}</h2>
-              <input
-                ref={titleRef}
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
-                enterKeyHint="next"
-                autoComplete="off"
-                autoCorrect="off"
-                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg caret-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15"
-              />
             </motion.div>
           )}
 
