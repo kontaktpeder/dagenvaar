@@ -1029,7 +1029,7 @@ const DayCell = ({
       {/* Corner badge — must not sit in the flex column (breaks multi-day rails) */}
       {countdownEmoji && (
         <span
-          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2] transition-opacity duration-300 ease-out"
+          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
           aria-hidden
         >
@@ -1040,7 +1040,7 @@ const DayCell = ({
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
         <div
-          className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-300 ease-out"
+          className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
@@ -1094,7 +1094,7 @@ const DayCell = ({
 
       {rows.length > 0 && (
         <div
-          className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-300 ease-out"
+          className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {rows.map((row, i) => (

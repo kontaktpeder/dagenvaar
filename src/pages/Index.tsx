@@ -72,7 +72,8 @@ const Index = () => {
   const [stackDirection, setStackDirection] = useState(0);
   /** Skip calendar-stack slide on cold open — only animate real switches. */
   const [stackMotionOn, setStackMotionOn] = useState(false);
-  const [bootCover, setBootCover] = useState(true);
+  /** covering → soft veil; revealing → welcome fade; done → gone */
+  const [bootPhase, setBootPhase] = useState<'covering' | 'revealing' | 'done'>('covering');
   const coldStartRef = useRef(true);
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
@@ -191,33 +192,30 @@ const Index = () => {
     setStackMotionOn(true);
   }, []);
 
+  const beginWelcomeReveal = useCallback(() => {
+    if (!coldStartRef.current) return;
+    coldStartRef.current = false;
+    setBootPhase('revealing');
+    markAppReady();
+  }, []);
+
   // Failsafe: never leave boot cover / splash stuck if calendar ready never fires.
   useEffect(() => {
-    const t = window.setTimeout(() => {
-      if (!coldStartRef.current) return;
-      coldStartRef.current = false;
-      setBootCover(false);
-      markAppReady();
-    }, 4800);
+    const t = window.setTimeout(() => beginWelcomeReveal(), 4800);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [beginWelcomeReveal]);
 
   // Auth / onboarding / error: release splash once that screen is the destination.
   useEffect(() => {
     if (authLoading || ctxLoading) return;
     if (!user || ctxError || !household || !currentMember) {
-      coldStartRef.current = false;
-      setBootCover(false);
-      markAppReady();
+      beginWelcomeReveal();
     }
-  }, [authLoading, ctxLoading, user, ctxError, household, currentMember]);
+  }, [authLoading, ctxLoading, user, ctxError, household, currentMember, beginWelcomeReveal]);
 
   const handleCalendarReady = useCallback(() => {
-    if (!coldStartRef.current) return;
-    coldStartRef.current = false;
-    setBootCover(false);
-    markAppReady();
-  }, []);
+    beginWelcomeReveal();
+  }, [beginWelcomeReveal]);
 
   if (getRecoveryState().isRecoveryFlow) {
     return <Navigate to="/auth/update-password" replace />;
@@ -323,19 +321,47 @@ const Index = () => {
 
   const canSwipeStack = orderedMemberships.length > 1;
 
+  const welcomeEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
+  const isBootVeil = bootPhase === 'covering' || bootPhase === 'revealing';
+
   return (
     <LocaleProvider calendarLocale={(household as any).locale}>
     <div
       data-calendar-kind={calendarKind}
       className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
     >
-      {bootCover && (
-        <div
-          className="absolute inset-0 z-[80] bg-background"
-          style={{ backgroundColor: '#fbf9f6' }}
-          aria-hidden
-        />
-      )}
+      <AnimatePresence>
+        {isBootVeil && (
+          <motion.div
+            key="boot-veil"
+            className="absolute inset-0 z-[80] pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(120% 80% at 50% 35%, #fffdf9 0%, #fbf9f6 55%, #f5f1ea 100%)',
+            }}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: bootPhase === 'revealing' ? 0 : 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.85, ease: welcomeEase }}
+            onAnimationComplete={() => {
+              if (bootPhase === 'revealing') setBootPhase('done');
+            }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        className="relative z-10 flex min-h-0 flex-1 flex-col"
+        initial={false}
+        animate={
+          bootPhase === 'covering'
+            ? { opacity: 0.88, y: 14, scale: 0.985 }
+            : { opacity: 1, y: 0, scale: 1 }
+        }
+        transition={{ duration: 0.9, ease: welcomeEase, delay: bootPhase === 'revealing' ? 0.04 : 0 }}
+        style={{ transformOrigin: '50% 18%' }}
+      >
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}
@@ -420,6 +446,7 @@ const Index = () => {
           />
         </aside>
       </main>
+      </motion.div>
 
       {showSeedWeek && (
         <SeedWeekFlow
