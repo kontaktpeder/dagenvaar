@@ -29,6 +29,13 @@ interface CenteredPopupProps {
 const DISMISS_VEL = 900;
 /** Tiny body threshold only to separate scroll intent from sheet drag. Grabber is 0. */
 const BODY_ACTIVATE_PX = 2;
+/** Below this displacement + low velocity → soft return to current detent (no fling). */
+const NUDGE_DEADZONE_PX = 28;
+const NUDGE_VEL = 420;
+/** Need this much velocity toward another detent to switch without crossing midpoint. */
+const COMMIT_VEL = 780;
+/** Cap leftover velocity when springing back to the same detent. */
+const SAME_DETENT_VEL_CAP = 220;
 
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
 const DETENT_VISIBLE: Record<SheetDetent, number> = {
@@ -391,6 +398,9 @@ const CenteredPopup = ({
     if (flyingOut) return;
     const y = yRef.current;
     const h = frameHRef.current;
+    const current = detentRef.current;
+    const currentY = yForDetent(current, h);
+    const deltaFromCurrent = y - currentY;
 
     const positions = detents
       .map((d) => ({ d, y: yForDetent(d, h) }))
@@ -404,18 +414,51 @@ const CenteredPopup = ({
       return;
     }
 
-    const projected = y + vy * 0.22;
-    let best = positions[0]!;
-    let bestDist = Math.abs(projected - best.y);
-    for (const p of positions) {
-      const dist = Math.abs(projected - p.y);
-      if (dist < bestDist) {
-        best = p;
-        bestDist = dist;
+    // Small unfinished nudges: ease back home — don't treat as a fling.
+    if (Math.abs(deltaFromCurrent) < NUDGE_DEADZONE_PX && Math.abs(vy) < NUDGE_VEL) {
+      snapTo(current, {
+        velocity: 0,
+        spring: SETTLE_SPRING,
+        keepCompositor: true,
+      });
+      return;
+    }
+
+    // Prefer current detent unless past midpoint or a clear directional fling.
+    let best = positions.find((p) => p.d === current) ?? positions[0]!;
+    if (positions.length > 1) {
+      const fullPos = positions.find((p) => p.d === 'full');
+      const halfPos = positions.find((p) => p.d === 'half');
+      if (fullPos && halfPos) {
+        const mid = (fullPos.y + halfPos.y) / 2;
+        const flingToHalf = vy >= COMMIT_VEL && deltaFromCurrent > 8;
+        const flingToFull = vy <= -COMMIT_VEL && deltaFromCurrent < -8;
+        if (flingToHalf || y > mid) best = halfPos;
+        else if (flingToFull || y < mid) best = fullPos;
+        else best = current === 'half' ? halfPos : fullPos;
+      } else {
+        const projected = y + vy * 0.18;
+        let bestDist = Math.abs(projected - best.y);
+        for (const p of positions) {
+          const dist = Math.abs(projected - p.y);
+          if (dist < bestDist) {
+            best = p;
+            bestDist = dist;
+          }
+        }
       }
     }
-    // Keep compositor layer + no shadow through the whole settle (kills cricket)
-    snapTo(best.d, { velocity: vy, keepCompositor: true });
+
+    const returningHome = best.d === current;
+    const settleVy = returningHome
+      ? Math.max(-SAME_DETENT_VEL_CAP, Math.min(SAME_DETENT_VEL_CAP, vy * 0.35))
+      : vy;
+
+    snapTo(best.d, {
+      velocity: settleVy,
+      spring: returningHome ? SETTLE_SPRING : DETENT_SPRING,
+      keepCompositor: true,
+    });
   };
   settleDragRef.current = settleDrag;
 
