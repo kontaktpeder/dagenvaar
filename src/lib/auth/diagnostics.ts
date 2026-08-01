@@ -28,6 +28,7 @@ type DiagnosticEvent =
   | 'callback:verify_otp_error'
   | 'callback:verify_otp_ok'
   | 'callback:no_params'
+  | 'callback:no_params_has_session'
   | 'recovery:event'
   | 'recovery:navigate'
   | 'recovery:page:checking'

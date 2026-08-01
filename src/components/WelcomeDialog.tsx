@@ -7,6 +7,7 @@ import { burstConfetti } from '@/lib/celebrate';
 import {
   buildInviteShareText,
   buildInviteUrl,
+  normalizeInviteCode,
 } from '@/lib/inviteLink';
 import type { WelcomeIntent } from '@/lib/welcomeIntent';
 
@@ -40,9 +41,9 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
       linkHint: t('welcome.inviteShareLinkHint'),
     });
 
-  const copyInvite = async (code: string) => {
-    const text = shareTextFor(code);
-    await navigator.clipboard.writeText(text);
+  /** Clipboard gets only AB12-CD34 — not the full share message. */
+  const copyCodeOnly = async (code: string) => {
+    await navigator.clipboard.writeText(normalizeInviteCode(code));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2500);
   };
@@ -61,9 +62,9 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
     onSuccess: (data) => {
       setInvite(data);
       setShareError('');
-      // Copy first — before any share sheet covers the app.
-      void copyInvite(data.code).catch(() => {
-        /* clipboard may be blocked; user can tap Kopier */
+      // Copy short code first — before any share sheet covers the app.
+      void copyCodeOnly(data.code).catch(() => {
+        /* clipboard may be blocked; user can tap Kopier kode */
       });
     },
     onError: (err: any) => {
@@ -74,25 +75,23 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
   const handleShare = async (code: string) => {
     const text = shareTextFor(code);
     try {
-      // Ensure clipboard has the code even if they only tap Del.
+      if (navigator.share) {
+        // Full invite message; URL is already inside text (cleaner on iOS Messages).
+        await navigator.share({ text, title: 'Pastelly' });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       try {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 2500);
       } catch {
-        /* ignore — share may still work */
+        setShareError(t('common.error'));
       }
-      if (navigator.share) {
-        await navigator.share({
-          text,
-          url: buildInviteUrl(code),
-          title: 'Pastelly',
-        });
-        return;
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-      setShareError(t('common.error'));
     }
   };
 
@@ -174,7 +173,7 @@ const WelcomeDialog = ({ intent, householdId, onClose }: WelcomeDialogProps) => 
               <>
                 <button
                   type="button"
-                  onClick={() => void copyInvite(invite.code).catch(() => setShareError(t('common.error')))}
+                  onClick={() => void copyCodeOnly(invite.code).catch(() => setShareError(t('common.error')))}
                   className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold hover:bg-green-300 transition-colors"
                 >
                   {copied ? t('profile.copied') : t('welcome.copyCode')}

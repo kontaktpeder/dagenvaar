@@ -14,7 +14,13 @@ import {
 } from '@/lib/calendarKinds';
 import { setStoredActiveHouseholdId } from '@/lib/activeHousehold';
 import { uploadMemberAvatar } from '@/lib/uploadMemberAvatar';
-import { buildInviteShareText, buildInviteUrl } from '@/lib/inviteLink';
+import {
+  buildInviteShareText,
+  buildInviteUrl,
+  inviteJoinErrorKind,
+  isPlausibleInviteCode,
+  normalizeInviteCode,
+} from '@/lib/inviteLink';
 import { deleteAccount } from '@/lib/auth/deleteAccount';
 import { Camera } from 'lucide-react';
 import AvatarCropModal from '@/components/AvatarCropModal';
@@ -180,11 +186,12 @@ const ProfileSheet = ({
 
   const joinHousehold = useMutation({
     mutationFn: async () => {
-      const code = joinCode.trim().toUpperCase();
-      if (!code) throw new Error('Skriv inn invitasjonskoden');
+      const code = normalizeInviteCode(joinCode);
+      if (!code) throw new Error(t('onboarding.inviteCodeEmpty'));
+      if (!isPlausibleInviteCode(code)) throw new Error(t('onboarding.inviteCodeFormat'));
       const { data, error } = await supabase.rpc('join_household_by_code', {
         p_invite_code: code,
-        p_display_name: currentMember.display_name || 'Meg',
+        p_display_name: currentMember.display_name || t('common.me'),
         p_color_token: currentMember.color_token || 'pastel-blue',
       });
       if (error) throw error;
@@ -202,7 +209,10 @@ const ProfileSheet = ({
       onClose();
     },
     onError: (err: any) => {
-      setJoinError(err?.message ?? 'Kunne ikke bli med via kode');
+      const kind = inviteJoinErrorKind(err?.message);
+      if (kind === 'invalid') setJoinError(t('onboarding.inviteCodeInvalid'));
+      else if (kind === 'already') setJoinError(t('onboarding.inviteCodeAlready'));
+      else setJoinError(err?.message ?? t('common.error'));
     },
   });
 
@@ -279,12 +289,7 @@ const ProfileSheet = ({
   const handleCopyCode = async () => {
     if (!inviteCode) return;
     try {
-      const text = buildInviteShareText(inviteCode, {
-        greeting: t('welcome.inviteShareGreeting'),
-        codeLabel: t('welcome.inviteShareCodeLabel'),
-        linkHint: t('welcome.inviteShareLinkHint'),
-      });
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(normalizeInviteCode(inviteCode));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -300,18 +305,22 @@ const ProfileSheet = ({
       linkHint: t('welcome.inviteShareLinkHint'),
     });
     try {
+      if (navigator.share) {
+        await navigator.share({ text, title: 'Pastelly' });
+        return;
+      }
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* ignore */
-    }
-    try {
-      if (navigator.share) {
-        await navigator.share({ text, url: buildInviteUrl(inviteCode), title: 'Pastelly' });
-      }
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -647,10 +656,12 @@ const ProfileSheet = ({
                   <div className="rounded-xl bg-background p-4 space-y-3">
                     <input
                       value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      onChange={(e) => setJoinCode(normalizeInviteCode(e.target.value))}
                       placeholder="AB12-CD34"
+                      autoComplete="off"
                       className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                     />
+                    <p className="text-xs text-muted-foreground">{t('onboarding.inviteCodeHint')}</p>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"

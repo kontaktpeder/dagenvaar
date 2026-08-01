@@ -74,7 +74,13 @@ export const en: Record<MessageKey, string> = {
   'onboarding.pasted': 'Code pasted',
   'onboarding.pasteEmpty': 'No code found on the clipboard',
   'onboarding.pasteFailed': 'Couldn’t read clipboard — paste manually',
-  'onboarding.inviteCodeHint': 'Copy the code from the message first, or open the invite link',
+  'onboarding.inviteCodeHint': 'The code is 8 characters, like AB12-CD34 — paste it from the invite, not the whole link',
+  'onboarding.inviteCodeEmpty': 'Enter the invite code',
+  'onboarding.inviteCodeFormat':
+    'That doesn’t look like an invite code. Enter the short code from the message (8 characters, e.g. AB12-CD34).',
+  'onboarding.inviteCodeInvalid':
+    'This code is invalid, already used, or expired. Ask the person who invited you to create a new one.',
+  'onboarding.inviteCodeAlready': 'You’re already a member of this calendar',
 
   'auth.accountUnavailable':
     'This account no longer exists. Sign in with another account, or create a new one. Contact support if this is a mistake.',
@@ -195,14 +201,15 @@ export const en: Record<MessageKey, string> = {
   'welcome.cta': 'Got it',
   'welcome.inviteCta': 'Invite partner',
   'welcome.inviteCreating': 'Creating code...',
-  'welcome.inviteShareAgain': 'Share code again',
+  'welcome.inviteShareAgain': 'Share invite again',
   'welcome.later': 'Later',
   'welcome.copyCode': 'Copy code',
-  'welcome.shareCode': 'Share',
-  'welcome.inviteCopiedHint': 'Copied — paste into Messenger, or tap Share',
+  'welcome.shareCode': 'Share invite',
+  'welcome.inviteCopiedHint': 'Code copied',
+  'welcome.inviteSharedHint': 'Invite ready to share',
   'welcome.inviteShareGreeting': 'Hey! Join our calendar on Pastelly 🗓️',
   'welcome.inviteShareCodeLabel': 'Code:',
-  'welcome.inviteShareLinkHint': 'Open the link, or paste the code under “I have a code”.',
+  'welcome.inviteShareLinkHint': 'Open the link, or paste the short code (8 characters) under “I have a code”.',
   'welcome.inviteShareText':
     'Hey! Join our calendar on Pastelly 🗓️\nCode: {code}\nOpen pastelly.no and choose “I have a code”',
 

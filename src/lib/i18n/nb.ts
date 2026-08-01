@@ -79,7 +79,13 @@ export const nb = {
   'onboarding.pasted': 'Kode limt inn',
   'onboarding.pasteEmpty': 'Fant ingen kode i utklippstavlen',
   'onboarding.pasteFailed': 'Kunne ikke lese utklippstavlen — lim inn manuelt',
-  'onboarding.inviteCodeHint': 'Kopier koden fra meldingen først, eller åpne invitasjonslenken',
+  'onboarding.inviteCodeHint': 'Koden er 8 tegn, som AB12-CD34 — lim inn den fra invitasjonen, ikke hele lenken',
+  'onboarding.inviteCodeEmpty': 'Skriv inn invitasjonskoden',
+  'onboarding.inviteCodeFormat':
+    'Dette ser ikke ut som en invitasjonskode. Skriv inn den korte koden fra meldingen (8 tegn, f.eks. AB12-CD34).',
+  'onboarding.inviteCodeInvalid':
+    'Koden er ugyldig, brukt eller utløpt. Be den som inviterte om å lage en ny kode.',
+  'onboarding.inviteCodeAlready': 'Du er allerede medlem av denne kalenderen',
 
   'auth.accountUnavailable':
     'Kontoen finnes ikke lenger. Logg inn med en annen konto, eller opprett ny. Kontakt support hvis dette er feil.',
@@ -204,14 +210,15 @@ export const nb = {
   'welcome.cta': 'Skjønner',
   'welcome.inviteCta': 'Inviter partner',
   'welcome.inviteCreating': 'Lager kode...',
-  'welcome.inviteShareAgain': 'Del koden igjen',
+  'welcome.inviteShareAgain': 'Del invitasjonen igjen',
   'welcome.later': 'Senere',
   'welcome.copyCode': 'Kopier kode',
-  'welcome.shareCode': 'Del',
-  'welcome.inviteCopiedHint': 'Kopiert — lim inn i Messenger, eller trykk Del',
+  'welcome.shareCode': 'Del invitasjon',
+  'welcome.inviteCopiedHint': 'Kode kopiert',
+  'welcome.inviteSharedHint': 'Invitasjon klar til å deles',
   'welcome.inviteShareGreeting': 'Hei! Bli med i kalenderen vår på Pastelly 🗓️',
   'welcome.inviteShareCodeLabel': 'Kode:',
-  'welcome.inviteShareLinkHint': 'Åpne lenken, eller lim inn koden under «Jeg har kode».',
+  'welcome.inviteShareLinkHint': 'Åpne lenken, eller lim inn den korte koden (8 tegn) under «Jeg har kode».',
   'welcome.inviteShareText':
     'Hei! Bli med i kalenderen vår på Pastelly 🗓️\nKode: {code}\nÅpne pastelly.no og velg «Jeg har kode»',
 

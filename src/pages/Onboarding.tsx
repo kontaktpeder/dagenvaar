@@ -15,6 +15,9 @@ import { setWelcomeIntent } from '@/lib/welcomeIntent';
 import { defaultLocaleForKind } from '@/lib/i18n/types';
 import {
   clearPendingInviteCode,
+  extractInviteCodeFromText,
+  inviteJoinErrorKind,
+  isPlausibleInviteCode,
   normalizeInviteCode,
   peekPendingInviteCode,
 } from '@/lib/inviteLink';
@@ -83,9 +86,9 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
   });
 
   const joinHousehold = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (code: string) => {
       const { data, error } = await supabase.rpc('join_household_by_code', {
-        p_invite_code: inviteCode.trim(),
+        p_invite_code: code,
         p_display_name: displayName || t('common.me'),
         p_color_token: colorToken,
       });
@@ -142,11 +145,17 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
         const data = await createHousehold.mutateAsync();
         householdId = data?.id ?? null;
       } else {
-        if (!inviteCode.trim()) {
-          setError(t('onboarding.inviteCode'));
+        const code = normalizeInviteCode(inviteCode);
+        if (!code) {
+          setError(t('onboarding.inviteCodeEmpty'));
           return;
         }
-        householdId = await joinHousehold.mutateAsync();
+        if (!isPlausibleInviteCode(code)) {
+          setError(t('onboarding.inviteCodeFormat'));
+          return;
+        }
+        setInviteCode(code);
+        householdId = await joinHousehold.mutateAsync(code);
       }
       if (householdId) {
         setStoredActiveHouseholdId(householdId);
@@ -162,7 +171,15 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
       }
       onComplete();
     } catch (err: any) {
-      setError(err.message || t('common.error'));
+      if (mode === 'join') {
+        const kind = inviteJoinErrorKind(err?.message);
+        if (kind === 'invalid') setError(t('onboarding.inviteCodeInvalid'));
+        else if (kind === 'already') setError(t('onboarding.inviteCodeAlready'));
+        else if (kind === 'format') setError(t('onboarding.inviteCodeFormat'));
+        else setError(err?.message || t('common.error'));
+      } else {
+        setError(err?.message || t('common.error'));
+      }
     }
   };
 
@@ -335,14 +352,13 @@ const OnboardingPage = ({ onComplete }: OnboardingPageProps) => {
                       setPasteHint('');
                       try {
                         const text = await navigator.clipboard.readText();
-                        // Prefer explicit AB12-CD34 in pasted share text
-                        const match = text.toUpperCase().match(/[A-Z0-9]{4}-[A-Z0-9]{4}/);
-                        const next = normalizeInviteCode(match?.[0] ?? text);
+                        const next = extractInviteCodeFromText(text);
                         if (!next) {
                           setPasteHint(t('onboarding.pasteEmpty'));
                           return;
                         }
                         setInviteCode(next);
+                        setError('');
                         setPasteHint(t('onboarding.pasted'));
                       } catch {
                         setPasteHint(t('onboarding.pasteFailed'));
