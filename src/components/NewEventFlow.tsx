@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import { useLocale } from '@/hooks/useLocale';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { focusSheetField } from '@/lib/focusSheetField';
 import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { stepForward, stepSpring } from '@/lib/motion';
 
@@ -98,19 +99,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
     return () => window.clearTimeout(t);
   }, [showNotes]);
 
-  // Soft focus on title step — preventScroll avoids calendar/popup jump
-  useEffect(() => {
+  // «Hva?» — focus + keyboard in the same turn as Next tap
+  useLayoutEffect(() => {
     if (step !== 3) return;
-    const t = window.setTimeout(() => {
-      const el = titleRef.current;
-      if (!el) return;
-      try {
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
-    }, 80);
-    return () => window.clearTimeout(t);
+    focusSheetField(titleRef.current, { footerReserve: 128 });
   }, [step]);
 
   const canProceed =
@@ -597,7 +589,10 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
-                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                enterKeyHint="next"
+                autoComplete="off"
+                autoCorrect="off"
+                className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg caret-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15"
               />
             </motion.div>
           )}
