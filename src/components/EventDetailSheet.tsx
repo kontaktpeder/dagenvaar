@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
 import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/hooks/useEvents';
-import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
+import { getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
@@ -13,6 +12,8 @@ import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { canEditEvent } from '@/lib/canEditEvent';
 import type { CalendarKind } from '@/lib/calendarKinds';
+import { useLocale } from '@/hooks/useLocale';
+import type { MessageKey } from '@/lib/i18n';
 
 interface EventDetailSheetProps {
   event: Event;
@@ -25,6 +26,7 @@ interface EventDetailSheetProps {
 }
 
 const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'home', onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
+  const { t, dateLocale } = useLocale();
   const [comment, setComment] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { data: comments = [] } = useEventComments(event.id);
@@ -34,6 +36,13 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
   const owner = members.find((m) => m.id === event.owner_member_id);
   const ownerColor = owner ? getMemberColor(owner.color_token) : getMemberColor('pastel-blue');
   const editable = canEditEvent(event, currentMemberId, calendarKind);
+
+  const dayPartLabel = (key: string | null | undefined) => {
+    if (!key) return '';
+    const msgKey = `dayPart.${key}` as MessageKey;
+    const translated = t(msgKey);
+    return translated === msgKey ? key : translated;
+  };
 
   const handleAddComment = () => {
     if (!comment.trim()) return;
@@ -52,13 +61,25 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
       await deleteEvent.mutateAsync(event.id);
       onClose();
     } catch (err: any) {
-      toast.error('Kunne ikke slette hendelsen', {
-        description: err?.message ?? 'Prøv igjen.',
+      toast.error(t('event.deleteFailed'), {
+        description: err?.message ?? t('event.tryAgain'),
       });
     }
   };
 
   const getMemberById = (id: string) => members.find((m) => m.id === id);
+
+  const multiLabel = formatMultiDayLabel(event, {
+    dateLocale,
+    daysLabel: (() => {
+      const end = (event as any).end_date as string | undefined;
+      if (!end) return '';
+      const start = new Date(event.event_date + 'T12:00:00');
+      const endD = new Date(end + 'T12:00:00');
+      const days = Math.round((endD.getTime() - start.getTime()) / 86400000) + 1;
+      return t('event.daysCount', { count: days });
+    })(),
+  });
 
   return (
     <CenteredPopup
@@ -74,21 +95,21 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
         <div className={`rounded-2xl p-5 mb-4 ${ownerColor.bg}`}>
           <h2 className="text-xl font-bold mb-1">{event.title}</h2>
           <p className="text-sm text-muted-foreground">
-            {owner?.display_name} · {format(new Date(event.event_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: nb })}
+            {owner?.display_name} · {format(new Date(event.event_date + 'T12:00:00'), 'd. MMMM yyyy', { locale: dateLocale })}
           </p>
-          {formatMultiDayLabel(event) && (
-            <p className="text-sm font-medium mt-0.5">{formatMultiDayLabel(event)}</p>
+          {multiLabel && (
+            <p className="text-sm font-medium mt-0.5">{multiLabel}</p>
           )}
           <p className="text-sm text-muted-foreground">
             {(() => {
-              const dps = (event as any).day_part_start;
-              const dpe = (event as any).day_part_end;
+              const dps = (event as any).day_part_start as string | null;
+              const dpe = (event as any).day_part_end as string | null;
               if (dps && dpe && dps !== dpe) {
-                return `${DAY_PART_LABELS[dps] || dps} – ${DAY_PART_LABELS[dpe] || dpe}`;
+                return `${dayPartLabel(dps)} – ${dayPartLabel(dpe)}`;
               }
-              if (dps === 'full_diem') return 'Hele døgnet';
-              if (dps === 'all_day') return 'Hele dagen';
-              return DAY_PART_LABELS[event.day_part] || event.day_part;
+              if (dps === 'full_diem') return dayPartLabel('full_diem');
+              if (dps === 'all_day') return dayPartLabel('all_day');
+              return dayPartLabel(event.day_part) || event.day_part;
             })()}
             {event.start_time && ` · ${event.start_time.slice(0, 5)}`}
             {event.end_time && `–${event.end_time.slice(0, 5)}`}
@@ -110,10 +131,10 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Kommentarer</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('event.comments')}</h3>
           {comments.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-3">
-              Ingen kommentarer ennå
+              {t('event.noComments')}
             </p>
           )}
           <div className="space-y-3">
@@ -127,9 +148,9 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">{sender?.display_name || 'Ukjent'}</span>
+                      <span className="text-sm font-semibold">{sender?.display_name || t('event.unknown')}</span>
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(c.created_at), { locale: nb, addSuffix: true })}
+                        {formatDistanceToNow(new Date(c.created_at), { locale: dateLocale, addSuffix: true })}
                       </span>
                     </div>
                     <p className="text-sm">{c.body}</p>
@@ -148,7 +169,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
             onFocus={scrollFocusIntoView}
-            placeholder="Skriv en kommentar..."
+            placeholder={t('event.writeComment')}
             className="flex-1 min-w-0 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
@@ -157,7 +178,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
             disabled={!comment.trim()}
             className="shrink-0 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
           >
-            Send
+            {t('event.send')}
           </button>
         </div>
 
@@ -167,7 +188,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
             onClick={() => onQuickEdit(event)}
             className="w-full rounded-2xl bg-primary/15 hover:bg-primary/25 py-3.5 text-sm text-primary font-semibold transition-colors"
           >
-            Endre hendelse
+            {t('event.edit')}
           </button>
         )}
 
@@ -177,14 +198,14 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
             onClick={() => setConfirmDelete(true)}
             className="min-h-12 w-full rounded-2xl border border-destructive/30 py-3.5 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-colors"
           >
-            Slett hendelse
+            {t('event.delete')}
           </button>
         )}
 
         {editable && confirmDelete && (
           <div className="rounded-2xl bg-destructive/10 p-4">
             <p className="mb-3 text-center text-sm font-medium">
-              Er du sikker på at du vil slette hendelsen?
+              {t('event.deleteConfirm')}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -193,7 +214,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
                 disabled={deleteEvent.isPending}
                 className="min-h-11 rounded-xl border border-border bg-background px-3 font-medium"
               >
-                Avbryt
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -201,7 +222,7 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
                 disabled={deleteEvent.isPending}
                 className="min-h-11 rounded-xl bg-destructive px-3 font-semibold text-destructive-foreground disabled:opacity-50"
               >
-                {deleteEvent.isPending ? 'Sletter…' : 'Slett'}
+                {deleteEvent.isPending ? t('event.deleting') : t('event.deleteAction')}
               </button>
             </div>
           </div>

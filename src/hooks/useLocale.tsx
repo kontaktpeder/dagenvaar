@@ -36,7 +36,7 @@ function readStoredAppLocale(): AppLocale {
   try {
     return resolveAppLocale(localStorage.getItem(APP_LOCALE_STORAGE_KEY));
   } catch {
-    return 'nb';
+    return 'en';
   }
 }
 

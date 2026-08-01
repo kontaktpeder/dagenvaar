@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
-import { DAY_PART_LABELS } from '@/lib/colors';
 import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import {
   DAY_PART_ORDER,
@@ -17,6 +16,8 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
+import { useLocale } from '@/hooks/useLocale';
+import type { MessageKey } from '@/lib/i18n';
 
 interface EditEventQuickSheetProps {
   event: Event;
@@ -35,7 +36,18 @@ const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
+  const { t } = useLocale();
   const updateEvent = useUpdateEvent();
+  const dayPartLabel = (key: string) => {
+    const msgKey = `dayPart.${key}` as MessageKey;
+    const translated = t(msgKey);
+    return translated === msgKey ? key : translated;
+  };
+  const catLabel = (key: string) => {
+    const msgKey = `cat.${key}` as MessageKey;
+    const translated = t(msgKey);
+    return translated === msgKey ? (EVENT_CATEGORY_META[key as EventCategory]?.label ?? key) : translated;
+  };
 
   const initStartIdx = (() => {
     const dps = (event as any).day_part_start as string | null;
@@ -238,13 +250,13 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
         );
       } catch (syncErr: any) {
         console.error('[EditEventQuickSheet] sync visible members failed', syncErr);
-        toast.error('Endringene ble lagret, men delingen feilet.');
+        toast.error(t('event.shareFailed'));
       }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
     } catch (err: any) {
       console.error('[EditEventQuickSheet] update failed', err);
-      toast.error(err?.message || 'Kunne ikke lagre endringene');
+      toast.error(err?.message || t('event.saveFailed'));
     }
   };
 
@@ -255,25 +267,25 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[70]">
       <div className="flex items-center px-5 pt-1 pb-3 shrink-0">
-        <h2 className="text-lg font-bold">Rask redigering</h2>
+        <h2 className="text-lg font-bold">{t('event.quickEdit')}</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4 space-y-5 min-h-0" data-sheet-scroll>
           {/* Tittel */}
           <div>
-            <SectionTitle>Tittel</SectionTitle>
+            <SectionTitle>{t('event.title')}</SectionTitle>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Hva skal skje?"
+              placeholder={t('event.what')}
               className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           {/* Dato */}
           <div>
-            <SectionTitle>Dato</SectionTitle>
+            <SectionTitle>{t('event.date')}</SectionTitle>
             <div className="flex gap-2">
               <input
                 type="date"
@@ -286,7 +298,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                 className={`flex-1 ${FIELD}`}
               />
               <button type="button" onClick={handleAddDay} className={ADD_BTN}>
-                +1 dag
+                {t('event.addDay')}
               </button>
             </div>
             {endDate && (
@@ -310,9 +322,9 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
             {isMultiDay && !showTimedMultiDay ? (
               <>
                 <div className="rounded-xl bg-muted/70 px-4 py-3">
-                  <p className="text-sm font-medium">Hele dagen</p>
+                  <p className="text-sm font-medium">{t('event.allDayMulti')}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Flerdagers hendelser er uten klokkeslett
+                    {t('event.allDayMultiHint')}
                   </p>
                 </div>
                 <button
@@ -320,12 +332,12 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                   onClick={enableTimedMultiDay}
                   className="text-sm text-muted-foreground underline underline-offset-2"
                 >
-                  Har start-/sluttid
+                  {t('event.hasTimes')}
                 </button>
               </>
             ) : (
               <>
-                <SectionTitle>Klokke</SectionTitle>
+                <SectionTitle>{t('event.clock')}</SectionTitle>
                 <div className="flex gap-2">
                   <input
                     type="time"
@@ -334,7 +346,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                     className={`flex-1 ${FIELD}`}
                   />
                   <button type="button" onClick={handleAddHour} className={ADD_BTN}>
-                    +1 time
+                    {t('event.addHour')}
                   </button>
                 </div>
                 {endTime && (
@@ -356,7 +368,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                     onClick={applyAllDay}
                     className="text-sm text-muted-foreground underline underline-offset-2"
                   >
-                    Bruk hele dagen
+                    {t('event.useAllDay')}
                   </button>
                 )}
               </>
@@ -372,18 +384,18 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                 onClick={() => setShowDayParts(true)}
                 className="text-sm text-muted-foreground underline underline-offset-2"
               >
-                Velg del av dagen
+                {t('event.pickDayPart')}
               </button>
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <SectionTitle>Del av dagen</SectionTitle>
+                  <SectionTitle>{t('event.dayPart')}</SectionTitle>
                   <button
                     type="button"
                     onClick={() => setShowDayParts(false)}
                     className="text-xs text-muted-foreground underline underline-offset-2 mb-2"
                   >
-                    Skjul
+                    {t('event.hideDayPart')}
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -398,7 +410,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                           : 'bg-muted hover:bg-muted/80'
                       }`}
                     >
-                      {DAY_PART_LABELS[key]}
+                      {dayPartLabel(key)}
                     </button>
                   ))}
                 </div>
@@ -410,22 +422,22 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
           {/* Sted & Notat */}
           <div className="space-y-3">
             <div>
-              <SectionTitle>Sted</SectionTitle>
+              <SectionTitle>{t('event.place')}</SectionTitle>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Valgfritt"
+                placeholder={t('common.optional')}
                 onFocus={scrollFocusIntoView}
                 className={`w-full ${FIELD}`}
               />
             </div>
             <div>
-              <SectionTitle>Notat</SectionTitle>
+              <SectionTitle>{t('event.notes')}</SectionTitle>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Valgfritt"
+                placeholder={t('common.optional')}
                 rows={2}
                 onFocus={scrollFocusIntoView}
                 className={`w-full ${FIELD} resize-none`}
@@ -435,7 +447,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
 
           {/* Type */}
           <div>
-            <SectionTitle>Type</SectionTitle>
+            <SectionTitle>{t('event.type')}</SectionTitle>
             <div className="grid grid-cols-2 gap-2">
               {categoryOptions.map((key) => {
                 const meta = EVENT_CATEGORY_META[key];
@@ -452,7 +464,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                       selected ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}` : 'bg-muted hover:bg-muted/80'
                     }`}
                   >
-                    <span>{meta.label}</span>
+                    <span>{catLabel(key)}</span>
                     <Icon size={16} strokeWidth={2.5} className={meta.iconColor} />
                   </button>
                 );
@@ -463,7 +475,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                 type="text"
                 value={otherLabel}
                 onChange={(e) => setOtherLabel(e.target.value)}
-                placeholder="f.eks. Reise, Familie, Helse"
+                placeholder={t('event.otherTypePlaceholder')}
                 className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
               />
             )}
@@ -471,12 +483,12 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
 
           {/* Synlighet */}
           <div>
-            <SectionTitle>Synlighet</SectionTitle>
+            <SectionTitle>{t('event.visibility')}</SectionTitle>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'all_members' as const, label: 'Alle' },
-                { value: 'private' as const, label: 'Bare meg' },
-                { value: 'selected_members' as const, label: 'Valgte' },
+                { value: 'all_members' as const, label: t('event.everyone') },
+                { value: 'private' as const, label: t('event.onlyMe') },
+                { value: 'selected_members' as const, label: t('event.selectedShort') },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -513,11 +525,11 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                     );
                   })}
                   {members.filter((m) => m.id !== currentMemberId).length === 0 && (
-                    <p className="text-xs text-muted-foreground">Ingen andre medlemmer å dele med enda.</p>
+                    <p className="text-xs text-muted-foreground">{t('event.noMembers')}</p>
                   )}
                 </div>
                 {selectedMemberIds.length === 0 && (
-                  <p className="text-xs text-destructive mt-2">Velg minst én person.</p>
+                  <p className="text-xs text-destructive mt-2">{t('event.pickOne')}</p>
                 )}
               </div>
             )}
@@ -531,7 +543,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
             disabled={!canSave || updateEvent.isPending}
             className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 hover:bg-green-300 transition-all"
           >
-            {updateEvent.isPending ? 'Lagrer...' : 'Lagre'}
+            {updateEvent.isPending ? t('event.saving') : t('common.save')}
           </button>
         </PopupStickyFooter>
     </CenteredPopup>

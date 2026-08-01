@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
-import { nb } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
-import { DAY_PART_LABELS } from '@/lib/colors';
 import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
 import { resolveCategoryLabel } from '@/lib/categoryPresentation';
 import {
@@ -21,6 +19,8 @@ import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { stepForward, stepSpring } from '@/lib/motion';
+import { useLocale } from '@/hooks/useLocale';
+import type { MessageKey } from '@/lib/i18n';
 
 interface EditEventFlowProps {
   event: Event;
@@ -41,7 +41,18 @@ const ADD_BTN =
   'shrink-0 rounded-xl bg-muted active:bg-muted/70 px-3 py-3 text-sm font-medium whitespace-nowrap min-w-[4.75rem] transition-colors';
 
 const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarKind = 'home', showInOtherCalendars = false, onClose, onSaved }: EditEventFlowProps) => {
+  const { t, dateLocale } = useLocale();
   const updateEvent = useUpdateEvent();
+  const dayPartLabel = (key: string) => {
+    const msgKey = `dayPart.${key}` as MessageKey;
+    const translated = t(msgKey);
+    return translated === msgKey ? key : translated;
+  };
+  const catLabel = (key: string) => {
+    const msgKey = `cat.${key}` as MessageKey;
+    const translated = t(msgKey);
+    return translated === msgKey ? (EVENT_CATEGORY_META[key as EventCategory]?.label ?? key) : translated;
+  };
 
   // Init state from existing event
   const initStartIdx = (() => {
@@ -256,23 +267,23 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
         );
       } catch (syncErr: any) {
         console.error('[EditEventFlow] sync visible members failed', syncErr);
-        toast.error('Endringene ble lagret, men delingen feilet.');
+        toast.error(t('event.shareFailed'));
       }
       onSaved?.(event.id, format(startDate, 'yyyy-MM-dd'));
       onClose();
     } catch (err: any) {
       console.error('[EditEventFlow] update failed', err);
-      toast.error(err?.message || 'Kunne ikke lagre endringene');
+      toast.error(err?.message || t('event.saveFailed'));
     }
   };
 
   const getDayPartRangeLabel = () => {
-    const startLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[0]]];
-    const endLabel = DAY_PART_LABELS[DAY_PART_ORDER[selectedDayParts[1]]];
-    if (DAY_PART_ORDER[selectedDayParts[0]] === 'full_diem') return 'Hele døgnet';
-    if (DAY_PART_ORDER[selectedDayParts[0]] === 'all_day') return 'Hele dagen';
-    if (selectedDayParts[0] === selectedDayParts[1]) return startLabel;
-    return `${startLabel} – ${endLabel}`;
+    const startKey = DAY_PART_ORDER[selectedDayParts[0]];
+    const endKey = DAY_PART_ORDER[selectedDayParts[1]];
+    if (startKey === 'full_diem') return dayPartLabel('full_diem');
+    if (startKey === 'all_day') return dayPartLabel('all_day');
+    if (selectedDayParts[0] === selectedDayParts[1]) return dayPartLabel(startKey);
+    return `${dayPartLabel(startKey)} – ${dayPartLabel(endKey)}`;
   };
 
   return (
@@ -290,22 +301,22 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
         <AnimatePresence mode="wait" initial={false}>
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">
-              <h2 className="text-2xl font-bold">Når?</h2>
+              <h2 className="text-2xl font-bold">{t('event.when')}</h2>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Dato</label>
+                <label className="text-sm font-medium mb-2 block">{t('event.date')}</label>
                 <div className="flex gap-2">
                   <input type="date" value={format(startDate, 'yyyy-MM-dd')}
                     onChange={(e) => { const d = new Date(e.target.value + 'T12:00:00'); setStartDate(d); if (endDate && endDate <= d) setEndDate(null); }}
                     className={`flex-1 ${FIELD}`} />
-                  <button type="button" onClick={handleAddDay} className={ADD_BTN}>+1 dag</button>
+                  <button type="button" onClick={handleAddDay} className={ADD_BTN}>{t('event.addDay')}</button>
                 </div>
               </div>
 
               {endDate && (
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <label className="text-sm font-medium mb-2 block">Sluttdato</label>
+                    <label className="text-sm font-medium mb-2 block">{t('event.endDate')}</label>
                     <input type="date" value={format(endDate, 'yyyy-MM-dd')} onChange={(e) => setEndDate(new Date(e.target.value + 'T12:00:00'))} min={format(addDays(startDate, 1), 'yyyy-MM-dd')}
                       className={`w-full ${FIELD}`} />
                   </div>
@@ -319,30 +330,30 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
                 {isMultiDay && !showTimedMultiDay ? (
                   <>
                     <div className="rounded-xl bg-muted/70 px-4 py-3">
-                      <p className="text-sm font-medium">Hele dagen</p>
+                      <p className="text-sm font-medium">{t('event.allDayMulti')}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Flerdagers hendelser er uten klokkeslett
+                        {t('event.allDayMultiHint')}
                       </p>
                     </div>
                     <button type="button" onClick={enableTimedMultiDay} className="text-sm text-muted-foreground underline underline-offset-2">
-                      Har start-/sluttid
+                      {t('event.hasTimes')}
                     </button>
                   </>
                 ) : (
                   <>
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Klokke</label>
+                      <label className="text-sm font-medium mb-2 block">{t('event.clock')}</label>
                       <div className="flex gap-2">
                         <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)}
                           className={`flex-1 ${FIELD}`} />
-                        <button type="button" onClick={handleAddHour} className={ADD_BTN}>+1 time</button>
+                        <button type="button" onClick={handleAddHour} className={ADD_BTN}>{t('event.addHour')}</button>
                       </div>
                     </div>
 
                     {endTime && (
                       <div className="flex items-center gap-2">
                         <div className="flex-1 min-w-0">
-                          <label className="text-sm font-medium mb-2 block">Slutttid</label>
+                          <label className="text-sm font-medium mb-2 block">{t('event.endTime')}</label>
                           <input type="time" value={endTime} onChange={(e) => handleEndTimeChange(e.target.value)}
                             className={`w-full ${FIELD}`} />
                         </div>
@@ -354,27 +365,27 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
 
                     {isMultiDay && (
                       <button type="button" onClick={applyAllDay} className="text-sm text-muted-foreground underline underline-offset-2">
-                        Bruk hele dagen
+                        {t('event.useAllDay')}
                       </button>
                     )}
 
                     {!showDayParts ? (
                       <button type="button" onClick={() => setShowDayParts(true)} className="text-sm text-muted-foreground underline underline-offset-2">
-                        Velg del av dagen
+                        {t('event.pickDayPart')}
                       </button>
                     ) : (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium">Del av dagen</label>
+                          <label className="text-sm font-medium">{t('event.dayPart')}</label>
                           <button type="button" onClick={() => setShowDayParts(false)} className="text-xs text-muted-foreground underline underline-offset-2">
-                            Skjul
+                            {t('event.hideDayPart')}
                           </button>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           {DAY_PART_ORDER.map((key, idx) => (
                             <button key={key} type="button" onClick={() => handleDayPartClick(idx)}
                               className={`rounded-xl py-3 px-4 text-sm font-medium transition-all ${isDayPartSelected(idx) ? 'bg-calendar-accent text-foreground ring-2 ring-calendar-accent' : 'bg-muted hover:bg-muted/80'}`}>
-                              {DAY_PART_LABELS[key]}
+                              {dayPartLabel(key)}
                             </button>
                           ))}
                         </div>
@@ -384,14 +395,14 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
                 )}
 
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Sted</label>
-                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Valgfritt"
+                  <label className="text-sm font-medium mb-1 block">{t('event.place')}</label>
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t('common.optional')}
                     onFocus={scrollFocusIntoView}
                     className={`w-full ${FIELD}`} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Notat</label>
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Valgfritt" rows={2}
+                  <label className="text-sm font-medium mb-1 block">{t('event.notes')}</label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('common.optional')} rows={2}
                     onFocus={scrollFocusIntoView}
                     className={`w-full ${FIELD} resize-none`} />
                 </div>
@@ -401,7 +412,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
 
           {step === 2 && (
             <motion.div key="step2" {...stepForward} className="space-y-6">
-              <h2 className="text-2xl font-bold">Type hendelse</h2>
+              <h2 className="text-2xl font-bold">{t('event.category')}</h2>
               <div className="flex flex-col gap-2">
                 {categoryOptions.map((key) => {
                   const meta = EVENT_CATEGORY_META[key];
@@ -414,7 +425,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
                         if (key !== 'other') setOtherLabel('');
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${selected ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}` : 'bg-muted hover:bg-muted/80'}`}>
-                      <span>{meta.label}</span>
+                      <span>{catLabel(key)}</span>
                       <Icon size={18} strokeWidth={2.5} className={meta.iconColor} />
                     </button>
                   );
@@ -422,15 +433,15 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
               </div>
               {category === 'other' && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} transition={stepSpring} className="overflow-hidden">
-                  <label className="text-sm font-medium mb-2 block">Hva slags type er dette? (valgfritt)</label>
+                  <label className="text-sm font-medium mb-2 block">{t('event.otherTypeLabel')}</label>
                   <input
                     type="text"
                     value={otherLabel}
                     onChange={(e) => setOtherLabel(e.target.value)}
-                    placeholder="f.eks. Reise, Familie, Helse"
+                    placeholder={t('event.otherTypePlaceholder')}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">La stå tom hvis du bare vil bruke "Annet".</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t('event.otherTypeHint')}</p>
                 </motion.div>
               )}
             </motion.div>
@@ -438,12 +449,12 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
 
           {step === 3 && (
             <motion.div key="step3" {...stepForward} className="space-y-6">
-              <h2 className="text-2xl font-bold">Hva skal skje?</h2>
+              <h2 className="text-2xl font-bold">{t('event.what')}</h2>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : 'F.eks. Middag med venner'}
+                placeholder={category === 'other' && otherLabel.trim() ? otherLabel : t('event.titlePlaceholder')}
                 className="w-full rounded-2xl border border-border bg-background px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </motion.div>
@@ -451,12 +462,12 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
 
           {step === 4 && (
             <motion.div key="step4" {...stepForward} className="space-y-6">
-              <h2 className="text-2xl font-bold">Hvem kan se?</h2>
+              <h2 className="text-2xl font-bold">{t('event.who')}</h2>
               <div className="space-y-3">
                 {[
-                  { value: 'all_members' as const, label: 'Alle', desc: 'Synlig for alle i kalenderen' },
-                  { value: 'private' as const, label: 'Bare meg', desc: 'Kun synlig for deg' },
-                  { value: 'selected_members' as const, label: 'Valgte personer', desc: 'Velg hvem som kan se' },
+                  { value: 'all_members' as const, label: t('event.everyone'), desc: t('event.everyoneHint') },
+                  { value: 'private' as const, label: t('event.onlyMe'), desc: t('event.onlyMeHint') },
+                  { value: 'selected_members' as const, label: t('event.selected'), desc: t('event.selectedHint') },
                 ].map((opt) => (
                   <button key={opt.value} onClick={() => setVisibility(opt.value)}
                     className={`w-full text-left rounded-2xl p-4 transition-all ${visibility === opt.value ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted hover:bg-muted/80'}`}>
@@ -475,9 +486,9 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
                     onChange={(e) => setHideFromOtherCalendars(e.target.checked)}
                   />
                   <span>
-                    <span className="block font-semibold text-sm">Skjul fra andre kalendere</span>
+                    <span className="block font-semibold text-sm">{t('event.hideFromOther')}</span>
                     <span className="block text-xs text-muted-foreground mt-0.5">
-                      Vises ikke som tidspunkt i hjem eller andre kalendere
+                      {t('event.hideFromOtherHint')}
                     </span>
                   </span>
                 </label>
@@ -485,7 +496,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
 
               {visibility === 'selected_members' && (
                 <div className="rounded-2xl bg-muted/50 p-4">
-                  <p className="text-sm font-semibold mb-3">Velg hvem som skal se</p>
+                  <p className="text-sm font-semibold mb-3">{t('event.pickWho')}</p>
                   <div className="flex flex-col gap-2">
                     {members.filter((m) => m.id !== currentMemberId).map((m) => {
                       const checked = selectedMemberIds.includes(m.id);
@@ -508,22 +519,22 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
                       );
                     })}
                     {members.filter((m) => m.id !== currentMemberId).length === 0 && (
-                      <p className="text-sm text-muted-foreground">Ingen andre medlemmer å dele med enda.</p>
+                      <p className="text-sm text-muted-foreground">{t('event.noMembers')}</p>
                     )}
                   </div>
                   {selectedMemberIds.length === 0 && (
-                    <p className="text-xs text-destructive mt-2">Velg minst én person for å fortsette.</p>
+                    <p className="text-xs text-destructive mt-2">{t('event.pickOne')}</p>
                   )}
                 </div>
               )}
 
 
               <div className="rounded-2xl bg-muted p-4 mt-4">
-                <p className="text-sm text-muted-foreground mb-1">Oppsummering</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('event.summary')}</p>
                 <p className="font-semibold">{title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(startDate, 'd. MMMM yyyy', { locale: nb })}
-                  {endDate && ` → ${format(endDate, 'd. MMMM yyyy', { locale: nb })}`}
+                  {format(startDate, 'd. MMMM yyyy', { locale: dateLocale })}
+                  {endDate && ` → ${format(endDate, 'd. MMMM yyyy', { locale: dateLocale })}`}
                   {' · '}{getDayPartRangeLabel()}
                   {!useAllDay && startTime && ` · ${startTime}`}{!useAllDay && endTime && `–${endTime}`}
                 </p>
@@ -541,7 +552,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
           disabled={!canProceed || updateEvent.isPending}
           className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
         >
-          {step < STEPS ? 'Neste' : updateEvent.isPending ? 'Lagrer...' : 'Lagre endringer'}
+          {step < STEPS ? t('common.next') : updateEvent.isPending ? t('event.saving') : t('event.saveChanges')}
         </button>
       </PopupStickyFooter>
     </CenteredPopup>

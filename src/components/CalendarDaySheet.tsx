@@ -137,7 +137,17 @@ const CalendarDaySheet = ({
                   .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
                   .map((ev) => {
                     const timeLabel = formatEventTime(ev);
-                    const multiLabel = formatMultiDayLabel(ev);
+                    const multiLabel = formatMultiDayLabel(ev, {
+                      dateLocale,
+                      daysLabel: (() => {
+                        const end = (ev as any).end_date as string | undefined;
+                        if (!end) return '';
+                        const start = new Date(ev.event_date + 'T12:00:00');
+                        const endD = new Date(end + 'T12:00:00');
+                        const days = Math.round((endD.getTime() - start.getTime()) / 86400000) + 1;
+                        return t('event.daysCount', { count: days });
+                      })(),
+                    });
 
                     if (ev.isOverlay) {
                       return (

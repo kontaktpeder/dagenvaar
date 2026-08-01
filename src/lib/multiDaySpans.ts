@@ -1,5 +1,5 @@
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { format, type Locale } from 'date-fns';
+import { enUS, nb } from 'date-fns/locale';
 import { differenceInCalendarDays } from 'date-fns';
 import type { Event } from '@/hooks/useEvents';
 
@@ -8,17 +8,27 @@ export function isMultiDayEvent(ev: Event): boolean {
   return !!end && end > ev.event_date;
 }
 
-export function formatMultiDayLabel(ev: Event): string | null {
+export function formatMultiDayLabel(
+  ev: Event,
+  opts?: { dateLocale?: Locale; daysLabel?: string },
+): string | null {
   if (!isMultiDayEvent(ev)) return null;
   const start = new Date(ev.event_date + 'T12:00:00');
   const end = new Date(((ev as any).end_date as string) + 'T12:00:00');
   const days = differenceInCalendarDays(end, start) + 1;
   if (days < 2) return null;
+  const dateLocale = opts?.dateLocale ?? enUS;
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   const range = sameMonth
-    ? `${format(start, 'd.', { locale: nb })}–${format(end, 'd. MMM', { locale: nb })}`
-    : `${format(start, 'd. MMM', { locale: nb })}–${format(end, 'd. MMM', { locale: nb })}`;
-  return `${range} · ${days} dager`;
+    ? `${format(start, 'd.', { locale: dateLocale })}–${format(end, 'd. MMM', { locale: dateLocale })}`
+    : `${format(start, 'd. MMM', { locale: dateLocale })}–${format(end, 'd. MMM', { locale: dateLocale })}`;
+  const daysLabel = opts?.daysLabel ?? `${days} days`;
+  return `${range} · ${daysLabel}`;
+}
+
+/** Helper when caller has app locale string. */
+export function dateFnsLocaleFromApp(locale: 'nb' | 'en' | string | undefined): Locale {
+  return locale === 'en' ? enUS : nb;
 }
 
 export type SpanSegment = {

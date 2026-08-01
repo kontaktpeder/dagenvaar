@@ -609,8 +609,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
               <div className="space-y-3">
                 {[
                   { value: 'all_members' as const, label: t('event.everyone'), desc: t('event.everyoneHint') },
-                  { value: 'private' as const, label: t('event.onlyMe'), desc: locale === 'en' ? 'Only visible to you' : 'Kun synlig for deg' },
-                  { value: 'selected_members' as const, label: t('event.selected'), desc: locale === 'en' ? 'Choose who can see' : 'Velg hvem som kan se' },
+                  { value: 'private' as const, label: t('event.onlyMe'), desc: t('event.onlyMeHint') },
+                  { value: 'selected_members' as const, label: t('event.selected'), desc: t('event.selectedHint') },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -638,7 +638,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                   <span>
                     <span className="block font-semibold text-sm">{t('event.hideFromOther')}</span>
                     <span className="block text-xs text-muted-foreground mt-0.5">
-                      Vises ikke som tidspunkt i hjem eller andre kalendere
+                      {t('event.hideFromOtherHint')}
                     </span>
                   </span>
                 </label>

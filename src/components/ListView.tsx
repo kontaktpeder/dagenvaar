@@ -331,6 +331,7 @@ interface EventRowProps {
 }
 
 const EventRow = ({ event, currentMemberId, calendarKind, highlight, onTap, onLongPress, getMemberForEvent }: EventRowProps) => {
+  const { t, dateLocale } = useLocale();
   const { longPressHandlers, didFire } = useLongPress({
     onLongPress: () => {
       if (canEditEvent(event, currentMemberId, calendarKind)) onLongPress(event);
@@ -342,7 +343,17 @@ const EventRow = ({ event, currentMemberId, calendarKind, highlight, onTap, onLo
   const meta = EVENT_CATEGORY_META[(event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
   const Icon = meta?.Icon;
   const isHighlighted = highlight && highlight.eventId === event.id;
-  const multiLabel = formatMultiDayLabel(event);
+  const multiLabel = formatMultiDayLabel(event, {
+    dateLocale,
+    daysLabel: (() => {
+      const end = (event as any).end_date as string | undefined;
+      if (!end) return '';
+      const start = new Date(event.event_date + 'T12:00:00');
+      const endD = new Date(end + 'T12:00:00');
+      const days = Math.round((endD.getTime() - start.getTime()) / 86400000) + 1;
+      return t('event.daysCount', { count: days });
+    })(),
+  });
 
   return (
     <button
