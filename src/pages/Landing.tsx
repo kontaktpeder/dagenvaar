@@ -100,6 +100,10 @@ const Landing = ({ onGetStarted, onSignIn }: LandingProps) => {
           <Link to="/personvern" className="underline underline-offset-2 hover:text-foreground">
             Personvern
           </Link>
+          {' · '}
+          <Link to="/privacy" className="underline underline-offset-2 hover:text-foreground">
+            Privacy
+          </Link>
         </footer>
       </main>
     </div>
