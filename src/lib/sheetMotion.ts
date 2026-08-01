@@ -36,10 +36,10 @@ export const VEL_EMA = 0.32;
 /** Velocity projection bias when choosing nearest detent. */
 export const COMMIT_PROJECT_SEC = 0.22;
 
-/** Nested sheet recess (sheet under another sheet). */
-export const NEST_RECESS_SCALE = 0.94;
-export const NEST_RECESS_Y_PX = 14;
-export const NEST_RECESS_MS = 340;
+/** Nested sheet recess (sheet under another sheet). Keep subtle — big jumps read as a glitch. */
+export const NEST_RECESS_SCALE = 0.97;
+export const NEST_RECESS_Y_PX = 8;
+export const NEST_RECESS_MS = 380;
 export const NEST_RECESS_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 /** Detent settle — light bounce, stable mid-path */

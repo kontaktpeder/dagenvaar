@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
+import { blurSheetField } from '@/lib/focusSheetField';
 import { lockSheetDismiss, unlockSheetDismiss } from '@/lib/sheetGate';
 import {
   getNestDepth,
@@ -147,8 +148,6 @@ const CenteredPopup = ({
   const frameHRef = useRef(700);
   const multiDetentRef = useRef(false);
   const nestIdRef = useRef<number | null>(null);
-  /** True while an editable inside this sheet is focused — gates drag with keyboard. */
-  const [editableFocused, setEditableFocused] = useState(false);
   const yRef = useRef(
     typeof window !== 'undefined' ? window.innerHeight : 640,
   );
@@ -179,7 +178,8 @@ const CenteredPopup = ({
   const enteredRef = useRef(false);
   const dismissLockedRef = useRef(false);
 
-  useEffect(() => {
+  // Before paint so under-sheets recess in the same frame the cover appears.
+  useLayoutEffect(() => {
     if (!nestEnabled) return;
     nestIdRef.current = nestPush();
     return () => {
@@ -202,38 +202,12 @@ const CenteredPopup = ({
   const isRecessed =
     nestEnabled && myNestIndex >= 0 && nestDepth > myNestIndex + 1;
 
-  // Don't lock drag on stale keyboardInset alone (native hide can miss).
-  const canDrag = !flyingOut && !isRecessed && !(keyboardOpen && editableFocused);
+  // Grabber/body drag always allowed when not recessed; beginDrag blurs fields.
+  const canDrag = !flyingOut && !isRecessed;
   canDragRef.current = canDrag;
   flyingOutRef.current = flyingOut;
   frameHRef.current = frameH;
   multiDetentRef.current = multiDetent;
-
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-    const syncEditableFocus = () => {
-      const ae = document.activeElement;
-      setEditableFocused(
-        !!(
-          ae instanceof HTMLElement &&
-          card.contains(ae) &&
-          ae.matches('input, textarea, select, [contenteditable="true"]')
-        ),
-      );
-    };
-    const onFocusOut = () => {
-      // activeElement still points at the field until the next tick
-      window.setTimeout(syncEditableFocus, 0);
-    };
-    card.addEventListener('focusin', syncEditableFocus);
-    card.addEventListener('focusout', onFocusOut);
-    syncEditableFocus();
-    return () => {
-      card.removeEventListener('focusin', syncEditableFocus);
-      card.removeEventListener('focusout', onFocusOut);
-    };
-  }, []);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -511,6 +485,8 @@ const CenteredPopup = ({
     if (!card) return;
 
     const beginDrag = (state: GestureState, clientY: number, timeStamp: number) => {
+      // Release field focus so drag isn't gated / keyboard doesn't fight the gesture.
+      blurSheetField();
       state.dragging = true;
       state.startY = clientY;
       state.lastY = clientY;
@@ -682,7 +658,10 @@ const CenteredPopup = ({
             )}
             style={{
               transform: recessTransform,
-              transition: `transform ${NEST_RECESS_MS}ms ${NEST_RECESS_EASE}`,
+              // Instant recess (same frame as cover); ease only when returning.
+              transition: isRecessed
+                ? 'none'
+                : `transform ${NEST_RECESS_MS}ms ${NEST_RECESS_EASE}`,
               willChange: isRecessed ? 'transform' : undefined,
             }}
           >

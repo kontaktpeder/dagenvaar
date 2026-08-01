@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -12,11 +12,12 @@ import { getMemberColor } from '@/lib/colors';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import CountdownCelebrateDialog from '@/components/CountdownCelebrateDialog';
+import { focusSheetField } from '@/lib/focusSheetField';
 import { stepForward, stepSpring } from '@/lib/motion';
-import { focusFieldSoftly, scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
+import { scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
 
 const FIELD =
-  'min-w-0 box-border appearance-none rounded-xl border border-border bg-muted/50 px-4 py-3.5 text-base leading-normal text-center focus:outline-none focus:ring-2 focus:ring-primary w-full';
+  'min-w-0 box-border appearance-none rounded-xl border border-border bg-muted/50 px-4 py-3.5 text-base leading-normal text-center caret-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 w-full';
 
 const EMOJI_SUGGESTIONS = ['✨', '❤️', '🌴', '✈️', '🕯️', '🎉', '🏖️', '🍷'];
 
@@ -64,11 +65,10 @@ const NewCountdownFlow = ({
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
 
-  // Focus after sheet enter; re-scroll once keyboard inset lands.
-  useEffect(() => {
+  // Focus in the open-tap turn so iOS shows the keyboard; keep Next above it.
+  useLayoutEffect(() => {
     if (step !== 1) return;
-    const id = window.setTimeout(() => focusFieldSoftly(titleInputRef.current), 380);
-    return () => window.clearTimeout(id);
+    focusSheetField(titleInputRef.current, { footerReserve: 128 });
   }, [step]);
 
   useEffect(() => {
