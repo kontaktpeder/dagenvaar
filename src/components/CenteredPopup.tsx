@@ -34,6 +34,10 @@ const NUDGE_DEADZONE_PX = 16;
 const NUDGE_VEL = 350;
 /** Cap leftover velocity when springing back to the same detent. */
 const SAME_DETENT_VEL_CAP = 260;
+/** Max spring handoff speed (px/s) — avoids rubber-band spike on release. */
+const HANDOFF_VEL_CAP = 1600;
+/** EMA blend for touch velocity (higher = trust latest sample more). */
+const VEL_EMA = 0.32;
 
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
 const DETENT_VISIBLE: Record<SheetDetent, number> = {
@@ -115,6 +119,24 @@ function resistDragY(raw: number, frameH: number): number {
 }
 
 /**
+ * Continuity at finger → spring handoff.
+ * Drop velocity that points away from the target (the "tzzht" rewind), then cap.
+ */
+function handoffVelocity(from: number, to: number, vy: number, cap = HANDOFF_VEL_CAP): number {
+  const travel = to - from;
+  if (Math.abs(travel) < 0.5) return 0;
+  const toward = Math.sign(travel);
+  let v = vy;
+  if (v !== 0 && Math.sign(v) !== toward) {
+    v = 0;
+  }
+  if (Math.abs(v) > cap) {
+    v = toward * cap;
+  }
+  return v;
+}
+
+/**
  * rAF spring that writes the same translate3d path as finger drag.
  * Avoids Framer mid-settle (main source of "cricket" stutter).
  */
@@ -141,10 +163,13 @@ function runSpring(options: {
   const restSpeed = spring.restSpeed ?? 18;
 
   let y = from;
-  let v = velocity;
+  let v = handoffVelocity(from, to, velocity);
   let last = performance.now();
   let raf = 0;
   let cancelled = false;
+
+  // Stay put this frame — next rAF continues with continuous velocity
+  onUpdate(from);
 
   const step = (now: number) => {
     if (cancelled) return;
@@ -376,8 +401,10 @@ const CenteredPopup = ({
     gestureRef.current = null;
     const curY = yRef.current;
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
-    animateTo(curY + travel, {
-      velocity: Math.abs(velocity) > 200 ? velocity : Math.max(velocity, 900),
+    const target = curY + travel;
+    const boost = Math.abs(velocity) > 200 ? velocity : Math.max(velocity, 900);
+    animateTo(target, {
+      velocity: handoffVelocity(curY, target, boost),
       spring: FLY_SPRING,
       keepCompositor: true,
       onComplete: () => exit(),
@@ -435,9 +462,10 @@ const CenteredPopup = ({
     }
 
     const returningHome = best.d === current;
-    const settleVy = returningHome
+    let settleVy = returningHome
       ? Math.max(-SAME_DETENT_VEL_CAP, Math.min(SAME_DETENT_VEL_CAP, vy * 0.35))
       : vy;
+    settleVy = handoffVelocity(y, best.y, settleVy);
 
     snapTo(best.d, {
       velocity: settleVy,
@@ -518,7 +546,8 @@ const CenteredPopup = ({
       }
 
       const elapsed = Math.max(1, event.timeStamp - state.lastAt);
-      state.velocityY = ((event.clientY - state.lastY) / elapsed) * 1000;
+      const sample = ((event.clientY - state.lastY) / elapsed) * 1000;
+      state.velocityY = state.velocityY * (1 - VEL_EMA) + sample * VEL_EMA;
       state.lastY = event.clientY;
       state.lastAt = event.timeStamp;
 
