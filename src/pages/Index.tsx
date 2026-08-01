@@ -33,6 +33,7 @@ import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
 import { tryOpenSheet } from '@/lib/sheetGate';
 import { markAppReady } from '@/lib/native/appBoot';
+import BootVeil from '@/components/BootVeil';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
@@ -340,16 +341,7 @@ const Index = () => {
       className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
       style={{ backgroundColor: '#fbf9f6' }}
     >
-      {showBootVeil && (
-        <motion.div
-          className="absolute inset-0 z-[80] pointer-events-none"
-          style={{ backgroundColor: '#fbf9f6' }}
-          initial={false}
-          animate={{ opacity: bootPhase === 'revealing' ? 0 : 1 }}
-          transition={{ duration: 0.78, ease: welcomeEase }}
-          aria-hidden
-        />
-      )}
+      {showBootVeil && <BootVeil revealing={bootPhase === 'revealing'} />}
 
       <motion.div
         className="relative z-10 flex min-h-0 flex-1 flex-col bg-background"
