@@ -1,6 +1,6 @@
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { SplashScreen } from '@capacitor/splash-screen';
 import { Keyboard } from '@capacitor/keyboard';
+import { armSplashWatchdog } from './appBoot';
 import { isNativePlatform, isIOS } from './platform';
 import { initDeepLinks } from './deepLinks';
 import { initPush } from './push';
@@ -36,9 +36,6 @@ export async function initNative(): Promise<void> {
   await initDeepLinks();
   await initPush();
 
-  try {
-    await SplashScreen.hide({ fadeOutDuration: 250 });
-  } catch {
-    /* ignore */
-  }
+  // Splash stays until Index/Calendar call markAppReady() — or this watchdog.
+  armSplashWatchdog(4500);
 }

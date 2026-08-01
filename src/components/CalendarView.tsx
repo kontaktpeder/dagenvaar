@@ -59,6 +59,8 @@ interface CalendarViewProps {
   highlight?: Highlight;
   canSeedWeek?: boolean;
   onSeedWeek?: () => void;
+  /** Fires once current-month (+overlay) data is ready for a controlled cold start. */
+  onReady?: () => void;
 }
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
@@ -142,7 +144,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek, onReady }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const isMobile = useIsMobile();
   const [internalDate, setInternalDate] = useState(new Date());
@@ -229,7 +231,11 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
   // Prefetch ±WINDOW so continuous swipe never peeks empty
   const { data: eventsM2 = [] } = useEventsForMonth(householdId, stripDates[0].getFullYear(), stripDates[0].getMonth());
   const { data: eventsM1 = [] } = useEventsForMonth(householdId, stripDates[1].getFullYear(), stripDates[1].getMonth());
-  const { data: events = [] } = useEventsForMonth(householdId, year, month);
+  const {
+    data: eventsRaw,
+    isFetched: monthFetched,
+    isError: monthError,
+  } = useEventsForMonth(householdId, year, month);
   const { data: eventsP1 = [] } = useEventsForMonth(householdId, stripDates[3].getFullYear(), stripDates[3].getMonth());
   const { data: eventsP2 = [] } = useEventsForMonth(householdId, stripDates[4].getFullYear(), stripDates[4].getMonth());
 
@@ -239,11 +245,58 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
     return { start, end };
   }, [stripDates]);
 
-  const { data: overlayEvents = [] } = useOverlayEventsForRange(
+  const {
+    data: overlayRaw,
+    isFetched: overlayFetched,
+    isError: overlayError,
+  } = useOverlayEventsForRange(
     householdId,
     overlayRange.start,
     overlayRange.end,
   );
+
+  // Hold marks empty until the active month has fetched — avoids empty→full pop on open.
+  const [marksVisible, setMarksVisible] = useState(false);
+  const events = monthFetched ? (eventsRaw ?? []) : [];
+  const overlayEvents = overlayFetched || overlayError ? (overlayRaw ?? []) : [];
+
+  useEffect(() => {
+    setMarksVisible(false);
+  }, [householdId, year, month]);
+
+  // Reveal marks + signal ready together (after month + overlay, or short wait).
+  useEffect(() => {
+    if (!monthFetched && !monthError) return;
+
+    let cancelled = false;
+    const finish = () => {
+      if (cancelled) return;
+      cancelled = true;
+      setMarksVisible(true);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => onReady?.());
+      });
+    };
+
+    if (overlayFetched || overlayError) {
+      finish();
+      return;
+    }
+    const t = window.setTimeout(finish, 650);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [
+    onReady,
+    monthFetched,
+    monthError,
+    overlayFetched,
+    overlayError,
+    householdId,
+    year,
+    month,
+  ]);
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
@@ -584,6 +637,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   onPressUnlock={unlockStripForPress}
                   getMemberForEvent={getMemberForEvent}
                   countdownEmojiByDate={countdownEmojiByDate}
+                  marksVisible={marksVisible}
                 />
               );
             })}
@@ -740,6 +794,7 @@ interface MonthPanelProps {
   onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmojiByDate?: Record<string, string>;
+  marksVisible?: boolean;
 }
 
 const MonthPanel = ({
@@ -758,6 +813,7 @@ const MonthPanel = ({
   onPressUnlock,
   getMemberForEvent,
   countdownEmojiByDate,
+  marksVisible = true,
 }: MonthPanelProps) => {
   const spanByDate = useMemo(
     () => buildSpanSegmentsByDate(days, eventsByDate, neighbourEventsByDate),
@@ -797,6 +853,7 @@ const MonthPanel = ({
             onPressUnlock={onPressUnlock}
             getMemberForEvent={getMemberForEvent}
             countdownEmoji={countdownEmojiByDate?.[dateStr]}
+            marksVisible={marksVisible}
           />
         );
       })}
@@ -824,6 +881,7 @@ interface DayCellProps {
   onPressUnlock: () => void;
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmoji?: string;
+  marksVisible?: boolean;
 }
 
 /** Max single-day marks shown before +N overflow */
@@ -884,6 +942,7 @@ const DayCell = ({
   onPressUnlock,
   getMemberForEvent,
   countdownEmoji,
+  marksVisible = true,
 }: DayCellProps) => {
   const { dateLocale } = useLocale();
   const dayAriaLabel = format(day, 'EEEE d. MMMM yyyy', { locale: dateLocale });
@@ -970,7 +1029,8 @@ const DayCell = ({
       {/* Corner badge — must not sit in the flex column (breaks multi-day rails) */}
       {countdownEmoji && (
         <span
-          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2]"
+          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2] transition-opacity duration-300 ease-out"
+          style={{ opacity: marksVisible ? 1 : 0 }}
           aria-hidden
         >
           {countdownEmoji}
@@ -979,7 +1039,10 @@ const DayCell = ({
 
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
-        <div className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1]">
+        <div
+          className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-300 ease-out"
+          style={{ opacity: marksVisible ? 1 : 0 }}
+        >
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
             const seg = spanByLane.get(lane);
             if (!seg) {
@@ -1030,7 +1093,10 @@ const DayCell = ({
       )}
 
       {rows.length > 0 && (
-        <div className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5">
+        <div
+          className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-300 ease-out"
+          style={{ opacity: marksVisible ? 1 : 0 }}
+        >
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}

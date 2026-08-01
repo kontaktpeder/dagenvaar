@@ -32,6 +32,7 @@ import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
 import { tryOpenSheet } from '@/lib/sheetGate';
+import { markAppReady } from '@/lib/native/appBoot';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
@@ -69,6 +70,10 @@ const Index = () => {
   const [welcomeDialog, setWelcomeDialog] = useState<WelcomeIntent | null>(null);
   const [highlight, setHighlight] = useState<Highlight>(null);
   const [stackDirection, setStackDirection] = useState(0);
+  /** Skip calendar-stack slide on cold open — only animate real switches. */
+  const [stackMotionOn, setStackMotionOn] = useState(false);
+  const [bootCover, setBootCover] = useState(true);
+  const coldStartRef = useRef(true);
   const switchingRef = useRef(false);
   const seedAutoOpenedRef = useRef<string | null>(null);
   const [authView, setAuthView] = useState<null | 'login' | 'signup'>(() => {
@@ -182,19 +187,52 @@ const Index = () => {
 
   const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
 
+  useEffect(() => {
+    setStackMotionOn(true);
+  }, []);
+
+  // Failsafe: never leave boot cover / splash stuck if calendar ready never fires.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!coldStartRef.current) return;
+      coldStartRef.current = false;
+      setBootCover(false);
+      markAppReady();
+    }, 4800);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // Auth / onboarding / error: release splash once that screen is the destination.
+  useEffect(() => {
+    if (authLoading || ctxLoading) return;
+    if (!user || ctxError || !household || !currentMember) {
+      coldStartRef.current = false;
+      setBootCover(false);
+      markAppReady();
+    }
+  }, [authLoading, ctxLoading, user, ctxError, household, currentMember]);
+
+  const handleCalendarReady = useCallback(() => {
+    if (!coldStartRef.current) return;
+    coldStartRef.current = false;
+    setBootCover(false);
+    markAppReady();
+  }, []);
+
   if (getRecoveryState().isRecoveryFlow) {
     return <Navigate to="/auth/update-password" replace />;
   }
 
   if (authLoading || ctxLoading) {
+    // Quiet boot — native splash stays up; web shows splash-matching surface (no spinner).
     return (
       <LocaleProvider>
-        <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4 motion-reduce:animate-none" />
-            <p className="text-muted-foreground">Laster...</p>
-          </motion.div>
-        </div>
+        <div
+          className="min-h-[100dvh] bg-background"
+          style={{ backgroundColor: '#fbf9f6' }}
+          aria-busy="true"
+          aria-label="Laster"
+        />
       </LocaleProvider>
     );
   }
@@ -291,6 +329,13 @@ const Index = () => {
       data-calendar-kind={calendarKind}
       className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
     >
+      {bootCover && (
+        <div
+          className="absolute inset-0 z-[80] bg-background"
+          style={{ backgroundColor: '#fbf9f6' }}
+          aria-hidden
+        />
+      )}
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher
           household={household}
@@ -330,7 +375,7 @@ const Index = () => {
         {/* Single instance — no exit/enter overlap (avoids layered calendars) */}
         <motion.div
           key={household.id}
-          initial={{ y: stackDirection >= 0 ? 36 : -36 }}
+          initial={stackMotionOn ? { y: stackDirection >= 0 ? 36 : -36 } : false}
           animate={{ y: 0 }}
           transition={stackTransition}
           className="h-full min-w-0 flex flex-col bg-background"
@@ -353,6 +398,7 @@ const Index = () => {
             highlight={highlight}
             canSeedWeek={canSeedWeek}
             onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
+            onReady={handleCalendarReady}
           />
         </motion.div>
 

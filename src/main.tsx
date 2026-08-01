@@ -12,7 +12,7 @@ installGlobalRecoveryListener();
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Kick off native init after React has mounted so SplashScreen.hide()
-// fires exactly once, right when the app UI is ready to show.
+// Native plugins + splash watchdog. SplashScreen.hide() is deferred to
+// markAppReady() once the first real screen (calendar / auth) is ready.
 // initNative() is a no-op on web (guarded by isNativePlatform()).
 void initNative();
