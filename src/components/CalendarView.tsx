@@ -32,7 +32,8 @@ import CountdownDetailSheet from '@/components/CountdownDetailSheet';
 import { useLongPress } from '@/hooks/useLongPress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fadeQuick } from '@/lib/motion';
-import { isSheetDismissLocked } from '@/lib/sheetGate';
+import { tryOpenSheet } from '@/lib/sheetGate';
+import { cn } from '@/lib/utils';
 import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 import {
   consumePendingOpenCountdown,
@@ -59,6 +60,8 @@ interface CalendarViewProps {
   highlight?: Highlight;
   canSeedWeek?: boolean;
   onSeedWeek?: () => void;
+  /** True when Index (or other) has a covering sheet — hide day sheet to avoid stacked paint. */
+  coverSheetActive?: boolean;
 }
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
@@ -142,7 +145,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek, coverSheetActive = false }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const isMobile = useIsMobile();
   const [internalDate, setInternalDate] = useState(new Date());
@@ -186,7 +189,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       const day = new Date(y, m - 1, d);
       setCurrentDate(startOfMonth(day));
       onSelectDate?.(day);
-      if (!isSheetDismissLocked()) setDaySheetDate(day);
+      tryOpenSheet(() => setDaySheetDate(day));
     },
     [onSelectDate, setCurrentDate],
   );
@@ -461,9 +464,12 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   const handleDayTap = (day: Date) => {
     // iPhone uses a sheet; iPad updates the persistent day inspector.
-    if (isMobile && !isSheetDismissLocked()) setDaySheetDate(day);
+    if (isMobile) tryOpenSheet(() => setDaySheetDate(day));
     requestAnimationFrame(() => onSelectDate(day));
   };
+
+  const daySheetCovered =
+    coverSheetActive || !!detailEvent || !!detailCountdown || !!overlayEvent;
 
   const getMemberForEvent = (event: Event) => {
     return members.find((m) => m.id === event.owner_member_id);
@@ -616,39 +622,42 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       </div>
 
       {daySheetDate && (
-        <CalendarDaySheet
-          date={daySheetDate}
-          events={daySheetEvents}
-          countdowns={countdownsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
-          members={members}
-          householdId={householdId}
-          currentMemberId={currentMemberId}
-          highlight={highlight}
-          onClose={() => setDaySheetDate(null)}
-          onPickEvent={(ev) => {
-            const display = ev as DisplayEvent;
-            if (display.isOverlay) {
-              setOverlayEvent(display);
-              return;
-            }
-            // Keep day sheet under detail — backdrop pops one level
-            setDetailEvent(ev);
-          }}
-          onPickCountdown={(cd) => setDetailCountdown(cd)}
-          onCreateForDate={(d) => {
-            // Keep day sheet under create flow
-            onCreateEvent(d);
-          }}
-          onCreateCountdown={onCreateCountdown}
-          onEditEvent={onEditEvent}
-          onQuickEditEvent={onQuickEditEvent}
-          calendarKind={calendarKind}
-          canSeedWeek={canSeedWeek}
-          onSeedWeek={() => {
-            setDaySheetDate(null);
-            onSeedWeek?.();
-          }}
-        />
+        <div
+          className={cn(daySheetCovered && 'invisible pointer-events-none')}
+          aria-hidden={daySheetCovered || undefined}
+        >
+          <CalendarDaySheet
+            date={daySheetDate}
+            events={daySheetEvents}
+            countdowns={countdownsByDate[format(daySheetDate, 'yyyy-MM-dd')] || []}
+            members={members}
+            householdId={householdId}
+            currentMemberId={currentMemberId}
+            highlight={highlight}
+            onClose={() => setDaySheetDate(null)}
+            onPickEvent={(ev) => {
+              const display = ev as DisplayEvent;
+              if (display.isOverlay) {
+                setOverlayEvent(display);
+                return;
+              }
+              setDetailEvent(ev);
+            }}
+            onPickCountdown={(cd) => setDetailCountdown(cd)}
+            onCreateForDate={(d) => {
+              onCreateEvent(d);
+            }}
+            onCreateCountdown={onCreateCountdown}
+            onEditEvent={onEditEvent}
+            onQuickEditEvent={onQuickEditEvent}
+            calendarKind={calendarKind}
+            canSeedWeek={canSeedWeek}
+            onSeedWeek={() => {
+              setDaySheetDate(null);
+              onSeedWeek?.();
+            }}
+          />
+        </div>
       )}
 
       {detailCountdown && (

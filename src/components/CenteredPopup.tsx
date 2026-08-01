@@ -3,6 +3,20 @@ import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 import { lockSheetDismiss, unlockSheetDismiss } from '@/lib/sheetGate';
+import {
+  BODY_ACTIVATE_PX,
+  COMMIT_PROJECT_SEC,
+  DETENT_SPRING,
+  DISMISS_VEL,
+  NUDGE_DEADZONE_PX,
+  NUDGE_VEL,
+  SAME_DETENT_VEL_CAP,
+  SETTLE_SPRING,
+  VEL_EMA,
+  runSheetEaseOut,
+  runSheetSpring,
+  type SheetSpringOpts,
+} from '@/lib/sheetMotion';
 
 export type SheetDetent = 'half' | 'full';
 
@@ -27,54 +41,10 @@ interface CenteredPopupProps {
   onExit?: () => void;
 }
 
-const DISMISS_VEL = 900;
-/** Tiny body threshold only to separate scroll intent from sheet drag. Grabber is 0. */
-const BODY_ACTIVATE_PX = 2;
-/** Tiny unfinished nudges only — soft return home. Larger moves use nearest + velocity. */
-const NUDGE_DEADZONE_PX = 16;
-const NUDGE_VEL = 350;
-/** Cap leftover velocity when springing back to the same detent. */
-const SAME_DETENT_VEL_CAP = 260;
-/** Max raw handoff before animation scaling (px/s). */
-const HANDOFF_VEL_CAP = 1600;
-/** Spring is driven softer than commit velocity — avoids mid-flight brake hitch. */
-const ANIM_VEL_SCALE = 0.28;
-const ANIM_VEL_CAP = 480;
-/** Fixed spring integration step (seconds). */
-const SPRING_DT = 1 / 120;
-/** EMA blend for touch velocity (higher = trust latest sample more). */
-const VEL_EMA = 0.32;
-
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
 const DETENT_VISIBLE: Record<SheetDetent, number> = {
   full: 1,
   half: 0.55,
-};
-
-type SpringOpts = {
-  stiffness?: number;
-  damping?: number;
-  mass?: number;
-  restDelta?: number;
-  restSpeed?: number;
-};
-
-/** Detent settle — light bounce, stable mid-path */
-const DETENT_SPRING: SpringOpts = {
-  stiffness: 360,
-  damping: 52,
-  mass: 0.88,
-  restDelta: 0.9,
-  restSpeed: 22,
-};
-
-/** Enter / resize / return-home — softer, no fling */
-const SETTLE_SPRING: SpringOpts = {
-  stiffness: 340,
-  damping: 50,
-  mass: 0.92,
-  restDelta: 0.9,
-  restSpeed: 20,
 };
 
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
@@ -114,134 +84,6 @@ function resistDragY(raw: number, frameH: number): number {
   if (raw < 0) return rubber(raw);
   if (raw > frameH) return frameH + rubber(raw - frameH, 160, 0.4);
   return raw;
-}
-
-/**
- * Continuity at finger → spring handoff.
- * Drop opposing velocity, scale down for animation (commit still uses raw vy).
- */
-function animationHandoffVelocity(from: number, to: number, vy: number): number {
-  const travel = to - from;
-  if (Math.abs(travel) < 0.5) return 0;
-  const toward = Math.sign(travel);
-  let v = vy;
-  if (v !== 0 && Math.sign(v) !== toward) {
-    v = 0;
-  }
-  v *= ANIM_VEL_SCALE;
-  const distCap = Math.abs(travel) * 2.2;
-  if (Math.abs(v) > distCap) v = toward * distCap;
-  if (Math.abs(v) > ANIM_VEL_CAP) v = toward * ANIM_VEL_CAP;
-  if (Math.abs(v) > HANDOFF_VEL_CAP) v = toward * HANDOFF_VEL_CAP;
-  return v;
-}
-
-/**
- * rAF spring with fixed timestep — same translate3d path as finger drag.
- */
-function runSpring(options: {
-  from: number;
-  to: number;
-  velocity?: number;
-  spring?: SpringOpts;
-  onUpdate: (y: number) => void;
-  onComplete?: () => void;
-}): () => void {
-  const {
-    from,
-    to,
-    velocity = 0,
-    spring = DETENT_SPRING,
-    onUpdate,
-    onComplete,
-  } = options;
-  const stiffness = spring.stiffness ?? 390;
-  const damping = spring.damping ?? 48;
-  const mass = spring.mass ?? 0.85;
-  const restDelta = spring.restDelta ?? 0.85;
-  const restSpeed = spring.restSpeed ?? 20;
-
-  let y = from;
-  let v = animationHandoffVelocity(from, to, velocity);
-  let last = performance.now();
-  let acc = 0;
-  let raf = 0;
-  let cancelled = false;
-
-  onUpdate(from);
-
-  const integrate = (dt: number) => {
-    const force = -stiffness * (y - to) - damping * v;
-    const accel = force / mass;
-    v += accel * dt;
-    y += v * dt;
-  };
-
-  const step = (now: number) => {
-    if (cancelled) return;
-    acc += Math.min(0.064, Math.max(0, (now - last) / 1000));
-    last = now;
-
-    let guard = 0;
-    while (acc >= SPRING_DT && guard < 8) {
-      integrate(SPRING_DT);
-      acc -= SPRING_DT;
-      guard += 1;
-      if (Math.abs(v) < restSpeed && Math.abs(y - to) < restDelta) {
-        onUpdate(to);
-        onComplete?.();
-        return;
-      }
-    }
-
-    onUpdate(y);
-    raf = requestAnimationFrame(step);
-  };
-
-  raf = requestAnimationFrame(step);
-  return () => {
-    cancelled = true;
-    cancelAnimationFrame(raf);
-  };
-}
-
-/** Ease-out dismiss — smoother than a hard spring fling on long travel. */
-function runEaseOut(options: {
-  from: number;
-  to: number;
-  duration?: number;
-  onUpdate: (y: number) => void;
-  onComplete?: () => void;
-}): () => void {
-  const { from, to, onUpdate, onComplete } = options;
-  const distance = Math.abs(to - from);
-  const duration = options.duration ?? Math.min(0.45, Math.max(0.26, distance / 1800));
-  const start = performance.now();
-  let raf = 0;
-  let cancelled = false;
-
-  onUpdate(from);
-
-  const step = (now: number) => {
-    if (cancelled) return;
-    const t = Math.min(1, (now - start) / (duration * 1000));
-    // Quartic ease-out — softer landing than cubic
-    const eased = 1 - (1 - t) ** 4;
-    const y = from + (to - from) * eased;
-    onUpdate(y);
-    if (t >= 1) {
-      onUpdate(to);
-      onComplete?.();
-      return;
-    }
-    raf = requestAnimationFrame(step);
-  };
-
-  raf = requestAnimationFrame(step);
-  return () => {
-    cancelled = true;
-    cancelAnimationFrame(raf);
-  };
 }
 
 type GestureState = {
@@ -371,7 +213,7 @@ const CenteredPopup = ({
     target: number,
     opts?: {
       velocity?: number;
-      spring?: SpringOpts;
+      spring?: SheetSpringOpts;
       keepCompositor?: boolean;
       mode?: 'spring' | 'easeOut';
       onComplete?: () => void;
@@ -391,7 +233,7 @@ const CenteredPopup = ({
     };
 
     if (opts?.mode === 'easeOut') {
-      cancelSpringRef.current = runEaseOut({
+      cancelSpringRef.current = runSheetEaseOut({
         from: yRef.current,
         to: target,
         onUpdate: setY,
@@ -400,7 +242,7 @@ const CenteredPopup = ({
       return;
     }
 
-    cancelSpringRef.current = runSpring({
+    cancelSpringRef.current = runSheetSpring({
       from: yRef.current,
       to: target,
       velocity: opts?.velocity ?? 0,
@@ -412,7 +254,7 @@ const CenteredPopup = ({
 
   const snapTo = (
     detent: SheetDetent,
-    opts?: { velocity?: number; spring?: SpringOpts; keepCompositor?: boolean },
+    opts?: { velocity?: number; spring?: SheetSpringOpts; keepCompositor?: boolean },
   ) => {
     detentRef.current = detent;
     const target = yForDetent(detent, frameHRef.current);
@@ -528,7 +370,7 @@ const CenteredPopup = ({
     }
 
     // Standard commit: nearest detent to velocity-projected position.
-    const projected = y + vy * 0.22;
+    const projected = y + vy * COMMIT_PROJECT_SEC;
     let best = positions[0]!;
     let bestDist = Math.abs(projected - best.y);
     for (const p of positions) {
@@ -540,7 +382,7 @@ const CenteredPopup = ({
     }
 
     const returningHome = best.d === current;
-    // Raw vy still used for commit (projection above); spring scales it in runSpring.
+    // Raw vy still used for commit (projection above); spring scales it in runSheetSpring.
     const settleVy = returningHome
       ? Math.max(-SAME_DETENT_VEL_CAP, Math.min(SAME_DETENT_VEL_CAP, vy * 0.35))
       : vy;

@@ -15,3 +15,10 @@ export function lockSheetDismiss(): void {
 export function unlockSheetDismiss(): void {
   dismissLockCount = Math.max(0, dismissLockCount - 1);
 }
+
+/** Run `open` only when no sheet is mid-dismiss. Returns whether it ran. */
+export function tryOpenSheet(open: () => void): boolean {
+  if (isSheetDismissLocked()) return false;
+  open();
+  return true;
+}

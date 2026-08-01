@@ -31,6 +31,7 @@ import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/l
 import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
+import { tryOpenSheet } from '@/lib/sheetGate';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
@@ -252,18 +253,31 @@ const Index = () => {
   };
 
   const handleCreateEvent = (date: Date) => {
-    setNewEventDate(date);
-    setShowNewEvent(true);
+    tryOpenSheet(() => {
+      setNewEventDate(date);
+      setShowNewEvent(true);
+    });
   };
 
   const handleCreateCountdown = (date: Date) => {
-    setNewCountdownDate(date);
-    setShowNewCountdown(true);
+    tryOpenSheet(() => {
+      setNewCountdownDate(date);
+      setShowNewCountdown(true);
+    });
   };
 
   const handleEditEvent = (event: Event) => {
-    setEditEvent(event);
+    tryOpenSheet(() => setEditEvent(event));
   };
+
+  const coverSheetActive = !!(
+    showSeedWeek ||
+    showNewEvent ||
+    showNewCountdown ||
+    editEvent ||
+    quickEditEvent ||
+    profileMode
+  );
 
   const handleSignOut = async () => {
     try {
@@ -295,12 +309,16 @@ const Index = () => {
           onOpenSettings={(id) => {
             if (id !== household.id) selectCalendar(id);
             // Defer sheet open so calendar switch paint isn't blocked (esp. Android)
-            window.requestAnimationFrame(() => setProfileMode('calendar'));
+            window.requestAnimationFrame(() => {
+              tryOpenSheet(() => setProfileMode('calendar'));
+            });
           }}
         />
         <button
           onClick={() => {
-            window.requestAnimationFrame(() => setProfileMode('account'));
+            window.requestAnimationFrame(() => {
+              tryOpenSheet(() => setProfileMode('account'));
+            });
           }}
           className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden shadow-sm"
           style={
@@ -337,13 +355,14 @@ const Index = () => {
             onCreateEvent={handleCreateEvent}
             onCreateCountdown={calendarKind === 'home' ? handleCreateCountdown : undefined}
             onEditEvent={handleEditEvent}
-            onQuickEditEvent={setQuickEditEvent}
+            onQuickEditEvent={(ev) => tryOpenSheet(() => setQuickEditEvent(ev))}
             onSwitchCalendar={(id) => selectCalendar(id)}
             onSwipeCalendarStack={handleSwipeCalendarStack}
             canSwipeCalendarStack={canSwipeStack}
             highlight={highlight}
             canSeedWeek={canSeedWeek}
-            onSeedWeek={() => setShowSeedWeek(true)}
+            onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
+            coverSheetActive={coverSheetActive}
           />
         </motion.div>
 
@@ -359,28 +378,26 @@ const Index = () => {
             onCreateForDate={handleCreateEvent}
             onCreateCountdown={calendarKind === 'home' ? handleCreateCountdown : undefined}
             onEditEvent={handleEditEvent}
-            onQuickEditEvent={setQuickEditEvent}
-            onSeedWeek={() => setShowSeedWeek(true)}
+            onQuickEditEvent={(ev) => tryOpenSheet(() => setQuickEditEvent(ev))}
+            onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
             onSwitchCalendar={(id) => selectCalendar(id)}
           />
         </aside>
       </main>
 
-      <AnimatePresence>
-        {showSeedWeek && (
-          <SeedWeekFlow
-            householdId={household.id}
-            onClose={() => {
-              setShowSeedWeek(false);
-              revealWelcomeAfterSeed();
-            }}
-            onComplete={() => {
-              setShowSeedWeek(false);
-              revealWelcomeAfterSeed();
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {showSeedWeek && (
+        <SeedWeekFlow
+          householdId={household.id}
+          onClose={() => {
+            setShowSeedWeek(false);
+            revealWelcomeAfterSeed();
+          }}
+          onComplete={() => {
+            setShowSeedWeek(false);
+            revealWelcomeAfterSeed();
+          }}
+        />
+      )}
 
       <AnimatePresence>
         {welcomeDialog && (
@@ -392,91 +409,81 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showNewEvent && (
-          <NewEventFlow
-            householdId={household.id}
-            members={members}
-            currentMemberId={currentMember.id}
-            calendarKind={household.kind}
-            showInOtherCalendars={!!currentMember.show_in_other_calendars}
-            initialDate={newEventDate}
-            onClose={() => setShowNewEvent(false)}
-            onCreated={(eventId, dateStr) => {
-              flashHighlight(eventId, dateStr);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {showNewEvent && (
+        <NewEventFlow
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          calendarKind={household.kind}
+          showInOtherCalendars={!!currentMember.show_in_other_calendars}
+          initialDate={newEventDate}
+          onClose={() => setShowNewEvent(false)}
+          onCreated={(eventId, dateStr) => {
+            flashHighlight(eventId, dateStr);
+          }}
+        />
+      )}
 
-      <AnimatePresence>
-        {showNewCountdown && (
-          <NewCountdownFlow
-            householdId={household.id}
-            members={members}
-            currentMemberId={currentMember.id}
-            initialDate={newCountdownDate}
-            onClose={() => setShowNewCountdown(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showNewCountdown && (
+        <NewCountdownFlow
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          initialDate={newCountdownDate}
+          onClose={() => setShowNewCountdown(false)}
+        />
+      )}
 
-      <AnimatePresence>
-        {editEvent && (
-          <EditEventFlow
-            event={editEvent}
-            householdId={household.id}
-            members={members}
-            currentMemberId={currentMember.id}
-            calendarKind={household.kind}
-            showInOtherCalendars={!!currentMember.show_in_other_calendars}
-            onClose={() => setEditEvent(null)}
-            onSaved={(eventId, dateStr) => {
-              flashHighlight(eventId, dateStr);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {editEvent && (
+        <EditEventFlow
+          event={editEvent}
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          calendarKind={household.kind}
+          showInOtherCalendars={!!currentMember.show_in_other_calendars}
+          onClose={() => setEditEvent(null)}
+          onSaved={(eventId, dateStr) => {
+            flashHighlight(eventId, dateStr);
+          }}
+        />
+      )}
 
-      <AnimatePresence>
-        {quickEditEvent && (
-          <EditEventQuickSheet
-            event={quickEditEvent}
-            householdId={household.id}
-            members={members}
-            currentMemberId={currentMember.id}
-            calendarKind={household.kind}
-            onClose={() => setQuickEditEvent(null)}
-            onSaved={(eventId, dateStr) => {
-              flashHighlight(eventId, dateStr);
-            }}
-            onOpenFullEdit={(ev) => {
-              setQuickEditEvent(null);
-              setEditEvent(ev);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {quickEditEvent && (
+        <EditEventQuickSheet
+          event={quickEditEvent}
+          householdId={household.id}
+          members={members}
+          currentMemberId={currentMember.id}
+          calendarKind={household.kind}
+          onClose={() => setQuickEditEvent(null)}
+          onSaved={(eventId, dateStr) => {
+            flashHighlight(eventId, dateStr);
+          }}
+          onOpenFullEdit={(ev) => {
+            setQuickEditEvent(null);
+            tryOpenSheet(() => setEditEvent(ev));
+          }}
+        />
+      )}
 
-      <AnimatePresence>
-        {profileMode && (
-          <ProfileSheet
-            key={profileMode}
-            mode={profileMode}
-            household={household}
-            members={members}
-            currentMember={currentMember}
-            memberships={orderedMemberships}
-            onSelectCalendar={(id) => {
-              // Always pin the active id first (join/create), then animate if possible.
-              setActiveHouseholdId(id);
-              selectCalendar(id);
-            }}
-            onClose={() => setProfileMode(null)}
-            onSignOut={handleSignOut}
-          />
-        )}
-      </AnimatePresence>
+      {profileMode && (
+        <ProfileSheet
+          key={profileMode}
+          mode={profileMode}
+          household={household}
+          members={members}
+          currentMember={currentMember}
+          memberships={orderedMemberships}
+          onSelectCalendar={(id) => {
+            // Always pin the active id first (join/create), then animate if possible.
+            setActiveHouseholdId(id);
+            selectCalendar(id);
+          }}
+          onClose={() => setProfileMode(null)}
+          onSignOut={handleSignOut}
+        />
+      )}
     </div>
     </LocaleProvider>
   );
