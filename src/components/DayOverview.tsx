@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
