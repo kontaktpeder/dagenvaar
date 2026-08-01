@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 import { lockSheetDismiss, unlockSheetDismiss } from '@/lib/sheetGate';
+import { scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
 import {
   BODY_ACTIVATE_PX,
   COMMIT_PROJECT_SEC,
@@ -292,13 +293,41 @@ const CenteredPopup = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardOpen, flyingOut]);
 
+  // Lift scroll room inside the sheet — do NOT pad the outer frame (that crushed flex-1).
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const pad = keyboardOpen ? `${Math.min(keyboardInset, Math.round(window.innerHeight * 0.5))}px` : '';
+    card.querySelectorAll<HTMLElement>('[data-sheet-scroll]').forEach((el) => {
+      el.style.paddingBottom = pad;
+    });
+  }, [keyboardOpen, keyboardInset]);
+
+  // Keep focused field visible above sticky footer + keyboard
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || !keyboardOpen) return;
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.matches('input, textarea, select, [contenteditable="true"]')) return;
+      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: 96 }), 80);
+      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: 96 }), 280);
+    };
+    card.addEventListener('focusin', onFocusIn);
+    return () => card.removeEventListener('focusin', onFocusIn);
+  }, [keyboardOpen]);
+
+  // Sheet: only safe-area on the frame. Keyboard lift is footer translate + scroll pad.
+  // Hug: pad frame bottom so small cards sit above the keyboard.
   const framePad = {
     paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
     paddingLeft: 'env(safe-area-inset-left)',
     paddingRight: 'env(safe-area-inset-right)',
-    paddingBottom: keyboardOpen
-      ? `${Math.min(keyboardInset, typeof window !== 'undefined' ? window.innerHeight * 0.42 : keyboardInset)}px`
-      : '0px',
+    paddingBottom:
+      size !== 'sheet' && keyboardOpen
+        ? `${Math.min(keyboardInset, Math.round(window.innerHeight * 0.42))}px`
+        : '0px',
     transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
   };
 

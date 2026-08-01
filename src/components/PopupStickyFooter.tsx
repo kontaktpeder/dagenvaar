@@ -9,7 +9,8 @@ interface PopupStickyFooterProps {
 
 /**
  * Footer pinned to the bottom of a CenteredPopup card.
- * Owns bottom safe-area (card itself has none — avoids a white gap under CTAs).
+ * Translates above the keyboard without shrinking the sheet frame
+ * (frame keyboard padding was crushing flex-1 content).
  */
 const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
   const keyboardInset = useKeyboardInset();
@@ -22,6 +23,10 @@ const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
         keyboardOpen ? 'pb-3' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
         className,
       )}
+      style={{
+        transform: keyboardOpen ? `translate3d(0, -${keyboardInset}px, 0)` : undefined,
+        willChange: keyboardOpen ? 'transform' : undefined,
+      }}
     >
       {children}
     </div>

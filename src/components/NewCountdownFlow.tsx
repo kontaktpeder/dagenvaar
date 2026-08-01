@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import CountdownCelebrateDialog from '@/components/CountdownCelebrateDialog';
 import { stepForward, stepSpring } from '@/lib/motion';
+import { focusFieldSoftly } from '@/lib/scrollFocusIntoView';
 
 const FIELD =
   'min-w-0 box-border appearance-none rounded-xl border border-border bg-muted/50 px-4 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary w-full';
@@ -58,6 +59,14 @@ const NewCountdownFlow = ({
   } | null>(null);
 
   const others = members.filter((m) => m.id !== currentMemberId);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus after sheet enter — immediate autoFocus + keyboard crushed the old layout
+  useEffect(() => {
+    if (step !== 1) return;
+    const id = window.setTimeout(() => focusFieldSoftly(titleInputRef.current), 320);
+    return () => window.clearTimeout(id);
+  }, [step]);
 
   const handleBack = () => {
     if (step > 1) setStep((s) => s - 1);
@@ -165,11 +174,11 @@ const NewCountdownFlow = ({
             {step === 1 && (
               <>
                 <input
+                  ref={titleInputRef}
                   className={FIELD}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={t('countdown.titlePlaceholder')}
-                  autoFocus
                   maxLength={80}
                 />
                 <div className="flex flex-wrap justify-center gap-2">
