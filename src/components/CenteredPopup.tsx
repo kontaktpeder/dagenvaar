@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useMotionValue, animate, type Transition } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
@@ -37,35 +36,38 @@ const DETENT_VISIBLE: Record<SheetDetent, number> = {
   half: 0.55,
 };
 
-const flyTween = {
-  type: 'tween' as const,
-  duration: 0.24,
-  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+type SpringOpts = {
+  stiffness?: number;
+  damping?: number;
+  mass?: number;
+  restDelta?: number;
+  restSpeed?: number;
 };
 
-const fadeEase = [0.32, 0.72, 0, 1] as [number, number, number, number];
-
-/** iOS-like detent settle — velocity handoff + light bounce */
-function detentSpring(velocity = 0): Transition {
-  return {
-    type: 'spring',
-    stiffness: 480,
-    damping: 38,
-    mass: 0.78,
-    velocity,
-    restDelta: 0.4,
-    restSpeed: 8,
-  };
-}
-
-/** Soft enter / resize spring (no fling) */
-const settleSpring: Transition = {
-  type: 'spring',
+/** Detent settle — bouncy but settles cleanly (less end-chatter) */
+const DETENT_SPRING: SpringOpts = {
   stiffness: 420,
+  damping: 44,
+  mass: 0.82,
+  restDelta: 0.8,
+  restSpeed: 18,
+};
+
+/** Enter / resize — softer, no fling */
+const SETTLE_SPRING: SpringOpts = {
+  stiffness: 380,
+  damping: 42,
+  mass: 0.9,
+  restDelta: 0.8,
+  restSpeed: 16,
+};
+
+const FLY_SPRING: SpringOpts = {
+  stiffness: 360,
   damping: 40,
   mass: 0.85,
-  restDelta: 0.5,
-  restSpeed: 10,
+  restDelta: 1.2,
+  restSpeed: 40,
 };
 
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
@@ -107,6 +109,65 @@ function resistDragY(raw: number, frameH: number): number {
   return raw;
 }
 
+/**
+ * rAF spring that writes the same translate3d path as finger drag.
+ * Avoids Framer mid-settle (main source of "cricket" stutter).
+ */
+function runSpring(options: {
+  from: number;
+  to: number;
+  velocity?: number;
+  spring?: SpringOpts;
+  onUpdate: (y: number) => void;
+  onComplete?: () => void;
+}): () => void {
+  const {
+    from,
+    to,
+    velocity = 0,
+    spring = DETENT_SPRING,
+    onUpdate,
+    onComplete,
+  } = options;
+  const stiffness = spring.stiffness ?? 420;
+  const damping = spring.damping ?? 44;
+  const mass = spring.mass ?? 0.82;
+  const restDelta = spring.restDelta ?? 0.8;
+  const restSpeed = spring.restSpeed ?? 18;
+
+  let y = from;
+  let v = velocity;
+  let last = performance.now();
+  let raf = 0;
+  let cancelled = false;
+
+  const step = (now: number) => {
+    if (cancelled) return;
+    const dt = Math.min(0.032, Math.max(0.001, (now - last) / 1000));
+    last = now;
+
+    const force = -stiffness * (y - to) - damping * v;
+    const accel = force / mass;
+    v += accel * dt;
+    y += v * dt;
+
+    if (Math.abs(v) < restSpeed && Math.abs(y - to) < restDelta) {
+      onUpdate(to);
+      onComplete?.();
+      return;
+    }
+
+    onUpdate(y);
+    raf = requestAnimationFrame(step);
+  };
+
+  raf = requestAnimationFrame(step);
+  return () => {
+    cancelled = true;
+    cancelAnimationFrame(raf);
+  };
+}
+
 type GestureState = {
   pointerId: number;
   startY: number;
@@ -121,7 +182,7 @@ type GestureState = {
 
 /**
  * Bottom sheet: follows the finger, snaps to detents (half / full), or dismisses.
- * Mid-drag writes translate3d directly. Settle uses spring + finger velocity.
+ * Finger + settle both write translate3d on rAF — no Framer on the motion path.
  */
 const CenteredPopup = ({
   onClose,
@@ -149,6 +210,8 @@ const CenteredPopup = ({
     typeof window !== 'undefined' ? window.innerHeight : 640,
   );
   const settleDragRef = useRef<(vy: number) => void>(() => {});
+  const cancelSpringRef = useRef<(() => void) | null>(null);
+  const animatingRef = useRef(false);
 
   const detents = normalizeDetents(detentsProp ?? ['full']);
   const multiDetent = detents.length > 1 && size === 'sheet';
@@ -163,8 +226,6 @@ const CenteredPopup = ({
     typeof window !== 'undefined' ? window.innerHeight : 700,
   );
 
-  const dragY = useMotionValue(yRef.current);
-
   const maxDim = backdrop === 'solid' ? (multiDetent ? 0.28 : 0.4) : 0;
   const [backdropOpen, setBackdropOpen] = useState(false);
   const [padReady, setPadReady] = useState(false);
@@ -175,16 +236,6 @@ const CenteredPopup = ({
   canDragRef.current = canDrag;
   frameHRef.current = frameH;
   multiDetentRef.current = multiDetent;
-
-  // Keep DOM transform in sync for animated (non-gesture) motion
-  useEffect(() => {
-    writeSheetY(sheetLayerRef.current, dragY.get());
-    return dragY.on('change', (v) => {
-      yRef.current = v;
-      if (gestureRef.current?.dragging) return;
-      writeSheetY(sheetLayerRef.current, v);
-    });
-  }, [dragY]);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -204,6 +255,12 @@ const CenteredPopup = ({
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      cancelSpringRef.current?.();
+    };
+  }, []);
+
   const setDragVisual = (on: boolean) => {
     const layer = sheetLayerRef.current;
     const card = cardRef.current;
@@ -211,23 +268,63 @@ const CenteredPopup = ({
       layer.style.willChange = on ? 'transform' : '';
     }
     if (card) {
-      // Inline so React className re-renders can't put the shadow back mid-drag
+      // Inline so React className re-renders can't put the shadow back mid-motion
       card.style.boxShadow = on ? 'none' : '';
     }
   };
 
+  const setY = (y: number) => {
+    yRef.current = y;
+    writeSheetY(sheetLayerRef.current, y);
+  };
+
+  const stopSpring = () => {
+    cancelSpringRef.current?.();
+    cancelSpringRef.current = null;
+    animatingRef.current = false;
+  };
+
+  const animateTo = (
+    target: number,
+    opts?: {
+      velocity?: number;
+      spring?: SpringOpts;
+      keepCompositor?: boolean;
+      onComplete?: () => void;
+    },
+  ) => {
+    stopSpring();
+    const keepCompositor = opts?.keepCompositor ?? false;
+    if (keepCompositor) setDragVisual(true);
+    animatingRef.current = true;
+
+    cancelSpringRef.current = runSpring({
+      from: yRef.current,
+      to: target,
+      velocity: opts?.velocity ?? 0,
+      spring: opts?.spring ?? DETENT_SPRING,
+      onUpdate: setY,
+      onComplete: () => {
+        cancelSpringRef.current = null;
+        animatingRef.current = false;
+        setY(target);
+        if (keepCompositor) setDragVisual(false);
+        opts?.onComplete?.();
+      },
+    });
+  };
+
   const snapTo = (
     detent: SheetDetent,
-    opts?: { velocity?: number; transition?: Transition },
+    opts?: { velocity?: number; spring?: SpringOpts; keepCompositor?: boolean },
   ) => {
     detentRef.current = detent;
-    const target = yForDetent(detent, frameH);
-    dragY.set(yRef.current);
-    void animate(
-      dragY,
-      target,
-      opts?.transition ?? detentSpring(opts?.velocity ?? 0),
-    );
+    const target = yForDetent(detent, frameHRef.current);
+    animateTo(target, {
+      velocity: opts?.velocity ?? 0,
+      spring: opts?.spring ?? DETENT_SPRING,
+      keepCompositor: opts?.keepCompositor ?? false,
+    });
   };
 
   // Enter + keep detent aligned when frame height changes
@@ -236,14 +333,16 @@ const CenteredPopup = ({
     if (!enteredRef.current) {
       enteredRef.current = true;
       detentRef.current = startDetent;
-      dragY.set(yRef.current);
-      void animate(dragY, yForDetent(startDetent, frameH), settleSpring);
+      animateTo(yForDetent(startDetent, frameH), {
+        spring: SETTLE_SPRING,
+        keepCompositor: true,
+      });
       return;
     }
+    if (gestureRef.current?.dragging || animatingRef.current) return;
     const target = yForDetent(detentRef.current, frameH);
     if (Math.abs(yRef.current - target) < 6) return;
-    dragY.set(yRef.current);
-    void animate(dragY, target, settleSpring);
+    animateTo(target, { spring: SETTLE_SPRING });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameH, flyingOut]);
 
@@ -251,7 +350,7 @@ const CenteredPopup = ({
   useEffect(() => {
     if (flyingOut || !enteredRef.current) return;
     if (!keyboardOpen) return;
-    snapTo('full', { transition: settleSpring });
+    snapTo('full', { spring: SETTLE_SPRING, keepCompositor: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyboardOpen, flyingOut]);
 
@@ -269,19 +368,14 @@ const CenteredPopup = ({
     if (flyingOut) return;
     setFlyingOut(true);
     setBackdropOpen(false);
-    setDragVisual(false);
     gestureRef.current = null;
-    dragY.stop();
     const curY = yRef.current;
-    dragY.set(curY);
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
-    // Prefer spring with fling when dismissing from a fast swipe
-    const transition: Transition =
-      Math.abs(velocity) > 200
-        ? detentSpring(velocity)
-        : flyTween;
-    void animate(dragY, curY + travel, transition).then(() => {
-      exit();
+    animateTo(curY + travel, {
+      velocity: Math.abs(velocity) > 200 ? velocity : Math.max(velocity, 900),
+      spring: FLY_SPRING,
+      keepCompositor: true,
+      onComplete: () => exit(),
     });
   };
 
@@ -310,7 +404,6 @@ const CenteredPopup = ({
       return;
     }
 
-    // Project with stronger velocity bias so flicks feel decisive
     const projected = y + vy * 0.22;
     let best = positions[0]!;
     let bestDist = Math.abs(projected - best.y);
@@ -321,11 +414,12 @@ const CenteredPopup = ({
         bestDist = dist;
       }
     }
-    snapTo(best.d, { velocity: vy });
+    // Keep compositor layer + no shadow through the whole settle (kills cricket)
+    snapTo(best.d, { velocity: vy, keepCompositor: true });
   };
   settleDragRef.current = settleDrag;
 
-  // Single gesture path: pointer → direct translate3d (no Framer mid-drag)
+  // Single gesture path: pointer → direct translate3d
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
@@ -336,7 +430,7 @@ const CenteredPopup = ({
       state.lastY = clientY;
       state.lastAt = timeStamp;
       state.startDragY = yRef.current;
-      dragY.stop();
+      stopSpring();
       setDragVisual(true);
       try {
         card.setPointerCapture(state.pointerId);
@@ -402,9 +496,7 @@ const CenteredPopup = ({
 
       const h = frameHRef.current;
       const raw = state.startDragY + event.clientY - state.startY;
-      const nextY = resistDragY(raw, h);
-      yRef.current = nextY;
-      writeSheetY(sheetLayerRef.current, nextY);
+      setY(resistDragY(raw, h));
     };
 
     const finishPointer = (event: PointerEvent) => {
@@ -412,8 +504,7 @@ const CenteredPopup = ({
       if (!state || event.pointerId !== state.pointerId) return;
       gestureRef.current = null;
       if (state.dragging) {
-        setDragVisual(false);
-        dragY.set(yRef.current);
+        // Do NOT clear drag visual here — settle spring owns it until landed
         settleDragRef.current(state.velocityY);
       }
     };
@@ -437,7 +528,8 @@ const CenteredPopup = ({
       card.removeEventListener('pointercancel', finishPointer);
       card.removeEventListener('touchmove', onTouchMove);
     };
-  }, [dragY]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const useSheetLayout = size === 'sheet';
   const initialY = yRef.current;
