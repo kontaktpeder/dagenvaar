@@ -29,13 +29,11 @@ interface CenteredPopupProps {
 const DISMISS_VEL = 900;
 /** Tiny body threshold only to separate scroll intent from sheet drag. Grabber is 0. */
 const BODY_ACTIVATE_PX = 2;
-/** Below this displacement + low velocity → soft return to current detent (no fling). */
-const NUDGE_DEADZONE_PX = 28;
-const NUDGE_VEL = 420;
-/** Need this much velocity toward another detent to switch without crossing midpoint. */
-const COMMIT_VEL = 780;
+/** Tiny unfinished nudges only — soft return home. Larger moves use nearest + velocity. */
+const NUDGE_DEADZONE_PX = 16;
+const NUDGE_VEL = 350;
 /** Cap leftover velocity when springing back to the same detent. */
-const SAME_DETENT_VEL_CAP = 220;
+const SAME_DETENT_VEL_CAP = 260;
 
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
 const DETENT_VISIBLE: Record<SheetDetent, number> = {
@@ -414,7 +412,7 @@ const CenteredPopup = ({
       return;
     }
 
-    // Small unfinished nudges: ease back home — don't treat as a fling.
+    // Only tiny unfinished nudges: ease back home without a fling.
     if (Math.abs(deltaFromCurrent) < NUDGE_DEADZONE_PX && Math.abs(vy) < NUDGE_VEL) {
       snapTo(current, {
         velocity: 0,
@@ -424,28 +422,15 @@ const CenteredPopup = ({
       return;
     }
 
-    // Prefer current detent unless past midpoint or a clear directional fling.
-    let best = positions.find((p) => p.d === current) ?? positions[0]!;
-    if (positions.length > 1) {
-      const fullPos = positions.find((p) => p.d === 'full');
-      const halfPos = positions.find((p) => p.d === 'half');
-      if (fullPos && halfPos) {
-        const mid = (fullPos.y + halfPos.y) / 2;
-        const flingToHalf = vy >= COMMIT_VEL && deltaFromCurrent > 8;
-        const flingToFull = vy <= -COMMIT_VEL && deltaFromCurrent < -8;
-        if (flingToHalf || y > mid) best = halfPos;
-        else if (flingToFull || y < mid) best = fullPos;
-        else best = current === 'half' ? halfPos : fullPos;
-      } else {
-        const projected = y + vy * 0.18;
-        let bestDist = Math.abs(projected - best.y);
-        for (const p of positions) {
-          const dist = Math.abs(projected - p.y);
-          if (dist < bestDist) {
-            best = p;
-            bestDist = dist;
-          }
-        }
+    // Standard commit: nearest detent to velocity-projected position.
+    const projected = y + vy * 0.22;
+    let best = positions[0]!;
+    let bestDist = Math.abs(projected - best.y);
+    for (const p of positions) {
+      const dist = Math.abs(projected - p.y);
+      if (dist < bestDist) {
+        best = p;
+        bestDist = dist;
       }
     }
 
