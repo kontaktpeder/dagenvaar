@@ -34,8 +34,13 @@ const NUDGE_DEADZONE_PX = 16;
 const NUDGE_VEL = 350;
 /** Cap leftover velocity when springing back to the same detent. */
 const SAME_DETENT_VEL_CAP = 260;
-/** Max spring handoff speed (px/s) — avoids rubber-band spike on release. */
+/** Max raw handoff before animation scaling (px/s). */
 const HANDOFF_VEL_CAP = 1600;
+/** Spring is driven softer than commit velocity — avoids mid-flight brake hitch. */
+const ANIM_VEL_SCALE = 0.38;
+const ANIM_VEL_CAP = 640;
+/** Fixed spring integration step (seconds). */
+const SPRING_DT = 1 / 120;
 /** EMA blend for touch velocity (higher = trust latest sample more). */
 const VEL_EMA = 0.32;
 
@@ -53,30 +58,22 @@ type SpringOpts = {
   restSpeed?: number;
 };
 
-/** Detent settle — bouncy but settles cleanly (less end-chatter) */
+/** Detent settle — light bounce, stable mid-path */
 const DETENT_SPRING: SpringOpts = {
-  stiffness: 420,
-  damping: 44,
-  mass: 0.82,
-  restDelta: 0.8,
-  restSpeed: 18,
-};
-
-/** Enter / resize — softer, no fling */
-const SETTLE_SPRING: SpringOpts = {
-  stiffness: 380,
-  damping: 42,
-  mass: 0.9,
-  restDelta: 0.8,
-  restSpeed: 16,
-};
-
-const FLY_SPRING: SpringOpts = {
-  stiffness: 360,
-  damping: 40,
+  stiffness: 390,
+  damping: 48,
   mass: 0.85,
-  restDelta: 1.2,
-  restSpeed: 40,
+  restDelta: 0.85,
+  restSpeed: 20,
+};
+
+/** Enter / resize / return-home — softer, no fling */
+const SETTLE_SPRING: SpringOpts = {
+  stiffness: 360,
+  damping: 46,
+  mass: 0.9,
+  restDelta: 0.85,
+  restSpeed: 18,
 };
 
 function getScrollEl(root: HTMLElement | null): HTMLElement | null {
@@ -120,9 +117,9 @@ function resistDragY(raw: number, frameH: number): number {
 
 /**
  * Continuity at finger → spring handoff.
- * Drop velocity that points away from the target (the "tzzht" rewind), then cap.
+ * Drop opposing velocity, scale down for animation (commit still uses raw vy).
  */
-function handoffVelocity(from: number, to: number, vy: number, cap = HANDOFF_VEL_CAP): number {
+function animationHandoffVelocity(from: number, to: number, vy: number): number {
   const travel = to - from;
   if (Math.abs(travel) < 0.5) return 0;
   const toward = Math.sign(travel);
@@ -130,15 +127,16 @@ function handoffVelocity(from: number, to: number, vy: number, cap = HANDOFF_VEL
   if (v !== 0 && Math.sign(v) !== toward) {
     v = 0;
   }
-  if (Math.abs(v) > cap) {
-    v = toward * cap;
-  }
+  v *= ANIM_VEL_SCALE;
+  const distCap = Math.abs(travel) * 2.8;
+  if (Math.abs(v) > distCap) v = toward * distCap;
+  if (Math.abs(v) > ANIM_VEL_CAP) v = toward * ANIM_VEL_CAP;
+  if (Math.abs(v) > HANDOFF_VEL_CAP) v = toward * HANDOFF_VEL_CAP;
   return v;
 }
 
 /**
- * rAF spring that writes the same translate3d path as finger drag.
- * Avoids Framer mid-settle (main source of "cricket" stutter).
+ * rAF spring with fixed timestep — same translate3d path as finger drag.
  */
 function runSpring(options: {
   from: number;
@@ -156,38 +154,84 @@ function runSpring(options: {
     onUpdate,
     onComplete,
   } = options;
-  const stiffness = spring.stiffness ?? 420;
-  const damping = spring.damping ?? 44;
-  const mass = spring.mass ?? 0.82;
-  const restDelta = spring.restDelta ?? 0.8;
-  const restSpeed = spring.restSpeed ?? 18;
+  const stiffness = spring.stiffness ?? 390;
+  const damping = spring.damping ?? 48;
+  const mass = spring.mass ?? 0.85;
+  const restDelta = spring.restDelta ?? 0.85;
+  const restSpeed = spring.restSpeed ?? 20;
 
   let y = from;
-  let v = handoffVelocity(from, to, velocity);
+  let v = animationHandoffVelocity(from, to, velocity);
   let last = performance.now();
+  let acc = 0;
   let raf = 0;
   let cancelled = false;
 
-  // Stay put this frame — next rAF continues with continuous velocity
   onUpdate(from);
 
-  const step = (now: number) => {
-    if (cancelled) return;
-    const dt = Math.min(0.032, Math.max(0.001, (now - last) / 1000));
-    last = now;
-
+  const integrate = (dt: number) => {
     const force = -stiffness * (y - to) - damping * v;
     const accel = force / mass;
     v += accel * dt;
     y += v * dt;
+  };
 
-    if (Math.abs(v) < restSpeed && Math.abs(y - to) < restDelta) {
+  const step = (now: number) => {
+    if (cancelled) return;
+    acc += Math.min(0.064, Math.max(0, (now - last) / 1000));
+    last = now;
+
+    let guard = 0;
+    while (acc >= SPRING_DT && guard < 8) {
+      integrate(SPRING_DT);
+      acc -= SPRING_DT;
+      guard += 1;
+      if (Math.abs(v) < restSpeed && Math.abs(y - to) < restDelta) {
+        onUpdate(to);
+        onComplete?.();
+        return;
+      }
+    }
+
+    onUpdate(y);
+    raf = requestAnimationFrame(step);
+  };
+
+  raf = requestAnimationFrame(step);
+  return () => {
+    cancelled = true;
+    cancelAnimationFrame(raf);
+  };
+}
+
+/** Ease-out dismiss — smoother than a hard spring fling on long travel. */
+function runEaseOut(options: {
+  from: number;
+  to: number;
+  duration?: number;
+  onUpdate: (y: number) => void;
+  onComplete?: () => void;
+}): () => void {
+  const { from, to, onUpdate, onComplete } = options;
+  const distance = Math.abs(to - from);
+  const duration = options.duration ?? Math.min(0.38, Math.max(0.22, distance / 2200));
+  const start = performance.now();
+  let raf = 0;
+  let cancelled = false;
+
+  onUpdate(from);
+
+  const step = (now: number) => {
+    if (cancelled) return;
+    const t = Math.min(1, (now - start) / (duration * 1000));
+    const eased = 1 - (1 - t) ** 3;
+    const y = from + (to - from) * eased;
+    onUpdate(y);
+    if (t >= 1) {
       onUpdate(to);
       onComplete?.();
       return;
     }
-
-    onUpdate(y);
     raf = requestAnimationFrame(step);
   };
 
@@ -320,6 +364,7 @@ const CenteredPopup = ({
       velocity?: number;
       spring?: SpringOpts;
       keepCompositor?: boolean;
+      mode?: 'spring' | 'easeOut';
       onComplete?: () => void;
     },
   ) => {
@@ -328,19 +373,31 @@ const CenteredPopup = ({
     if (keepCompositor) setDragVisual(true);
     animatingRef.current = true;
 
+    const finish = () => {
+      cancelSpringRef.current = null;
+      animatingRef.current = false;
+      setY(target);
+      if (keepCompositor) setDragVisual(false);
+      opts?.onComplete?.();
+    };
+
+    if (opts?.mode === 'easeOut') {
+      cancelSpringRef.current = runEaseOut({
+        from: yRef.current,
+        to: target,
+        onUpdate: setY,
+        onComplete: finish,
+      });
+      return;
+    }
+
     cancelSpringRef.current = runSpring({
       from: yRef.current,
       to: target,
       velocity: opts?.velocity ?? 0,
       spring: opts?.spring ?? DETENT_SPRING,
       onUpdate: setY,
-      onComplete: () => {
-        cancelSpringRef.current = null;
-        animatingRef.current = false;
-        setY(target);
-        if (keepCompositor) setDragVisual(false);
-        opts?.onComplete?.();
-      },
+      onComplete: finish,
     });
   };
 
@@ -394,18 +451,15 @@ const CenteredPopup = ({
     transition: padReady ? KEYBOARD_PAD_TRANSITION : undefined,
   };
 
-  const flyOutThenDismiss = (velocity = 0) => {
+  const flyOutThenDismiss = (_velocity = 0) => {
     if (flyingOut) return;
     setFlyingOut(true);
     setBackdropOpen(false);
     gestureRef.current = null;
     const curY = yRef.current;
     const travel = Math.max(frameH * 1.05 - curY, frameH * 0.55);
-    const target = curY + travel;
-    const boost = Math.abs(velocity) > 200 ? velocity : Math.max(velocity, 900);
-    animateTo(target, {
-      velocity: handoffVelocity(curY, target, boost),
-      spring: FLY_SPRING,
+    animateTo(curY + travel, {
+      mode: 'easeOut',
       keepCompositor: true,
       onComplete: () => exit(),
     });
@@ -462,10 +516,10 @@ const CenteredPopup = ({
     }
 
     const returningHome = best.d === current;
-    let settleVy = returningHome
+    // Raw vy still used for commit (projection above); spring scales it in runSpring.
+    const settleVy = returningHome
       ? Math.max(-SAME_DETENT_VEL_CAP, Math.min(SAME_DETENT_VEL_CAP, vy * 0.35))
       : vy;
-    settleVy = handoffVelocity(y, best.y, settleVy);
 
     snapTo(best.d, {
       velocity: settleVy,
