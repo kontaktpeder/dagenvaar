@@ -196,8 +196,17 @@ const Index = () => {
     if (!coldStartRef.current) return;
     coldStartRef.current = false;
     setBootPhase('revealing');
-    markAppReady();
+    // Let the in-app veil start dissolving first so native splash doesn’t
+    // uncover a mid-compositor frame (black flash on iOS WebView).
+    window.setTimeout(() => markAppReady(), 48);
   }, []);
+
+  // Unmount veil only after fade has fully settled — no AnimatePresence exit (double-fade glitch).
+  useEffect(() => {
+    if (bootPhase !== 'revealing') return;
+    const t = window.setTimeout(() => setBootPhase('done'), 900);
+    return () => window.clearTimeout(t);
+  }, [bootPhase]);
 
   // Failsafe: never leave boot cover / splash stuck if calendar ready never fires.
   useEffect(() => {
@@ -322,45 +331,31 @@ const Index = () => {
   const canSwipeStack = orderedMemberships.length > 1;
 
   const welcomeEase = [0.22, 1, 0.36, 1] as [number, number, number, number];
-  const isBootVeil = bootPhase === 'covering' || bootPhase === 'revealing';
+  const showBootVeil = bootPhase === 'covering' || bootPhase === 'revealing';
 
   return (
     <LocaleProvider calendarLocale={(household as any).locale}>
     <div
       data-calendar-kind={calendarKind}
       className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
+      style={{ backgroundColor: '#fbf9f6' }}
     >
-      <AnimatePresence>
-        {isBootVeil && (
-          <motion.div
-            key="boot-veil"
-            className="absolute inset-0 z-[80] pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(120% 80% at 50% 35%, #fffdf9 0%, #fbf9f6 55%, #f5f1ea 100%)',
-            }}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: bootPhase === 'revealing' ? 0 : 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.85, ease: welcomeEase }}
-            onAnimationComplete={() => {
-              if (bootPhase === 'revealing') setBootPhase('done');
-            }}
-            aria-hidden
-          />
-        )}
-      </AnimatePresence>
+      {showBootVeil && (
+        <motion.div
+          className="absolute inset-0 z-[80] pointer-events-none"
+          style={{ backgroundColor: '#fbf9f6' }}
+          initial={false}
+          animate={{ opacity: bootPhase === 'revealing' ? 0 : 1 }}
+          transition={{ duration: 0.78, ease: welcomeEase }}
+          aria-hidden
+        />
+      )}
 
       <motion.div
-        className="relative z-10 flex min-h-0 flex-1 flex-col"
+        className="relative z-10 flex min-h-0 flex-1 flex-col bg-background"
         initial={false}
-        animate={
-          bootPhase === 'covering'
-            ? { opacity: 0.88, y: 14, scale: 0.985 }
-            : { opacity: 1, y: 0, scale: 1 }
-        }
-        transition={{ duration: 0.9, ease: welcomeEase, delay: bootPhase === 'revealing' ? 0.04 : 0 }}
-        style={{ transformOrigin: '50% 18%' }}
+        animate={bootPhase === 'covering' ? { y: 12 } : { y: 0 }}
+        transition={{ duration: 0.85, ease: welcomeEase }}
       >
       <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
         <CalendarSwitcher

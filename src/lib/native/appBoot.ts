@@ -16,8 +16,9 @@ export function markAppReady() {
     watchdog = null;
   }
   if (!isNativePlatform()) return;
-  // Match in-app welcome veil (~0.8s) so native splash dissolves with it.
-  void SplashScreen.hide({ fadeOutDuration: 720 }).catch(() => {
+  // Slightly shorter than the in-app veil so splash is gone before veil hits 0
+  // (avoids a black compositor gap when both layers clear on the same frame).
+  void SplashScreen.hide({ fadeOutDuration: 560 }).catch(() => {
     /* already hidden / unsupported */
   });
 }
