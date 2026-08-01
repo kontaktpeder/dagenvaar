@@ -7,15 +7,16 @@ import { COUNTDOWN_THEME_IDS, getCountdownTheme, type CountdownThemeId } from '@
 import { localDateAndTimeToIso } from '@/lib/countdownTime';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import { useLocale } from '@/hooks/useLocale';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { getMemberColor } from '@/lib/colors';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
 import CountdownCelebrateDialog from '@/components/CountdownCelebrateDialog';
 import { stepForward, stepSpring } from '@/lib/motion';
-import { focusFieldSoftly } from '@/lib/scrollFocusIntoView';
+import { focusFieldSoftly, scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
 
 const FIELD =
-  'min-w-0 box-border appearance-none rounded-xl border border-border bg-muted/50 px-4 py-3 text-base text-center focus:outline-none focus:ring-2 focus:ring-primary w-full';
+  'min-w-0 box-border appearance-none rounded-xl border border-border bg-muted/50 px-4 py-3.5 text-base leading-normal text-center focus:outline-none focus:ring-2 focus:ring-primary w-full';
 
 const EMOJI_SUGGESTIONS = ['✨', '❤️', '🌴', '✈️', '🕯️', '🎉', '🏖️', '🍷'];
 
@@ -60,13 +61,33 @@ const NewCountdownFlow = ({
 
   const others = members.filter((m) => m.id !== currentMemberId);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const keyboardInset = useKeyboardInset();
+  const keyboardOpen = keyboardInset > 24;
 
-  // Focus after sheet enter — immediate autoFocus + keyboard crushed the old layout
+  // Focus after sheet enter; re-scroll once keyboard inset lands.
   useEffect(() => {
     if (step !== 1) return;
-    const id = window.setTimeout(() => focusFieldSoftly(titleInputRef.current), 320);
+    const id = window.setTimeout(() => focusFieldSoftly(titleInputRef.current), 380);
     return () => window.clearTimeout(id);
   }, [step]);
+
+  useEffect(() => {
+    if (step !== 1 || !keyboardOpen) return;
+    const el = titleInputRef.current;
+    if (!el || document.activeElement !== el) return;
+    const a = window.setTimeout(
+      () => scrollElementIntoContainer(el, { footerReserve: 128 }),
+      60,
+    );
+    const b = window.setTimeout(
+      () => scrollElementIntoContainer(el, { footerReserve: 128 }),
+      280,
+    );
+    return () => {
+      window.clearTimeout(a);
+      window.clearTimeout(b);
+    };
+  }, [step, keyboardOpen, keyboardInset]);
 
   const handleBack = () => {
     if (step > 1) setStep((s) => s - 1);
@@ -145,23 +166,30 @@ const NewCountdownFlow = ({
 
   return (
     <CenteredPopup onClose={onClose} onExit={onClose} size="sheet" zClassName="z-[70]">
-      <div className="shrink-0 px-5 pt-1 pb-3 text-center">
-        <p className="text-3xl mb-2" aria-hidden>
-          {emoji || '✨'}
-        </p>
-        <p className="text-xs font-medium text-muted-foreground mb-1">
-          {t('countdown.step', { n: String(step), total: String(STEPS) })}
-        </p>
-        <h2 id="countdown-new-title" className="text-2xl font-bold tracking-tight mb-1">
-          {heading}
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">{hint}</p>
-      </div>
-
       <div
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-touch px-5 pb-4"
         data-sheet-scroll
       >
+        <div className={`text-center ${keyboardOpen ? 'pt-1 pb-3' : 'pt-1 pb-4'}`}>
+          {!keyboardOpen && (
+            <p className="text-3xl mb-2" aria-hidden>
+              {emoji || '✨'}
+            </p>
+          )}
+          <p className="text-xs font-medium text-muted-foreground mb-1">
+            {t('countdown.step', { n: String(step), total: String(STEPS) })}
+          </p>
+          <h2
+            id="countdown-new-title"
+            className={`font-bold tracking-tight mb-1 ${keyboardOpen ? 'text-xl' : 'text-2xl'}`}
+          >
+            {heading}
+          </h2>
+          {!keyboardOpen && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{hint}</p>
+          )}
+        </div>
+
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
@@ -180,6 +208,9 @@ const NewCountdownFlow = ({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={t('countdown.titlePlaceholder')}
                   maxLength={80}
+                  enterKeyHint="next"
+                  autoComplete="off"
+                  autoCorrect="off"
                 />
                 <div className="flex flex-wrap justify-center gap-2">
                   {EMOJI_SUGGESTIONS.map((e) => (

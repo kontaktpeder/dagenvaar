@@ -270,15 +270,6 @@ const Index = () => {
     tryOpenSheet(() => setEditEvent(event));
   };
 
-  const coverSheetActive = !!(
-    showSeedWeek ||
-    showNewEvent ||
-    showNewCountdown ||
-    editEvent ||
-    quickEditEvent ||
-    profileMode
-  );
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -362,7 +353,6 @@ const Index = () => {
             highlight={highlight}
             canSeedWeek={canSeedWeek}
             onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
-            coverSheetActive={coverSheetActive}
           />
         </motion.div>
 

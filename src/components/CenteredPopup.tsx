@@ -1,14 +1,25 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { KEYBOARD_PAD_TRANSITION } from '@/lib/motion';
 import { lockSheetDismiss, unlockSheetDismiss } from '@/lib/sheetGate';
+import {
+  getNestDepth,
+  getNestIndex,
+  nestPop,
+  nestPush,
+  subscribeNest,
+} from '@/lib/sheetNest';
 import { scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
 import {
   BODY_ACTIVATE_PX,
   COMMIT_PROJECT_SEC,
   DETENT_SPRING,
   DISMISS_VEL,
+  NEST_RECESS_EASE,
+  NEST_RECESS_MS,
+  NEST_RECESS_SCALE,
+  NEST_RECESS_Y_PX,
   NUDGE_DEADZONE_PX,
   NUDGE_VEL,
   SAME_DETENT_VEL_CAP,
@@ -20,6 +31,9 @@ import {
 } from '@/lib/sheetMotion';
 
 export type SheetDetent = 'half' | 'full';
+
+/** Extra scroll room so sticky footer + keyboard don't clip focused fields. */
+const KEYBOARD_SCROLL_FOOTER_RESERVE = 128;
 
 interface CenteredPopupProps {
   onClose: () => void;
@@ -40,6 +54,11 @@ interface CenteredPopupProps {
   zClassName?: string;
   backdrop?: 'solid' | 'none';
   onExit?: () => void;
+  /**
+   * Participate in nested sheet stack (default: sheets yes, hug no).
+   * Under-sheets recess and un-recess when a higher sheet dismisses.
+   */
+  nest?: boolean;
 }
 
 /** Visible fraction of the frame at each detent (full = flush to top inset). */
@@ -113,10 +132,12 @@ const CenteredPopup = ({
   zClassName = 'z-50',
   backdrop = 'solid',
   onExit,
+  nest: nestProp,
 }: CenteredPopupProps) => {
   const keyboardInset = useKeyboardInset();
   const keyboardOpen = keyboardInset > 24;
   const exit = onExit ?? onClose;
+  const nestEnabled = nestProp ?? size === 'sheet';
   const cardRef = useRef<HTMLDivElement>(null);
   const sheetLayerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -125,6 +146,7 @@ const CenteredPopup = ({
   const canDragRef = useRef(true);
   const frameHRef = useRef(700);
   const multiDetentRef = useRef(false);
+  const nestIdRef = useRef<number | null>(null);
   /** True while an editable inside this sheet is focused — gates drag with keyboard. */
   const [editableFocused, setEditableFocused] = useState(false);
   const yRef = useRef(
@@ -133,6 +155,8 @@ const CenteredPopup = ({
   const settleDragRef = useRef<(vy: number) => void>(() => {});
   const cancelSpringRef = useRef<(() => void) | null>(null);
   const animatingRef = useRef(false);
+
+  const nestDepth = useSyncExternalStore(subscribeNest, getNestDepth, () => 0);
 
   const detents = normalizeDetents(detentsProp ?? ['full']);
   const multiDetent = detents.length > 1 && size === 'sheet';
@@ -155,8 +179,31 @@ const CenteredPopup = ({
   const enteredRef = useRef(false);
   const dismissLockedRef = useRef(false);
 
+  useEffect(() => {
+    if (!nestEnabled) return;
+    nestIdRef.current = nestPush();
+    return () => {
+      if (nestIdRef.current != null) {
+        nestPop(nestIdRef.current);
+        nestIdRef.current = null;
+      }
+    };
+  }, [nestEnabled]);
+
+  const releaseNest = () => {
+    if (nestIdRef.current != null) {
+      nestPop(nestIdRef.current);
+      nestIdRef.current = null;
+    }
+  };
+
+  const myNestIndex =
+    nestIdRef.current != null ? getNestIndex(nestIdRef.current) : -1;
+  const isRecessed =
+    nestEnabled && myNestIndex >= 0 && nestDepth > myNestIndex + 1;
+
   // Don't lock drag on stale keyboardInset alone (native hide can miss).
-  const canDrag = !flyingOut && !(keyboardOpen && editableFocused);
+  const canDrag = !flyingOut && !isRecessed && !(keyboardOpen && editableFocused);
   canDragRef.current = canDrag;
   flyingOutRef.current = flyingOut;
   frameHRef.current = frameH;
@@ -326,7 +373,9 @@ const CenteredPopup = ({
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-    const pad = keyboardOpen ? `${Math.min(keyboardInset, Math.round(window.innerHeight * 0.5))}px` : '';
+    const pad = keyboardOpen
+      ? `${Math.min(keyboardInset, Math.round(window.innerHeight * 0.5)) + KEYBOARD_SCROLL_FOOTER_RESERVE}px`
+      : '';
     card.querySelectorAll<HTMLElement>('[data-sheet-scroll]').forEach((el) => {
       el.style.paddingBottom = pad;
     });
@@ -336,12 +385,13 @@ const CenteredPopup = ({
   useEffect(() => {
     const card = cardRef.current;
     if (!card || !keyboardOpen) return;
+    const reserve = KEYBOARD_SCROLL_FOOTER_RESERVE;
     const onFocusIn = (event: FocusEvent) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
       if (!target.matches('input, textarea, select, [contenteditable="true"]')) return;
-      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: 96 }), 80);
-      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: 96 }), 280);
+      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: reserve }), 80);
+      window.setTimeout(() => scrollElementIntoContainer(target, { footerReserve: reserve }), 280);
     };
     card.addEventListener('focusin', onFocusIn);
     return () => card.removeEventListener('focusin', onFocusIn);
@@ -366,6 +416,8 @@ const CenteredPopup = ({
     setFlyingOut(true);
     setBackdropOpen(false);
     gestureRef.current = null;
+    // Un-recess under-sheets now — parallel with fly-out, not after unmount.
+    releaseNest();
     if (!dismissLockedRef.current) {
       dismissLockedRef.current = true;
       lockSheetDismiss();
@@ -577,19 +629,29 @@ const CenteredPopup = ({
   const useSheetLayout = size === 'sheet';
   const initialY = yRef.current;
 
+  const recessTransform = isRecessed
+    ? `translate3d(0, ${NEST_RECESS_Y_PX}px, 0) scale(${NEST_RECESS_SCALE})`
+    : 'translate3d(0, 0, 0) scale(1)';
+
   return (
     <div
-      className={cn('fixed inset-0', zClassName, flyingOut && 'pointer-events-none')}
+      className={cn(
+        'fixed inset-0',
+        zClassName,
+        (flyingOut || isRecessed) && 'pointer-events-none',
+      )}
+      aria-hidden={isRecessed || undefined}
     >
       <div
         className="absolute inset-0 transition-opacity"
         style={{
           backgroundColor: backdrop === 'solid' ? 'hsl(var(--foreground))' : 'transparent',
+          // Keep dim while nested so calendar doesn't flash when the cover flies out.
           opacity: backdrop === 'solid' && backdropOpen ? maxDim : 0,
-          transitionDuration: flyingOut ? '240ms' : '200ms',
-          transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+          transitionDuration: flyingOut ? '240ms' : `${NEST_RECESS_MS}ms`,
+          transitionTimingFunction: NEST_RECESS_EASE,
         }}
-        onClick={flyingOut ? undefined : () => flyOutThenDismiss()}
+        onClick={flyingOut || isRecessed ? undefined : () => flyOutThenDismiss()}
         aria-hidden
       />
 
@@ -604,7 +666,8 @@ const CenteredPopup = ({
         <div
           ref={sheetLayerRef}
           className={cn(
-            'pointer-events-auto relative z-10 flex w-full max-w-md min-h-0',
+            'relative z-10 flex w-full max-w-md min-h-0',
+            !isRecessed && 'pointer-events-auto',
             useSheetLayout
               ? 'h-full max-h-full self-stretch md:max-w-xl'
               : 'h-auto max-h-[min(92dvh,100%)]',
@@ -613,46 +676,58 @@ const CenteredPopup = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            ref={cardRef}
-            role="dialog"
-            aria-modal="true"
             className={cn(
-              'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
-              'rounded-t-[1.25rem] rounded-b-none',
+              'flex min-h-0 w-full origin-top',
               useSheetLayout ? 'h-full' : 'h-auto max-h-full',
-              className,
             )}
+            style={{
+              transform: recessTransform,
+              transition: `transform ${NEST_RECESS_MS}ms ${NEST_RECESS_EASE}`,
+              willChange: isRecessed ? 'transform' : undefined,
+            }}
           >
             <div
-              data-sheet-grabber
-              className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-1.5 pb-1"
-              style={{ touchAction: 'none' }}
+              ref={cardRef}
+              role="dialog"
+              aria-modal={!isRecessed}
+              className={cn(
+                'relative flex min-h-0 w-full flex-col overflow-hidden bg-background shadow-soft-lg',
+                'rounded-t-[1.25rem] rounded-b-none',
+                useSheetLayout ? 'h-full' : 'h-auto max-h-full',
+                className,
+              )}
             >
-              <div className="w-11" aria-hidden />
-              <button
-                type="button"
-                className="flex flex-1 items-center justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
-                aria-label="Dra sheet"
-                tabIndex={-1}
+              <div
+                data-sheet-grabber
+                className="relative z-30 flex shrink-0 items-center justify-between px-3 pt-1.5 pb-1"
+                style={{ touchAction: 'none' }}
               >
-                <span className="block h-1.5 w-12 rounded-full bg-muted-foreground/40" />
-              </button>
-              <button
-                type="button"
-                data-sheet-close
-                onClick={(e) => {
-                  e.stopPropagation();
-                  flyOutThenDismiss();
-                }}
-                className="relative z-40 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
-                aria-label="Lukk"
-              >
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-                  <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
+                <div className="w-11" aria-hidden />
+                <button
+                  type="button"
+                  className="flex flex-1 items-center justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
+                  aria-label="Dra sheet"
+                  tabIndex={-1}
+                >
+                  <span className="block h-1.5 w-12 rounded-full bg-muted-foreground/40" />
+                </button>
+                <button
+                  type="button"
+                  data-sheet-close
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    flyOutThenDismiss();
+                  }}
+                  className="relative z-40 w-11 h-11 flex items-center justify-center rounded-full bg-muted/90 text-muted-foreground"
+                  aria-label="Lukk"
+                >
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
+                    <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+              {children}
             </div>
-            {children}
           </div>
         </div>
       </div>
