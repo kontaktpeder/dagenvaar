@@ -202,12 +202,14 @@ const ProfileSheet = ({
       setJoinError('');
       setJoinCode('');
       setShowJoin(false);
+      // Refresh memberships first so the new calendar can become active immediately.
+      await queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
+      await queryClient.invalidateQueries();
       if (newId) {
         setStoredActiveHouseholdId(newId);
-        onSelectCalendar(newId);
         setWelcomeIntent('join', newId);
+        onSelectCalendar(newId);
       }
-      await queryClient.invalidateQueries();
       onClose();
     },
     onError: (err: any) => {
@@ -235,12 +237,13 @@ const ProfileSheet = ({
     onSuccess: async (data) => {
       setCreateError('');
       setShowCreate(false);
+      await queryClient.invalidateQueries({ queryKey: ['current-household-context'] });
+      await queryClient.invalidateQueries();
       if (data?.id) {
         setStoredActiveHouseholdId(data.id);
-        onSelectCalendar(data.id);
         setWelcomeIntent('create', data.id);
+        onSelectCalendar(data.id);
       }
-      await queryClient.invalidateQueries();
       onClose();
     },
     onError: (err: any) => {

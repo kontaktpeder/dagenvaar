@@ -73,18 +73,37 @@ export function useCurrentHouseholdContext() {
   );
 
   useEffect(() => {
-    if (!activeMembership) {
-      if (memberships.length === 0 && activeHouseholdId) {
+    if (memberships.length === 0) {
+      if (activeHouseholdId) {
         clearStoredActiveHouseholdId();
         setActiveHouseholdIdState(null);
       }
       return;
     }
+
+    const preferredExists = !!activeHouseholdId
+      && memberships.some((m) => m.household_id === activeHouseholdId);
+
+    // Keep an explicit preference while memberships are refetching (e.g. just joined).
+    // Overwriting here used to snap back to the previous calendar before the new
+    // membership appeared in the query result.
+    if (activeHouseholdId && !preferredExists && (query.isFetching || query.isLoading)) {
+      return;
+    }
+
+    if (!activeMembership) return;
+
     if (activeHouseholdId !== activeMembership.household_id) {
       setActiveHouseholdIdState(activeMembership.household_id);
       setStoredActiveHouseholdId(activeMembership.household_id);
     }
-  }, [activeMembership, activeHouseholdId, memberships.length]);
+  }, [
+    activeMembership,
+    activeHouseholdId,
+    memberships,
+    query.isFetching,
+    query.isLoading,
+  ]);
 
   const setActiveHouseholdId = useCallback((id: string) => {
     setActiveHouseholdIdState(id);

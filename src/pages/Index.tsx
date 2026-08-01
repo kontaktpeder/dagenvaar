@@ -467,7 +467,11 @@ const Index = () => {
             members={members}
             currentMember={currentMember}
             memberships={orderedMemberships}
-            onSelectCalendar={(id) => selectCalendar(id)}
+            onSelectCalendar={(id) => {
+              // Always pin the active id first (join/create), then animate if possible.
+              setActiveHouseholdId(id);
+              selectCalendar(id);
+            }}
             onClose={() => setProfileMode(null)}
             onSignOut={handleSignOut}
           />
