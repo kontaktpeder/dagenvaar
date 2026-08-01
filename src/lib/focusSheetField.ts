@@ -9,20 +9,26 @@ import { scrollElementIntoContainer } from '@/lib/scrollFocusIntoView';
  */
 export function focusSheetField(el: HTMLElement | null, opts?: { footerReserve?: number }) {
   if (!el) return;
-  try {
-    el.focus({ preventScroll: true });
-  } catch {
-    el.focus();
-  }
 
-  if (isNativePlatform()) {
-    void Keyboard.show().catch(() => {
-      /* webview may ignore if not editable-focused yet */
-    });
-  }
+  const focusNow = () => {
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+    if (isNativePlatform()) {
+      void Keyboard.show().catch(() => {
+        /* webview may ignore if not editable-focused yet */
+      });
+    }
+  };
+
+  // Sync focus first — required to keep iOS user-gesture for the keyboard.
+  focusNow();
 
   const reserve = opts?.footerReserve ?? 128;
   window.requestAnimationFrame(() => {
+    focusNow();
     scrollElementIntoContainer(el, { footerReserve: reserve });
   });
   window.setTimeout(() => scrollElementIntoContainer(el, { footerReserve: reserve }), 200);

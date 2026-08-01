@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -99,11 +100,18 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
     return () => window.clearTimeout(t);
   }, [showNotes]);
 
-  // «Hva?» — focus + keyboard in the same turn as Next tap
-  useLayoutEffect(() => {
-    if (step !== 3) return;
-    focusSheetField(titleRef.current, { footerReserve: 128 });
-  }, [step]);
+  /** Advance steps; on «Hva?» focus in the same tap turn so iOS opens the keyboard. */
+  const goNext = () => {
+    if (step >= STEPS) return;
+    const next = step + 1;
+    if (next === 3) {
+      // mode=wait would delay mount past the user gesture — mount sync, then focus.
+      flushSync(() => setStep(3));
+      focusSheetField(titleRef.current, { footerReserve: 128 });
+      return;
+    }
+    setStep(next);
+  };
 
   const canProceed =
     step === 2 ? category !== null :
@@ -309,7 +317,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
 
       {/* Content */}
       <div className="flex-1 px-5 overflow-y-auto min-h-0 pb-4 overscroll-contain scroll-touch" data-sheet-scroll>
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence initial={false}>
           {step === 1 && (
             <motion.div key="step1" {...stepForward} className="space-y-6">
               <h2 className="text-2xl font-bold">{t('event.when')}</h2>
@@ -704,7 +712,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
 
       <PopupStickyFooter>
         <button
-          onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
+          type="button"
+          onClick={step < STEPS ? goNext : handleSubmit}
           disabled={!canProceed || createEvent.isPending}
           className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
         >

@@ -167,11 +167,6 @@ const NewCountdownFlow = ({
   const needsScroll = step >= 3;
   const header = (
     <div className={`text-center shrink-0 ${keyboardOpen && step === 1 ? 'pt-1 pb-3' : 'pt-1 pb-4'}`}>
-      {!(keyboardOpen && step === 1) && (
-        <p className="text-3xl mb-2" aria-hidden>
-          {emoji || '✨'}
-        </p>
-      )}
       <p className="text-xs font-medium text-muted-foreground mb-1">
         {t('countdown.step', { n: String(step), total: String(STEPS) })}
       </p>
@@ -188,7 +183,7 @@ const NewCountdownFlow = ({
   );
 
   const stepBody = (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence initial={false}>
       <motion.div
         key={step}
         initial={stepForward.initial}
@@ -198,33 +193,17 @@ const NewCountdownFlow = ({
         className="space-y-4 text-left"
       >
         {step === 1 && (
-          <>
-            <input
-              ref={titleInputRef}
-              className={FIELD}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('countdown.titlePlaceholder')}
-              maxLength={80}
-              enterKeyHint="next"
-              autoComplete="off"
-              autoCorrect="off"
-            />
-            <div className="flex flex-wrap justify-center gap-2">
-              {EMOJI_SUGGESTIONS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEmoji(e)}
-                  className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-colors ${
-                    emoji === e ? 'bg-green-200 ring-2 ring-green-300/60' : 'bg-muted'
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </>
+          <input
+            ref={titleInputRef}
+            className={FIELD}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('countdown.titlePlaceholder')}
+            maxLength={80}
+            enterKeyHint="next"
+            autoComplete="off"
+            autoCorrect="off"
+          />
         )}
 
         {step === 2 && (
@@ -257,26 +236,48 @@ const NewCountdownFlow = ({
         )}
 
         {step === 3 && (
-          <div className="grid grid-cols-2 gap-2.5">
-            {COUNTDOWN_THEME_IDS.map((id) => {
-              const meta = getCountdownTheme(id);
-              const selected = theme === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTheme(id)}
-                  className={`rounded-2xl p-4 text-center transition-shadow ${
-                    selected ? 'ring-2 ring-foreground/25 shadow-soft' : ''
-                  }`}
-                  style={{ background: meta.gradient }}
-                >
-                  <span className="font-semibold text-sm text-foreground/90">
-                    {locale === 'en' ? meta.labelEn : meta.labelNb}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="space-y-5">
+            <div>
+              <p className="text-sm font-medium mb-2 text-center">{t('countdown.emojiLabel')}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {EMOJI_SUGGESTIONS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setEmoji(e)}
+                    className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-colors ${
+                      emoji === e ? 'bg-green-200 ring-2 ring-green-300/60' : 'bg-muted'
+                    }`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {COUNTDOWN_THEME_IDS.map((id) => {
+                const meta = getCountdownTheme(id);
+                const selected = theme === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTheme(id)}
+                    className={`rounded-2xl p-4 text-center transition-shadow ${
+                      selected ? 'ring-2 ring-foreground/25 shadow-soft' : ''
+                    }`}
+                    style={{ background: meta.gradient }}
+                  >
+                    <span className="block text-xl mb-1" aria-hidden>
+                      {emoji || '✨'}
+                    </span>
+                    <span className="font-semibold text-sm text-foreground/90">
+                      {locale === 'en' ? meta.labelEn : meta.labelNb}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
