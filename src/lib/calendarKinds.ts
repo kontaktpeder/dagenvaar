@@ -52,6 +52,7 @@ export function calendarKindLabelLocalized(
   return resolveCalendarKind(source) === 'work' ? t('kind.work') : t('kind.home');
 }
 
-export function defaultShowInOtherCalendars(kind: CalendarKind): boolean {
-  return kind === 'work';
+/** Both home and work leak to other calendars by default; members can opt out. */
+export function defaultShowInOtherCalendars(_kind: CalendarKind): boolean {
+  return true;
 }

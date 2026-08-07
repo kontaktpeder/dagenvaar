@@ -11,6 +11,7 @@ import {
   Flag,
   Target,
   ClipboardList,
+  User,
   type LucideIcon,
 } from 'lucide-react';
 import type { CalendarKind } from '@/lib/calendarKinds';
@@ -31,6 +32,7 @@ export type WorkEventCategory =
   | 'production'
   | 'development'
   | 'admin'
+  | 'personal'
   | 'travel'
   | 'other';
 
@@ -121,6 +123,13 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-purple-500',
   },
+  personal: {
+    label: 'Personal',
+    Icon: User,
+    chipBg: 'bg-orange-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-orange-500',
+  },
   // Legacy — still render old events
   client: {
     label: 'Kunde',
@@ -162,12 +171,13 @@ export const HOME_CATEGORY_OPTIONS: EventCategory[] = [
   'other',
 ];
 
-/** Aligns with WORK core work_types (+ Reise). */
+/** Aligns with WORK core work_types (+ Personal, Reise). */
 export const WORK_CATEGORY_OPTIONS: EventCategory[] = [
   'meeting',
   'production',
   'development',
   'admin',
+  'personal',
   'travel',
   'other',
 ];
@@ -201,11 +211,12 @@ export const CATEGORY_SORT_ORDER: Record<string, number> = {
   production: 4,
   development: 5,
   admin: 6,
-  client: 7,
-  focus: 8,
-  couple: 9,
-  celebration: 10,
-  social: 11,
-  travel: 12,
-  other: 13,
+  personal: 7,
+  client: 8,
+  focus: 9,
+  couple: 10,
+  celebration: 11,
+  social: 12,
+  travel: 13,
+  other: 14,
 };

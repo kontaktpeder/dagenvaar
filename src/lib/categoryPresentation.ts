@@ -22,6 +22,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   production: 'green',
   development: 'blue',
   admin: 'purple',
+  personal: 'orange',
   // Legacy
   client: 'teal',
   deadline: 'orange',
