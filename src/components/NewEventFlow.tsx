@@ -18,7 +18,7 @@ import type { HouseholdMember } from '@/hooks/useHousehold';
 import { useLocale } from '@/hooks/useLocale';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
-import { focusSheetField } from '@/lib/focusSheetField';
+import { blurSheetField, focusSheetField } from '@/lib/focusSheetField';
 import { focusFieldSoftly, scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { stepForward, stepSpring } from '@/lib/motion';
 import { cn } from '@/lib/utils';
@@ -125,6 +125,8 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
       goToWhatStep();
       return;
     }
+    // Dismiss date/time keyboard so sticky Neste isn't left floating on Kategori.
+    if (step === 1) blurSheetField();
     setStep((s) => s + 1);
   };
 

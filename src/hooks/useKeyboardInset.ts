@@ -4,9 +4,10 @@ import { isNativePlatform } from '@/lib/native/platform';
 
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable="true"]';
 
-function isEditableFocused(): boolean {
+export function isEditableFocused(): boolean {
   const ae = document.activeElement;
   if (!ae || ae === document.body) return false;
+  if (!(ae instanceof HTMLElement)) return false;
   return ae.matches(EDITABLE_SELECTOR);
 }
 
@@ -17,22 +18,34 @@ function isEditableFocused(): boolean {
  * With Keyboard.resize: 'none', visualViewport often stays full-height while the
  * keyboard is open — Capacitor events own the inset. Hide events can miss on iOS,
  * so we also clear when focus leaves editable fields.
+ *
+ * A positive inset is only reported while an editable field is focused. That
+ * prevents sticky footers from floating mid-sheet after a stale native hide.
  */
 export function useKeyboardInset(): number {
-  const [inset, setInset] = useState(0);
+  const [rawInset, setRawInset] = useState(0);
+  const [editableFocused, setEditableFocused] = useState(() =>
+    typeof document !== 'undefined' ? isEditableFocused() : false,
+  );
 
   useEffect(() => {
     let cancelled = false;
     const handles: { remove: () => Promise<void> }[] = [];
     let focusOutTimerA = 0;
     let focusOutTimerB = 0;
+    let showReconcileTimer = 0;
+    const native = isNativePlatform();
 
-    const setSafe = (value: number) => {
+    const setRaw = (value: number) => {
       const next = Math.max(0, Math.round(value));
-      if (!cancelled) {
-        setInset(next);
-        document.documentElement.style.setProperty('--keyboard-inset', `${next}px`);
-      }
+      if (!cancelled) setRawInset(next);
+    };
+
+    const syncFocus = () => {
+      if (cancelled) return;
+      const focused = isEditableFocused();
+      setEditableFocused(focused);
+      if (!focused) setRaw(0);
     };
 
     const fromVisualViewport = () => {
@@ -43,12 +56,28 @@ export function useKeyboardInset(): number {
       return overlap < 48 ? 0 : overlap;
     };
 
-    const syncViewport = () => setSafe(fromVisualViewport());
+    const syncViewport = () => {
+      if (native) {
+        // Capacitor owns the inset; vv often stays full-height with resize:none.
+        if (!isEditableFocused()) {
+          setRaw(0);
+          setEditableFocused(false);
+        }
+        return;
+      }
+      if (!isEditableFocused()) {
+        setRaw(0);
+        setEditableFocused(false);
+        return;
+      }
+      setRaw(fromVisualViewport());
+      setEditableFocused(true);
+    };
 
     /** Clear stale inset when nothing editable is focused (native hide can miss). */
     const clearIfBlurred = () => {
-      if (!isEditableFocused()) setSafe(0);
-      else if (!isNativePlatform()) syncViewport();
+      syncFocus();
+      if (isEditableFocused() && !native) syncViewport();
     };
 
     const vv = window.visualViewport;
@@ -58,6 +87,14 @@ export function useKeyboardInset(): number {
     }
     window.addEventListener('resize', syncViewport);
 
+    const onFocusIn = () => {
+      window.clearTimeout(focusOutTimerA);
+      window.clearTimeout(focusOutTimerB);
+      syncFocus();
+      // Web: measure overlap now that a field is focused.
+      if (!native && isEditableFocused()) syncViewport();
+    };
+
     const onFocusOut = () => {
       window.clearTimeout(focusOutTimerA);
       window.clearTimeout(focusOutTimerB);
@@ -66,30 +103,56 @@ export function useKeyboardInset(): number {
       focusOutTimerB = window.setTimeout(clearIfBlurred, 360);
     };
 
-    // Web + native: focusout clears stuck inset when keyboard hide events miss.
-    document.addEventListener('focusout', onFocusOut);
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        setRaw(0);
+        setEditableFocused(false);
+      } else {
+        syncFocus();
+      }
+    };
 
-    if (isNativePlatform()) {
-      void Keyboard.addListener('keyboardWillShow', (info) => {
-        setSafe(info.keyboardHeight || fromVisualViewport());
-      }).then((h) => {
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const applyNativeShow = (info: { keyboardHeight?: number }) => {
+      const height = info.keyboardHeight || fromVisualViewport();
+      if (!isEditableFocused()) {
+        // Show can race ahead of focus; keep inset only if focus lands shortly.
+        window.clearTimeout(showReconcileTimer);
+        showReconcileTimer = window.setTimeout(() => {
+          if (!isEditableFocused()) {
+            setRaw(0);
+            setEditableFocused(false);
+          } else {
+            setRaw(height);
+            setEditableFocused(true);
+          }
+        }, 80);
+        return;
+      }
+      setRaw(height);
+      setEditableFocused(true);
+    };
+
+    if (native) {
+      void Keyboard.addListener('keyboardWillShow', applyNativeShow).then((h) => {
         if (!cancelled) handles.push(h);
         else void h.remove();
       });
-      void Keyboard.addListener('keyboardDidShow', (info) => {
-        setSafe(info.keyboardHeight || fromVisualViewport());
-      }).then((h) => {
+      void Keyboard.addListener('keyboardDidShow', applyNativeShow).then((h) => {
         if (!cancelled) handles.push(h);
         else void h.remove();
       });
       void Keyboard.addListener('keyboardWillHide', () => {
-        setSafe(0);
+        setRaw(0);
       }).then((h) => {
         if (!cancelled) handles.push(h);
         else void h.remove();
       });
       void Keyboard.addListener('keyboardDidHide', () => {
-        setSafe(0);
+        setRaw(0);
       }).then((h) => {
         if (!cancelled) handles.push(h);
         else void h.remove();
@@ -104,12 +167,21 @@ export function useKeyboardInset(): number {
       vv?.removeEventListener('resize', syncViewport);
       vv?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
+      document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.clearTimeout(focusOutTimerA);
       window.clearTimeout(focusOutTimerB);
+      window.clearTimeout(showReconcileTimer);
       handles.forEach((h) => void h.remove());
     };
   }, []);
 
-  return inset;
+  // Mirror effective value to CSS for any non-React readers.
+  useEffect(() => {
+    const effective = editableFocused ? rawInset : 0;
+    document.documentElement.style.setProperty('--keyboard-inset', `${effective}px`);
+  }, [editableFocused, rawInset]);
+
+  return editableFocused ? rawInset : 0;
 }

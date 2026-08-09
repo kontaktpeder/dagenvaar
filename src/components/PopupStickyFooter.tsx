@@ -11,6 +11,9 @@ interface PopupStickyFooterProps {
  * Footer pinned to the bottom of a CenteredPopup card.
  * Translates above the keyboard without shrinking the sheet frame
  * (frame keyboard padding was crushing flex-1 content).
+ *
+ * useKeyboardInset only reports a positive inset while an editable field is
+ * focused, so Neste/CTAs stay at the sheet bottom on non-input steps (e.g. Kategori).
  */
 const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
   const keyboardInset = useKeyboardInset();
@@ -20,7 +23,7 @@ const PopupStickyFooter = ({ children, className }: PopupStickyFooterProps) => {
     <div
       data-sheet-footer
       className={cn(
-        'shrink-0 bg-background border-t border-border/60 px-5 pt-3',
+        'relative z-20 shrink-0 bg-background border-t border-border/60 px-5 pt-3',
         keyboardOpen ? 'pb-3' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
         className,
       )}
