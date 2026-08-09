@@ -17,6 +17,7 @@ import { buildEventUpdatePatch } from '@/lib/buildEventUpdatePatch';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import CenteredPopup from '@/components/CenteredPopup';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { blurSheetField } from '@/lib/focusSheetField';
 import { scrollFocusIntoView } from '@/lib/scrollFocusIntoView';
 import { stepForward, stepSpring } from '@/lib/motion';
 import { useLocale } from '@/hooks/useLocale';
@@ -238,6 +239,13 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
   const handleDismiss = () => {
     if (step > 1) setStep((s) => s - 1);
     else onClose();
+  };
+
+  const goNext = () => {
+    if (step >= STEPS) return;
+    // Dismiss date/time keyboard so sticky Neste isn't left floating on Kategori.
+    if (step === 1) blurSheetField();
+    setStep((s) => s + 1);
   };
 
   const handleSubmit = async () => {
@@ -548,7 +556,7 @@ const EditEventFlow = ({ event, householdId, members, currentMemberId, calendarK
       {/* Bottom button */}
       <PopupStickyFooter>
         <button
-          onClick={step < STEPS ? () => setStep((s) => s + 1) : handleSubmit}
+          onClick={step < STEPS ? goNext : handleSubmit}
           disabled={!canProceed || updateEvent.isPending}
           className="w-full rounded-2xl bg-green-200 text-green-900 py-3.5 font-semibold disabled:opacity-40 transition-all text-base hover:bg-green-300"
         >
