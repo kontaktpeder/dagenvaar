@@ -52,15 +52,15 @@ const CalendarSwitcher = ({
                 ))}
               </span>
               <ChevronDown
-                size={18}
+                size={16}
                 strokeWidth={2.25}
                 className={`text-muted-foreground transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
               />
             </span>
           )}
           <span className="min-w-0">
-            <span className="block text-xl font-bold tracking-tight truncate">{household.name}</span>
-            <span className="block text-[11px] font-medium text-muted-foreground leading-tight">
+            <span className="block text-lg font-bold tracking-tight truncate leading-tight">{household.name}</span>
+            <span className="block text-[10px] font-medium text-muted-foreground leading-tight">
               {calendarKindLabelLocalized(household, t)}
             </span>
           </span>

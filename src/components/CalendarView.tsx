@@ -262,18 +262,25 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
     overlayRange.end,
   );
 
-  // Hold marks empty until the active month has fetched — avoids empty→full pop on open.
+  // Hold marks empty only until first ready paint — avoid blanking on month swipe when cache hits.
   const [marksVisible, setMarksVisible] = useState(false);
-  const events = monthFetched ? (eventsRaw ?? []) : [];
+  const events = monthFetched || monthError ? (eventsRaw ?? []) : [];
   const overlayEvents = overlayFetched || overlayError ? (overlayRaw ?? []) : [];
 
   useEffect(() => {
     setMarksVisible(false);
-  }, [householdId, year, month]);
+  }, [householdId]);
 
   // Reveal marks + signal ready together (after month + overlay, or short wait).
   useEffect(() => {
     if (!monthFetched && !monthError) return;
+    if (marksVisible) {
+      // Already showing — month swipe with cached data; keep marks, still notify ready.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => onReady?.());
+      });
+      return;
+    }
 
     let cancelled = false;
     const finish = () => {
@@ -303,6 +310,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
     householdId,
     year,
     month,
+    marksVisible,
   ]);
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
@@ -556,7 +564,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
         <div className="relative rounded-b-3xl overflow-hidden shrink-0">
-          <div className="relative h-[4.25rem] overflow-hidden">
+          <div className="relative h-14 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -582,7 +590,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 min-h-11 px-3 rounded-full bg-white/25 active:bg-white/40 text-white text-xs font-semibold tracking-wide backdrop-blur-sm"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide backdrop-blur-sm"
             >
               I dag
             </button>
@@ -590,11 +598,11 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         </div>
 
         <div className="bg-transparent relative">
-          <div className="flex px-2 py-3.5 sm:px-4">
+          <div className="flex px-2 py-2 sm:px-4">
             <div className="w-5 shrink-0" aria-hidden />
             <div className="grid grid-cols-7 flex-1 min-w-0">
               {WEEKDAYS.map((d, i) => (
-                <div key={d} className={`text-center text-[12px] font-semibold uppercase tracking-[0.12em] ${
+                <div key={d} className={`text-center text-[11px] font-semibold uppercase tracking-[0.12em] ${
                   i >= 5 ? 'text-primary/50' : 'text-foreground/40'
                 }`}>
                   {d}
@@ -778,10 +786,10 @@ const MonthHeaderPanel = ({
   >
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="text-center">
-        <h2 className="text-xl font-extrabold capitalize text-current tracking-wide">{label}</h2>
+        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="text-xl font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
+      <h2 className="text-lg font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
@@ -841,7 +849,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1.5 pb-4 sm:px-4 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-4 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -852,7 +860,7 @@ const MonthPanel = ({
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
             className={`flex flex-1 min-h-0 gap-x-1 ${
-              weekIndex > 0 ? 'border-t border-border/25 pt-1' : ''
+              weekIndex > 0 ? 'border-t border-border/25 pt-0.5' : ''
             }`}
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
@@ -923,15 +931,13 @@ interface DayCellProps {
 }
 
 /** Max single-day marks shown before +N overflow */
-const MAX_VISIBLE_MARKS = 4;
+const MAX_VISIBLE_MARKS = 5;
 /** Shared calendar mark size — single-day icons and multi-day rail icons */
-const CAL_ICON_SIZE = 9;
+const CAL_ICON_SIZE = 10;
 const CAL_ICON_STROKE = 1.75;
-/** Chip — compact pastell bak ikonet */
-const MARK_CHIP = 'w-[13px] h-[13px]';
-/** Row height for marks / span lanes (fits chip); rail bar is thinner inside */
-const SPAN_ROW_H = 'h-[13px]';
-const SPAN_RAIL_BAR = 'h-[7px]';
+/** Chip / rail — same height so start icon sits cleanly on the span bar */
+const MARK_CHIP = 'w-[14px] h-[14px]';
+const SPAN_ROW_H = 'h-[14px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
@@ -1049,12 +1055,12 @@ const DayCell = ({
       {...longPressHandlers}
       onClick={handleClick}
       aria-label={dayAriaLabel}
-      className={`relative flex flex-col items-center justify-start pt-1 pb-1 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
+      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
         isHighlighted ? 'ring-2 ring-primary/40' : ''
       }`}
     >
       <span
-        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[13px] font-semibold ${
+        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[12px] font-semibold ${
           weekend && !today ? 'opacity-60' : ''
         }`}
         style={
@@ -1080,7 +1086,7 @@ const DayCell = ({
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
         <div
-          className="mt-1 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
@@ -1109,7 +1115,7 @@ const DayCell = ({
               >
                 <div
                   aria-hidden
-                  className={`absolute top-1/2 -translate-y-1/2 ${SPAN_RAIL_BAR} ${railPos} ${visuals.railBg} ${
+                  className={`absolute inset-y-0 ${railPos} ${visuals.railBg} ${
                     seg.isStart ? 'rounded-l-full' : ''
                   } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
@@ -1134,7 +1140,7 @@ const DayCell = ({
 
       {rows.length > 0 && (
         <div
-          className="mt-1 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {rows.map((row, i) => (

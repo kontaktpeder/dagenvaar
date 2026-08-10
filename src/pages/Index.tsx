@@ -363,7 +363,7 @@ const Index = () => {
         animate={bootPhase === 'covering' ? { y: 12 } : { y: 0 }}
         transition={{ duration: 0.85, ease: welcomeEase }}
       >
-      <header className="flex items-center justify-between gap-4 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 z-10">
+      <header className="flex items-center justify-between gap-3 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-1 z-10">
         <CalendarSwitcher
           household={household}
           memberships={orderedMemberships}
@@ -383,7 +383,7 @@ const Index = () => {
               tryOpenSheet(() => setProfileMode('account'));
             });
           }}
-          className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden shadow-sm"
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shadow-sm"
           style={
             !currentMember.avatar_url
               ? { backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))` }
