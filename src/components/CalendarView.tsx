@@ -925,11 +925,13 @@ interface DayCellProps {
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 4;
 /** Shared calendar mark size — single-day icons and multi-day rail icons */
-const CAL_ICON_SIZE = 11;
-const CAL_ICON_STROKE = 2;
-/** Chip / rail — roomy pastell bak ikonet; samme høyde for endags og flerdagers */
-const MARK_CHIP = 'w-[17px] h-[17px]';
-const SPAN_RAIL_H = 'h-[17px]';
+const CAL_ICON_SIZE = 9;
+const CAL_ICON_STROKE = 1.75;
+/** Chip — compact pastell bak ikonet */
+const MARK_CHIP = 'w-[13px] h-[13px]';
+/** Row height for marks / span lanes (fits chip); rail bar is thinner inside */
+const SPAN_ROW_H = 'h-[13px]';
+const SPAN_RAIL_BAR = 'h-[7px]';
 
 /** Pack single-day icons: side-by-side only when same category (max 2 per row). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
