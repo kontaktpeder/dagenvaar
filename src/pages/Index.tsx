@@ -34,6 +34,7 @@ import type { Event } from '@/hooks/useEvents';
 import { tryOpenSheet } from '@/lib/sheetGate';
 import { markAppReady } from '@/lib/native/appBoot';
 import BootVeil from '@/components/BootVeil';
+import { peekPendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 
 export type Highlight = { eventId: string; dateStr: string; ts: number } | null;
 
@@ -113,6 +114,19 @@ const Index = () => {
     },
     [household, orderedMemberships, setActiveHouseholdId],
   );
+
+  // Push tap may target another calendar — switch first; CalendarView opens the day.
+  useEffect(() => {
+    if (!household) return;
+    const maybeSwitch = (householdId: string | null | undefined) => {
+      if (!householdId || householdId === household.id) return;
+      if (!orderedMemberships.some((m) => m.household_id === householdId)) return;
+      selectCalendar(householdId);
+    };
+    const pending = peekPendingOpenDay();
+    if (pending?.householdId) maybeSwitch(pending.householdId);
+    return subscribePendingOpenDay((value) => maybeSwitch(value.householdId));
+  }, [household, orderedMemberships, selectCalendar]);
 
   const handleSwipeCalendarStack = useCallback(
     (direction: 1 | -1) => {
@@ -412,6 +426,7 @@ const Index = () => {
             canSeedWeek={canSeedWeek}
             onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
             onReady={handleCalendarReady}
+            showInOtherCalendars={!!currentMember.show_in_other_calendars}
           />
         </motion.div>
 
@@ -430,6 +445,7 @@ const Index = () => {
             onQuickEditEvent={(ev) => tryOpenSheet(() => setQuickEditEvent(ev))}
             onSeedWeek={() => tryOpenSheet(() => setShowSeedWeek(true))}
             onSwitchCalendar={(id) => selectCalendar(id)}
+            showInOtherCalendars={!!currentMember.show_in_other_calendars}
           />
         </aside>
       </main>

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths, getISOWeek } from 'date-fns';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import {
   mergeEventsWithOverlays,
@@ -33,7 +33,7 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fadeQuick } from '@/lib/motion';
 import { tryOpenSheet } from '@/lib/sheetGate';
-import { consumePendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
+import { consumePendingOpenDay, peekPendingOpenDay, subscribePendingOpenDay } from '@/lib/native/pendingOpenDay';
 import {
   consumePendingOpenCountdown,
   peekPendingOpenCountdown,
@@ -61,6 +61,7 @@ interface CalendarViewProps {
   onSeedWeek?: () => void;
   /** Fires once current-month (+overlay) data is ready for a controlled cold start. */
   onReady?: () => void;
+  showInOtherCalendars?: boolean;
 }
 
 const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
@@ -144,7 +145,7 @@ function buildMonthDays(monthDate: Date): Date[] {
   return eachDayOfInterval({ start: calStart, end: calEnd });
 }
 
-const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek, onReady }: CalendarViewProps) => {
+const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek, onReady, showInOtherCalendars = false }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
   const isMobile = useIsMobile();
   const [internalDate, setInternalDate] = useState(new Date());
@@ -194,10 +195,16 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
   );
 
   useEffect(() => {
-    const pending = consumePendingOpenDay();
-    if (pending) openDayFromPush(pending);
-    return subscribePendingOpenDay(openDayFromPush);
-  }, [openDayFromPush]);
+    const tryOpen = () => {
+      const pending = peekPendingOpenDay();
+      if (!pending?.dateStr) return;
+      if (pending.householdId && pending.householdId !== householdId) return;
+      const consumed = consumePendingOpenDay();
+      if (consumed?.dateStr) openDayFromPush(consumed.dateStr);
+    };
+    tryOpen();
+    return subscribePendingOpenDay(() => tryOpen());
+  }, [openDayFromPush, householdId]);
 
   const openCountdownFromPush = useCallback(
     (countdownId: string) => {
@@ -583,14 +590,17 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         </div>
 
         <div className="bg-transparent relative">
-          <div className="grid grid-cols-7 px-4 py-3.5">
-            {WEEKDAYS.map((d, i) => (
-              <div key={d} className={`text-center text-[12px] font-semibold uppercase tracking-[0.12em] ${
-                i >= 5 ? 'text-primary/50' : 'text-foreground/40'
-              }`}>
-                {d}
-              </div>
-            ))}
+          <div className="flex px-2 py-3.5 sm:px-4">
+            <div className="w-5 shrink-0" aria-hidden />
+            <div className="grid grid-cols-7 flex-1 min-w-0">
+              {WEEKDAYS.map((d, i) => (
+                <div key={d} className={`text-center text-[12px] font-semibold uppercase tracking-[0.12em] ${
+                  i >= 5 ? 'text-primary/50' : 'text-foreground/40'
+                }`}>
+                  {d}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -733,6 +743,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
           members={members}
           currentMemberId={currentMemberId}
           calendarKind={calendarKind}
+          showInOtherCalendars={showInOtherCalendars}
           onClose={() => setDetailEvent(null)}
           onEdit={onEditEvent ? (ev) => { onEditEvent(ev); } : undefined}
           onQuickEdit={onQuickEditEvent ? (ev) => { onQuickEditEvent(ev); } : undefined}
@@ -820,41 +831,68 @@ const MonthPanel = ({
     [days, eventsByDate, neighbourEventsByDate],
   );
 
+  const weeks = useMemo(() => {
+    const rows: Date[][] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      rows.push(days.slice(i, i + 7));
+    }
+    return rows;
+  }, [days]);
+
   return (
     <div
-      className={`grid grid-cols-7 auto-rows-[minmax(0,1fr)] gap-x-1 gap-y-1 px-4 pt-1.5 pb-4 content-stretch h-full min-h-0 shrink-0 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1.5 pb-4 sm:px-4 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
     >
-      {days.map((day) => {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        const inMonth = isSameMonth(day, monthDate);
-        const allDayEvents = eventsByDate[dateStr] || neighbourEventsByDate?.[dateStr] || [];
-        const dayEvents = allDayEvents.filter((ev) => !isMultiDayEvent(ev));
-        const spanSegments = spanByDate.get(dateStr) || [];
+      {weeks.map((weekDays, weekIndex) => {
+        const weekNum = getISOWeek(weekDays[0]);
         return (
-          <DayCell
-            key={dateStr}
-            day={day}
-            dateStr={dateStr}
-            dayEvents={dayEvents}
-            spanSegments={spanSegments}
-            inMonth={inMonth}
-            today={isToday(day)}
-            weekend={isWeekend(day)}
-            isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
-            monthTheme={monthTheme}
-            members={members}
-            highlight={highlight}
-            onTap={onTap}
-            onLongPress={onLongPress}
-            onPressLock={onPressLock}
-            onPressUnlock={onPressUnlock}
-            getMemberForEvent={getMemberForEvent}
-            countdownEmoji={countdownEmojiByDate?.[dateStr]}
-            marksVisible={marksVisible}
-          />
+          <div
+            key={format(weekDays[0], 'yyyy-MM-dd')}
+            className={`flex flex-1 min-h-0 gap-x-1 ${
+              weekIndex > 0 ? 'border-t border-border/25 pt-1' : ''
+            }`}
+          >
+            <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
+              <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground/35 select-none">
+                {weekNum}
+              </span>
+            </div>
+            <div className="grid grid-cols-7 flex-1 min-w-0 min-h-0 auto-rows-[minmax(0,1fr)] gap-x-1 content-stretch">
+              {weekDays.map((day) => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const inMonth = isSameMonth(day, monthDate);
+                const allDayEvents = eventsByDate[dateStr] || neighbourEventsByDate?.[dateStr] || [];
+                const dayEvents = allDayEvents.filter((ev) => !isMultiDayEvent(ev));
+                const spanSegments = spanByDate.get(dateStr) || [];
+                return (
+                  <DayCell
+                    key={dateStr}
+                    day={day}
+                    dateStr={dateStr}
+                    dayEvents={dayEvents}
+                    spanSegments={spanSegments}
+                    inMonth={inMonth}
+                    today={isToday(day)}
+                    weekend={isWeekend(day)}
+                    isHighlighted={!!(highlight && highlight.dateStr === dateStr)}
+                    monthTheme={monthTheme}
+                    members={members}
+                    highlight={highlight}
+                    onTap={onTap}
+                    onLongPress={onLongPress}
+                    onPressLock={onPressLock}
+                    onPressUnlock={onPressUnlock}
+                    getMemberForEvent={getMemberForEvent}
+                    countdownEmoji={countdownEmojiByDate?.[dateStr]}
+                    marksVisible={marksVisible}
+                  />
+                );
+              })}
+            </div>
+          </div>
         );
       })}
     </div>

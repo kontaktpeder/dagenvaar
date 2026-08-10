@@ -862,6 +862,39 @@ export type Database = {
           },
         ]
       }
+      member_leak_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_leak_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_leak_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raw_signals: {
         Row: {
           created_at: string
@@ -1150,6 +1183,10 @@ export type Database = {
           source_member_id: string
           start_time: string
         }[]
+      }
+      set_member_event_leak: {
+        Args: { p_event_id: string; p_leak: boolean }
+        Returns: undefined
       }
       hide_overlay_event_for_viewer: {
         Args: { p_event_id: string; p_viewer_household_id: string }

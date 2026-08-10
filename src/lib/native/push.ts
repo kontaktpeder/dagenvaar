@@ -27,8 +27,10 @@ function attachClickListener(): void {
         (typeof raw?.date === 'string' && raw.date) ||
         (typeof raw?.event_date === 'string' && raw.event_date) ||
         null;
+      const householdId =
+        typeof raw?.household_id === 'string' && raw.household_id ? raw.household_id : null;
       if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        setPendingOpenDay(date);
+        setPendingOpenDay(date, householdId);
       }
     });
   } catch (err) {

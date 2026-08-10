@@ -176,6 +176,8 @@ export const nb = {
   'event.selectedHint': 'Velg hvem som kan se',
   'event.hideFromOther': 'Skjul fra andre kalendere',
   'event.hideFromOtherHint': 'Vises ikke som tidspunkt i jobb, hjem eller andre kalendere',
+  'event.leakToMyCalendars': 'Vis som opptatt i mine andre kalendere',
+  'event.leakToMyCalendarsHint': 'Tidspunktet vises i kalendere du selv er med i (f.eks. hjem)',
   'event.hideOverlayForMe': 'Skjul for meg her',
   'event.hideOverlayForAll': 'Skjul for alle i andre kalendere',
   'event.overlayHiddenForMe': 'Skjult for deg — andre ser den fortsatt',

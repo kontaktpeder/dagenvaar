@@ -169,6 +169,8 @@ export const en: Record<MessageKey, string> = {
   'event.selectedHint': 'Choose who can see',
   'event.hideFromOther': 'Hide from other calendars',
   'event.hideFromOtherHint': 'Won’t show as a time block in work, home, or other calendars',
+  'event.leakToMyCalendars': 'Show as busy in my other calendars',
+  'event.leakToMyCalendarsHint': 'Appears as a time block in calendars you belong to (e.g. home)',
   'event.hideOverlayForMe': 'Hide for me here',
   'event.hideOverlayForAll': 'Hide for everyone in other calendars',
   'event.overlayHiddenForMe': 'Hidden for you — others still see it',

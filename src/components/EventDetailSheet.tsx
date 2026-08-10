@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useEventComments, useAddComment, useDeleteEvent, type Event } from '@/hooks/useEvents';
+import { useMemberEventLeak, useSetMemberEventLeak } from '@/hooks/useMemberEventLeak';
 import { getMemberColor } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, resolveCategoryLabel, getMemberColorMap } from '@/lib/categoryPresentation';
@@ -20,18 +21,35 @@ interface EventDetailSheetProps {
   members: HouseholdMember[];
   currentMemberId: string;
   calendarKind?: CalendarKind | string;
+  showInOtherCalendars?: boolean;
   onClose: () => void;
   onEdit?: (event: Event) => void;
   onQuickEdit?: (event: Event) => void;
 }
 
-const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'home', onClose, onEdit, onQuickEdit }: EventDetailSheetProps) => {
+const EventDetailSheet = ({
+  event,
+  members,
+  currentMemberId,
+  calendarKind = 'home',
+  showInOtherCalendars = false,
+  onClose,
+  onEdit,
+  onQuickEdit,
+}: EventDetailSheetProps) => {
   const { t, dateLocale } = useLocale();
   const [comment, setComment] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { data: comments = [] } = useEventComments(event.id);
   const addComment = useAddComment();
   const deleteEvent = useDeleteEvent();
+  const isOwnEvent = event.owner_member_id === currentMemberId;
+  const canOptInLeak = showInOtherCalendars && !isOwnEvent && !event.hide_from_other_calendars;
+  const { data: leaksToMyCalendars = false } = useMemberEventLeak(
+    canOptInLeak ? event.id : undefined,
+    canOptInLeak ? currentMemberId : undefined,
+  );
+  const setLeak = useSetMemberEventLeak();
 
   const owner = members.find((m) => m.id === event.owner_member_id);
   const ownerColor = owner ? getMemberColor(owner.color_token) : getMemberColor('pastel-blue');
@@ -64,6 +82,15 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
       toast.error(t('event.deleteFailed'), {
         description: err?.message ?? t('event.tryAgain'),
       });
+    }
+  };
+
+  const handleToggleLeak = async (next: boolean) => {
+    try {
+      await setLeak.mutateAsync({ eventId: event.id, leak: next });
+    } catch (err) {
+      console.error('[EventDetailSheet] leak toggle failed', err);
+      toast.error(t('common.error'));
     }
   };
 
@@ -129,6 +156,24 @@ const EventDetailSheet = ({ event, members, currentMemberId, calendarKind = 'hom
             );
           })()}
         </div>
+
+        {canOptInLeak && (
+          <label className="mb-4 flex items-start gap-3 rounded-xl bg-muted/50 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 rounded border-border"
+              checked={leaksToMyCalendars}
+              disabled={setLeak.isPending}
+              onChange={(e) => void handleToggleLeak(e.target.checked)}
+            />
+            <span>
+              <span className="block font-semibold text-sm">{t('event.leakToMyCalendars')}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                {t('event.leakToMyCalendarsHint')}
+              </span>
+            </span>
+          </label>
+        )}
 
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('event.comments')}</h3>

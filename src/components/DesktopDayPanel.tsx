@@ -32,6 +32,7 @@ interface DesktopDayPanelProps {
   onQuickEditEvent?: (event: Event) => void;
   onSeedWeek?: () => void;
   onSwitchCalendar?: (householdId: string) => void;
+  showInOtherCalendars?: boolean;
 }
 
 const DesktopDayPanel = ({
@@ -48,6 +49,7 @@ const DesktopDayPanel = ({
   onQuickEditEvent,
   onSeedWeek,
   onSwitchCalendar,
+  showInOtherCalendars = false,
 }: DesktopDayPanelProps) => {
   const { t, dateLocale } = useLocale();
   const [showList, setShowList] = useState(false);
@@ -177,6 +179,7 @@ const DesktopDayPanel = ({
             members={members}
             currentMemberId={currentMemberId}
             calendarKind={calendarKind}
+            showInOtherCalendars={showInOtherCalendars}
             onClose={() => setDetailEvent(null)}
             onEdit={
               onEditEvent

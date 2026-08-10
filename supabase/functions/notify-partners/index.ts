@@ -16,6 +16,11 @@ type Body = {
   date?: string | null;
 };
 
+type MemberRow = {
+  id: string;
+  user_id: string;
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,35 +75,71 @@ Deno.serve(async (req) => {
       body = `${self.display_name}: ${body}`;
     }
 
-    let externalIds: string[] = [];
+    let date = typeof payload.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+      ? payload.date
+      : null;
+
+    const { data: allMembers, error: membersError } = await supabase
+      .from('household_members')
+      .select('id, user_id')
+      .eq('household_id', householdId)
+      .eq('is_active', true)
+      .neq('user_id', user.id);
+
+    if (membersError) {
+      return json({ error: membersError.message }, 500);
+    }
+
+    let candidates = (allMembers ?? []) as MemberRow[];
 
     if (payload.target_user_ids && payload.target_user_ids.length > 0) {
-      const wanted = [...new Set(payload.target_user_ids.filter(Boolean))];
-      const { data: targets, error: targetsError } = await supabase
-        .from('household_members')
-        .select('user_id')
-        .eq('household_id', householdId)
-        .eq('is_active', true)
-        .in('user_id', wanted)
-        .neq('user_id', user.id);
-
-      if (targetsError) {
-        return json({ error: targetsError.message }, 500);
-      }
-      externalIds = [...new Set((targets ?? []).map((p) => p.user_id).filter(Boolean))];
-    } else {
-      const { data: partners, error: partnersError } = await supabase
-        .from('household_members')
-        .select('user_id')
-        .eq('household_id', householdId)
-        .eq('is_active', true)
-        .neq('user_id', user.id);
-
-      if (partnersError) {
-        return json({ error: partnersError.message }, 500);
-      }
-      externalIds = [...new Set((partners ?? []).map((p) => p.user_id).filter(Boolean))];
+      const wanted = new Set(payload.target_user_ids.filter(Boolean));
+      candidates = candidates.filter((m) => wanted.has(m.user_id));
     }
+
+    // Only notify people who can see this event in the calendar.
+    if (payload.event_id) {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id, household_id, visibility_type, owner_member_id, event_date')
+        .eq('id', payload.event_id)
+        .maybeSingle();
+
+      if (eventError) {
+        return json({ error: eventError.message }, 500);
+      }
+      if (!event || event.household_id !== householdId) {
+        return json({ error: 'Event not found in household' }, 404);
+      }
+
+      if (!date && typeof event.event_date === 'string') {
+        date = event.event_date;
+      }
+
+      const visibility = event.visibility_type || 'all_members';
+      if (visibility === 'private') {
+        // Private to owner — never push to partners.
+        candidates = [];
+      } else if (visibility === 'selected_members') {
+        const { data: visibleRows, error: visibleError } = await supabase
+          .from('event_visible_members')
+          .select('member_id')
+          .eq('event_id', event.id);
+
+        if (visibleError) {
+          return json({ error: visibleError.message }, 500);
+        }
+
+        const allowed = new Set<string>([
+          event.owner_member_id,
+          ...(visibleRows ?? []).map((r) => r.member_id),
+        ]);
+        candidates = candidates.filter((m) => allowed.has(m.id));
+      }
+      // all_members → keep all candidates
+    }
+
+    const externalIds = [...new Set(candidates.map((p) => p.user_id).filter(Boolean))];
 
     if (externalIds.length === 0) {
       return json({ ok: true, sent: 0, reason: 'no_partners' });
@@ -121,7 +162,7 @@ Deno.serve(async (req) => {
           household_id: householdId,
           event_id: payload.event_id ?? null,
           countdown_id: payload.countdown_id ?? null,
-          date: payload.date ?? null,
+          date,
         },
       }),
     });

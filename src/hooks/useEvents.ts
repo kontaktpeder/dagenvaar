@@ -112,6 +112,7 @@ export function useCreateEvent() {
           title: 'Ny aktivitet',
           body: created.title,
           eventId: created.id,
+          date: created.event_date,
         });
       }
     },
@@ -136,6 +137,7 @@ export function useUpdateEvent() {
           title: 'Aktivitet oppdatert',
           body: updated.title,
           eventId: updated.id,
+          date: updated.event_date,
         });
       }
     },
