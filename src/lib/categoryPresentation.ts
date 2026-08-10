@@ -30,7 +30,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
 };
 
 /**
- * Light paper pastels — airy rail fill, clearer midtone ink.
+ * Light paper pastels — soft fill + clearer ink for outlined “drawn” marks.
  */
 export type CategoryVisuals = {
   soft: string;
@@ -39,60 +39,68 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
+/** Inset outline matching the icon’s drawn contour (soft, not harsh black). */
+export function categoryMarkOutline(ink: string, strength = 0.38): string {
+  const alpha = Math.round(Math.min(1, Math.max(0, strength)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+  return `inset 0 0 0 1.5px ${ink}${alpha}`;
+}
+
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
   // Rose — wet paper, not chalk
   pink: {
-    soft: '#FDF0F3',
-    rail: '#F6D6DF',
+    soft: '#FDF2F5',
+    rail: '#F8DCE5',
     ink: '#C45F7C',
     swatch: '#E89AAE',
   },
   // Sky
   blue: {
-    soft: '#F0F7FC',
-    rail: '#C9E2F4',
+    soft: '#F2F8FC',
+    rail: '#D0E8F6',
     ink: '#3D7EB0',
     swatch: '#6BA8D4',
   },
   // Lilac
   purple: {
-    soft: '#F6F1FA',
-    rail: '#DCCFEA',
+    soft: '#F7F3FB',
+    rail: '#E2D6EF',
     ink: '#7A58A8',
     swatch: '#A488C8',
   },
   // Honey wash
   amber: {
-    soft: '#FCF8EA',
-    rail: '#F0E4A8',
+    soft: '#FCF9EE',
+    rail: '#F2E8B4',
     ink: '#A67E28',
     swatch: '#D4B44A',
   },
   // Peach
   orange: {
-    soft: '#FDF4EC',
-    rail: '#F5D2B4',
+    soft: '#FDF5EE',
+    rail: '#F7D9BE',
     ink: '#C06E38',
     swatch: '#E89860',
   },
   // Sage mist
   green: {
-    soft: '#F0F8F3',
-    rail: '#C5E6D0',
+    soft: '#F1F8F4',
+    rail: '#CDE9D6',
     ink: '#3A8558',
     swatch: '#68B484',
   },
   // Seafoam
   teal: {
-    soft: '#EEF8F5',
-    rail: '#B5E0D0',
+    soft: '#EFF8F5',
+    rail: '#BEE4D6',
     ink: '#348A76',
     swatch: '#56B49C',
   },
   // Soft coral
   red: {
-    soft: '#FDF0F1',
-    rail: '#F5CFD4',
+    soft: '#FDF2F3',
+    rail: '#F6D5DA',
     ink: '#C45666',
     swatch: '#E0808E',
   },

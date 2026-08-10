@@ -55,11 +55,14 @@ function mix(hexA: string, hexB: string, amount: number) {
   );
 }
 
+/** Soft multi-stop wash — same pastel language as the Pastelly icon. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = mix(base, "#FFFFFF", 0.35);
-  const dark = mix(base, "#000000", 0.25);
+  const light = mix(base, "#FFF8F5", 0.42);
+  const dark = mix(base, "#5A3A48", 0.28);
+  const blush = mix(base, "#F5C0D0", 0.35);
+  const cream = mix(base, "#FFF6E8", 0.45);
   const textOnStrong = "#FFFFFF";
-  const gradient = base;
+  const gradient = `linear-gradient(145deg, ${cream} 0%, ${base} 48%, ${blush} 100%)`;
   return { base, light, dark, textOnStrong, gradient };
 }

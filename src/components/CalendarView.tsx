@@ -8,7 +8,7 @@ import {
   type DisplayEvent,
 } from '@/hooks/useOverlayEvents';
 import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
-import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
+import { resolveCategoryVisuals, getMemberColorMap, categoryMarkOutline } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
 import {
@@ -38,7 +38,7 @@ import {
   peekPendingOpenCountdown,
   subscribePendingOpenCountdown,
 } from '@/lib/native/pendingOpenCountdown';
-
+import { Sparkles } from 'lucide-react';
 interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
@@ -566,7 +566,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       <div className="relative flex flex-col h-full min-h-0">
         <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
-        <div className="relative rounded-b-3xl overflow-hidden shrink-0">
+        <div className="relative rounded-b-3xl overflow-hidden shrink-0 shadow-[0_8px_24px_-12px_rgba(90,58,72,0.22)]">
           <div className="relative h-14 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
@@ -588,7 +588,14 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
               ))}
             </motion.div>
           </div>
-
+          {/* Soft brand edge — echoes icon’s pink header band */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-70"
+            style={{
+              background: 'linear-gradient(90deg, #F5C0D0 0%, #F5E098 50%, #C8B0E8 100%)',
+            }}
+            aria-hidden
+          />
           {!isOnCurrentMonth && (
             <button
               type="button"
@@ -619,6 +626,10 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         <div
           ref={trackRef}
           className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
+          style={{
+            background:
+              'linear-gradient(165deg, hsl(340 45% 98%) 0%, hsl(48 35% 98.5%) 42%, hsl(210 35% 98%) 100%)',
+          }}
         >
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
@@ -780,19 +791,27 @@ const MonthHeaderPanel = ({
   onTitleClick?: () => void;
 }) => (
   <div
-    className="h-full shrink-0 flex items-center justify-center px-5"
+    className="h-full shrink-0 flex items-center justify-center px-5 relative"
     style={{
       width: width || '33.333%',
       background: gradient,
       color: textColor,
     }}
   >
+    {/* Soft highlight — illustrated calendar sheen */}
+    <div
+      className="pointer-events-none absolute inset-0 opacity-40"
+      style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
+      }}
+      aria-hidden
+    />
     {onTitleClick ? (
-      <button type="button" onClick={onTitleClick} className="text-center">
-        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide">{label}</h2>
+      <button type="button" onClick={onTitleClick} className="relative text-center">
+        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide drop-shadow-sm">{label}</h2>
       </button>
     ) : (
-      <h2 className="text-lg font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
+      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center drop-shadow-sm">{label}</h2>
     )}
   </div>
 );
@@ -1016,9 +1035,10 @@ const DayCell = ({
         >
           <div
             aria-hidden
-            className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full bg-muted/80 ${
+            className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full bg-muted/70 ${
               evHighlighted ? 'ring-1 ring-primary/40' : ''
             }`}
+            style={{ boxShadow: 'inset 0 0 0 1.5px hsl(var(--muted-foreground) / 0.22)' }}
           />
         </div>
       );
@@ -1040,7 +1060,10 @@ const DayCell = ({
           className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full ${
             evHighlighted ? 'ring-1 ring-primary/40' : ''
           }`}
-          style={{ backgroundColor: visuals.rail }}
+          style={{
+            backgroundColor: visuals.soft,
+            boxShadow: categoryMarkOutline(visuals.ink, 0.42),
+          }}
         />
         {Icon ? (
           <span className={`relative z-[1] ${MARK_CHIP} shrink-0 flex items-center justify-center`}>
@@ -1052,7 +1075,7 @@ const DayCell = ({
           </span>
         ) : (
           <span
-            className={`relative z-[1] w-1.5 h-1.5 shrink-0 rounded-full`}
+            className="relative z-[1] w-1.5 h-1.5 shrink-0 rounded-full"
             style={{ backgroundColor: visuals.ink }}
           />
         )}
@@ -1082,14 +1105,20 @@ const DayCell = ({
         {format(day, 'd')}
       </span>
 
-      {/* Corner badge — must not sit in the flex column (breaks multi-day rails) */}
+      {/* Corner sparkle — brand signature from the Pastelly icon */}
       {countdownEmoji && (
         <span
-          className="absolute top-0.5 right-0 text-[10px] leading-none pointer-events-none z-[2] transition-opacity duration-500 ease-out"
+          className="absolute top-0.5 right-0 pointer-events-none z-[2] transition-opacity duration-500 ease-out flex items-center justify-center"
           style={{ opacity: marksVisible ? 1 : 0 }}
           aria-hidden
+          title={countdownEmoji}
         >
-          {countdownEmoji}
+          <Sparkles
+            size={11}
+            strokeWidth={2.25}
+            className="text-primary drop-shadow-sm"
+            fill="hsl(var(--primary) / 0.35)"
+          />
         </span>
       )}
 
@@ -1130,7 +1159,10 @@ const DayCell = ({
                   } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
                   }`}
-                  style={{ backgroundColor: visuals.rail }}
+                  style={{
+                    backgroundColor: visuals.rail,
+                    boxShadow: categoryMarkOutline(visuals.ink, 0.32),
+                  }}
                 />
                 {seg.isStart && Icon && (
                   <span
