@@ -73,7 +73,7 @@ const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorS
             <div key={catKey} className="rounded-xl bg-muted p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Icon size={16} strokeWidth={2.5} className={visuals.iconColor} />
+                  <Icon size={16} strokeWidth={2.5} style={{ color: visuals.ink }} />
                   <span className="text-sm font-medium">{resolveCategoryLabel(catKey, null, locale)}</span>
                 </div>
                 {savedKey === catKey && (
@@ -88,9 +88,10 @@ const CategoryColorSettings = ({ member, calendarKind = 'home' }: CategoryColorS
                       key={token}
                       onClick={() => handlePick(catKey, token)}
                       aria-label={token}
-                      className={`w-7 h-7 rounded-full ${getColorTokenSwatch(token)} transition-all ${
+                      className={`w-7 h-7 rounded-full transition-all ${
                         isSelected ? 'ring-2 ring-offset-2 ring-foreground scale-110' : 'hover:scale-105'
                       }`}
+                      style={{ backgroundColor: getColorTokenSwatch(token) }}
                     />
                   );
                 })}

@@ -360,12 +360,16 @@ const EventRow = ({ event, currentMemberId, calendarKind, highlight, onTap, onLo
       type="button"
       {...longPressHandlers}
       onClick={() => { if (!didFire()) onTap(event); }}
-      className={`w-full text-left rounded-xl p-3 flex items-center gap-2.5 ${visuals.softBg} ${
+      className={`w-full text-left rounded-xl p-3 flex items-center gap-2.5 ${
         isHighlighted ? 'ring-2 ring-primary/40' : ''
       }`}
+      style={{ backgroundColor: visuals.soft }}
     >
-      <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${visuals.railBg}`}>
-        {Icon && <Icon size={12} strokeWidth={2} className={visuals.iconColor} />}
+      <span
+        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: visuals.rail }}
+      >
+        {Icon && <Icon size={12} strokeWidth={2} style={{ color: visuals.ink }} />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="font-semibold text-sm block truncate">{event.title}</span>

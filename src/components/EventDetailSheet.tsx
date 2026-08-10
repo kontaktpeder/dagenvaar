@@ -149,8 +149,11 @@ const EventDetailSheet = ({
             const label = resolveCategoryLabel(event.category, (event as any).category_label_override);
             const Icon = meta?.Icon;
             return (
-              <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium ${visuals.softBg}`}>
-                {Icon && <Icon size={12} className={visuals.iconColor} />}
+              <div
+                className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium"
+                style={{ backgroundColor: visuals.soft, color: visuals.ink }}
+              >
+                {Icon && <Icon size={12} style={{ color: visuals.ink }} />}
                 {label}
               </div>
             );

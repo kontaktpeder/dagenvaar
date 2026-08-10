@@ -4,7 +4,7 @@ import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useCreateEvent, syncEventVisibleMembers } from '@/hooks/useEvents';
 import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
-import { resolveCategoryLabel } from '@/lib/categoryPresentation';
+import { resolveCategoryLabel, resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
@@ -47,6 +47,7 @@ const STEPS = 4;
 const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'home', showInOtherCalendars = false, initialDate, onClose, onCreated }: NewEventFlowProps) => {
   const { t, locale, dateLocale } = useLocale();
   const categoryOptions = getCategoryOptionsForKind(calendarKind);
+  const memberColorMap = getMemberColorMap(members.find((m) => m.id === currentMemberId));
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate || new Date());
@@ -601,6 +602,7 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                   const meta = EVENT_CATEGORY_META[key];
                   const Icon = meta.Icon;
                   const selected = category === key;
+                  const visuals = resolveCategoryVisuals(key, memberColorMap);
                   return (
                     <button
                       key={key}
@@ -612,13 +614,12 @@ const NewEventFlow = ({ householdId, members, currentMemberId, calendarKind = 'h
                         }
                       }}
                       className={`rounded-xl py-3 px-4 text-sm font-medium transition-all flex items-center justify-between ${
-                        selected
-                          ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}`
-                          : 'bg-muted hover:bg-muted/80'
+                        selected ? 'ring-2 ring-current' : 'bg-muted hover:bg-muted/80'
                       }`}
+                      style={selected ? { backgroundColor: visuals.soft, color: visuals.ink } : undefined}
                     >
                       <span>{resolveCategoryLabel(key, null, locale)}</span>
-                      <Icon size={18} strokeWidth={2.5} className={meta.iconColor} />
+                      <Icon size={18} strokeWidth={2.5} style={{ color: visuals.ink }} />
                     </button>
                   );
                 })}

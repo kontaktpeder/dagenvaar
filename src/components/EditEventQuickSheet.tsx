@@ -3,6 +3,7 @@ import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useUpdateEvent, useEventVisibleMembers, syncEventVisibleMembers, type Event } from '@/hooks/useEvents';
 import { getCategoryOptionsForKind, EVENT_CATEGORY_META, type EventCategory } from '@/lib/eventCategories';
+import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import {
   DAY_PART_ORDER,
   DAY_PART_TIME_RANGES,
@@ -39,6 +40,7 @@ const ADD_BTN =
 const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKind = 'home', showInOtherCalendars = false, onClose, onSaved, onOpenFullEdit }: EditEventQuickSheetProps) => {
   const { t } = useLocale();
   const updateEvent = useUpdateEvent();
+  const memberColorMap = getMemberColorMap(members.find((m) => m.id === currentMemberId));
   const dayPartLabel = (key: string) => {
     const msgKey = `dayPart.${key}` as MessageKey;
     const translated = t(msgKey);
@@ -458,6 +460,7 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                 const meta = EVENT_CATEGORY_META[key];
                 const Icon = meta.Icon;
                 const selected = category === key;
+                const visuals = resolveCategoryVisuals(key, memberColorMap);
                 return (
                   <button
                     key={key}
@@ -466,11 +469,12 @@ const EditEventQuickSheet = ({ event, members = [], currentMemberId, calendarKin
                       if (key !== 'other') setOtherLabel('');
                     }}
                     className={`rounded-xl py-2.5 px-3 text-sm font-medium transition-all flex items-center justify-between ${
-                      selected ? `${meta.chipBg} ring-2 ring-current ${meta.iconColor}` : 'bg-muted hover:bg-muted/80'
+                      selected ? 'ring-2 ring-current' : 'bg-muted hover:bg-muted/80'
                     }`}
+                    style={selected ? { backgroundColor: visuals.soft, color: visuals.ink } : undefined}
                   >
                     <span>{catLabel(key)}</span>
-                    <Icon size={16} strokeWidth={2.5} className={meta.iconColor} />
+                    <Icon size={16} strokeWidth={2.5} style={{ color: visuals.ink }} />
                   </button>
                 );
               })}

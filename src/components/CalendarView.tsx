@@ -8,7 +8,6 @@ import {
   type DisplayEvent,
 } from '@/hooks/useOverlayEvents';
 import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
-import { getMemberColor } from '@/lib/colors';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
@@ -939,7 +938,7 @@ const CAL_ICON_STROKE = 1.75;
 const MARK_CHIP = 'w-[14px] h-[14px]';
 const SPAN_ROW_H = 'h-[14px]';
 
-/** Pack single-day icons: side-by-side only when same category (max 2 per row). */
+/** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
   const sorted = [...events].sort((a, b) => {
     const aRank = CATEGORY_ORDER[a.category ?? 'other'] ?? 999;
@@ -953,17 +952,7 @@ function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: Displa
 
   for (const ev of sorted) {
     if (shown >= maxMarks) break;
-    const cat = ev.category ?? 'other';
-    const last = rows[rows.length - 1];
-    if (
-      last &&
-      last.length < 2 &&
-      (last[0].category ?? 'other') === cat
-    ) {
-      last.push(ev);
-    } else {
-      rows.push([ev]);
-    }
+    rows.push([ev]);
     shown += 1;
   }
 
@@ -1010,43 +999,58 @@ const DayCell = ({
   const spanByLane = new Map(spanSegments.map((s) => [s.lane, s]));
 
   const renderEventMark = (ev: DisplayEvent) => {
-    if (ev.isOverlay) {
-      const evHighlighted = highlight && highlight.eventId === ev.id;
-      return (
-        <div
-          key={ev.id}
-          title={ev.title}
-          className={`${MARK_CHIP} rounded-full bg-muted ring-1 ring-border/60 ${
-            evHighlighted ? 'ring-1 ring-primary/40' : ''
-          }`}
-        />
-      );
-    }
-    const member = getMemberForEvent(ev);
-    const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
-    const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
     const evHighlighted = highlight && highlight.eventId === ev.id;
-    const Icon = meta?.Icon;
-    if (Icon) {
+
+    if (ev.isOverlay) {
       return (
         <div
           key={ev.id}
           title={ev.title}
-          className={`${MARK_CHIP} rounded-full flex items-center justify-center ${visuals.railBg} ${
-            evHighlighted ? 'ring-1 ring-primary/40' : ''
-          }`}
+          className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
         >
-          <Icon size={CAL_ICON_SIZE} strokeWidth={CAL_ICON_STROKE} className={visuals.iconColor} />
+          <div
+            aria-hidden
+            className={`absolute inset-y-0 left-0.5 right-0.5 rounded-full bg-muted ring-1 ring-border/50 ${
+              evHighlighted ? 'ring-1 ring-primary/40' : ''
+            }`}
+          />
         </div>
       );
     }
-    const fallback = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
+
+    const member = getMemberForEvent(ev);
+    const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+    const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
+    const Icon = meta?.Icon;
+
     return (
       <div
         key={ev.id}
-        className={`${MARK_CHIP} rounded-full ${fallback.bg} ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
         title={ev.title}
-      />
+        className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
+      >
+        <div
+          aria-hidden
+          className={`absolute inset-y-0 left-0.5 right-0.5 rounded-full ${
+            evHighlighted ? 'ring-1 ring-primary/40' : ''
+          }`}
+          style={{ backgroundColor: visuals.rail }}
+        />
+        {Icon ? (
+          <span className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}>
+            <Icon
+              size={CAL_ICON_SIZE}
+              strokeWidth={CAL_ICON_STROKE}
+              style={{ color: visuals.ink }}
+            />
+          </span>
+        ) : (
+          <span
+            className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full`}
+            style={{ backgroundColor: visuals.rail }}
+          />
+        )}
+      </div>
     );
   };
 
@@ -1115,11 +1119,12 @@ const DayCell = ({
               >
                 <div
                   aria-hidden
-                  className={`absolute inset-y-0 ${railPos} ${visuals.railBg} ${
+                  className={`absolute inset-y-0 ${railPos} ${
                     seg.isStart ? 'rounded-l-full' : ''
                   } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
                   }`}
+                  style={{ backgroundColor: visuals.rail }}
                 />
                 {seg.isStart && Icon && (
                   <span
@@ -1128,7 +1133,7 @@ const DayCell = ({
                     <Icon
                       size={CAL_ICON_SIZE}
                       strokeWidth={CAL_ICON_STROKE}
-                      className={visuals.iconColor}
+                      style={{ color: visuals.ink }}
                     />
                   </span>
                 )}
@@ -1146,7 +1151,7 @@ const DayCell = ({
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}
-              className={`flex items-center justify-center gap-0.5 ${row.length > 1 ? 'flex-row' : 'flex-col'}`}
+              className="w-full flex flex-col items-stretch"
             >
               {row.map((ev) => renderEventMark(ev))}
             </div>

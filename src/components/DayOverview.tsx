@@ -1,4 +1,4 @@
-import { DAY_PART_LABELS, getMemberColor } from '@/lib/colors';
+import { DAY_PART_LABELS } from '@/lib/colors';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { resolveCategoryVisuals, getMemberColorMap } from '@/lib/categoryPresentation';
 import { formatMultiDayLabel } from '@/lib/multiDaySpans';
@@ -180,7 +180,6 @@ const DayOverview = ({
               }
 
               const member = getMember(ev.owner_member_id);
-              const color = member ? getMemberColor(member.color_token) : getMemberColor('pastel-blue');
               const meta = EVENT_CATEGORY_META[(ev.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
               const visuals = resolveCategoryVisuals(ev.category, getMemberColorMap(member));
               const Icon = meta?.Icon;
@@ -190,12 +189,16 @@ const DayOverview = ({
                   key={ev.id}
                   type="button"
                   onClick={() => onPickEvent(ev)}
-                  className={`w-full rounded-xl p-3 text-left ${visuals.softBg ?? color.bg}`}
+                  className="w-full rounded-xl p-3 text-left"
+                  style={{ backgroundColor: visuals.soft || undefined }}
                 >
                   <div className="flex items-center gap-2">
                     {Icon && (
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${visuals.railBg}`}>
-                        <Icon size={12} strokeWidth={2} className={visuals.iconColor} />
+                      <span
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: visuals.rail }}
+                      >
+                        <Icon size={12} strokeWidth={2} style={{ color: visuals.ink }} />
                       </span>
                     )}
                     <span className="truncate text-sm font-semibold">{ev.title}</span>

@@ -17,7 +17,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
-  // WORK core hues (pastel tokens)
+  // WORK core hues
   meeting: 'amber',
   production: 'green',
   development: 'blue',
@@ -29,49 +29,116 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   focus: 'purple',
 };
 
-type Visuals = {
-  iconColor: string;
-  dotColor: string;
-  softBg: string;
-  chipBg: string;
-  /** Pastel rail fill — same hue as icon, softer opacity */
-  railBg: string;
+/**
+ * Clearer pastels — soft fill + rail + ink.
+ * Soft enough for Pastelly, but with cleaner hue identity than default Tailwind pastels.
+ */
+export type CategoryVisuals = {
+  /** Soft chip / list row background */
+  soft: string;
+  /** Calendar rail / mark fill */
+  rail: string;
+  /** Icon / accent ink */
+  ink: string;
+  /** Solid swatch for color picker */
+  swatch: string;
 };
 
-const TOKEN_TO_TW: Record<CategoryColorToken, Visuals> = {
-  pink:   { iconColor: 'text-pink-500',   dotColor: 'bg-pink-500',   softBg: 'bg-pink-100',   chipBg: 'bg-pink-100',   railBg: 'bg-pink-200' },
-  blue:   { iconColor: 'text-blue-500',   dotColor: 'bg-blue-500',   softBg: 'bg-blue-100',   chipBg: 'bg-blue-100',   railBg: 'bg-blue-200' },
-  purple: { iconColor: 'text-purple-500', dotColor: 'bg-purple-500', softBg: 'bg-purple-100', chipBg: 'bg-purple-100', railBg: 'bg-purple-200' },
-  amber:  { iconColor: 'text-amber-500',  dotColor: 'bg-amber-500',  softBg: 'bg-amber-100',  chipBg: 'bg-amber-100',  railBg: 'bg-amber-200' },
-  orange: { iconColor: 'text-orange-500', dotColor: 'bg-orange-500', softBg: 'bg-orange-100', chipBg: 'bg-orange-100', railBg: 'bg-orange-200' },
-  green:  { iconColor: 'text-green-500',  dotColor: 'bg-green-500',  softBg: 'bg-green-100',  chipBg: 'bg-green-100',  railBg: 'bg-green-200' },
-  teal:   { iconColor: 'text-teal-500',   dotColor: 'bg-teal-500',   softBg: 'bg-teal-100',   chipBg: 'bg-teal-100',   railBg: 'bg-teal-200' },
-  red:    { iconColor: 'text-red-500',    dotColor: 'bg-red-500',    softBg: 'bg-red-100',    chipBg: 'bg-red-100',    railBg: 'bg-red-200' },
+const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
+  // Rose quartz / blush
+  pink: {
+    soft: '#FCE8EE',
+    rail: '#F0B8C8',
+    ink: '#B84E6E',
+    swatch: '#E88A9E',
+  },
+  // Clear sky
+  blue: {
+    soft: '#E6F2FB',
+    rail: '#A8CFF0',
+    ink: '#2F6FA8',
+    swatch: '#5B9FD4',
+  },
+  // Soft amethyst
+  purple: {
+    soft: '#F0E8F8',
+    rail: '#C8B0E0',
+    ink: '#6B4A9E',
+    swatch: '#9B7BC8',
+  },
+  // Honey
+  amber: {
+    soft: '#FBF3DC',
+    rail: '#E8D078',
+    ink: '#9A7420',
+    swatch: '#D4B03A',
+  },
+  // Coral peach
+  orange: {
+    soft: '#FCEEE4',
+    rail: '#F0B888',
+    ink: '#B8622E',
+    swatch: '#E89050',
+  },
+  // Sage
+  green: {
+    soft: '#E8F5EC',
+    rail: '#A8D8B8',
+    ink: '#2F7A4E',
+    swatch: '#5BAF78',
+  },
+  // Seafoam / jade
+  teal: {
+    soft: '#E4F4F0',
+    rail: '#90D0B8',
+    ink: '#2A7A68',
+    swatch: '#4AAF96',
+  },
+  // Soft coral-rose (clearer than muddy red-200)
+  red: {
+    soft: '#FCE8E8',
+    rail: '#F0A8B0',
+    ink: '#B84858',
+    swatch: '#E07080',
+  },
 };
 
-const OTHER_NEUTRAL: Visuals = {
-  iconColor: 'text-muted-foreground',
-  dotColor: 'bg-muted-foreground',
-  softBg: 'bg-muted',
-  chipBg: 'bg-muted',
-  railBg: 'bg-muted',
+const OTHER_NEUTRAL: CategoryVisuals = {
+  soft: 'hsl(var(--muted))',
+  rail: 'hsl(var(--muted))',
+  ink: 'hsl(var(--muted-foreground))',
+  swatch: 'hsl(var(--muted-foreground))',
 };
 
-export const COLOR_TOKEN_OPTIONS: CategoryColorToken[] = ['pink', 'blue', 'purple', 'amber', 'orange', 'green', 'teal', 'red'];
+export const COLOR_TOKEN_OPTIONS: CategoryColorToken[] = [
+  'pink',
+  'blue',
+  'purple',
+  'amber',
+  'orange',
+  'green',
+  'teal',
+  'red',
+];
 
+export function getCategoryTokenVisuals(token: CategoryColorToken): CategoryVisuals {
+  return TOKEN_PALETTE[token];
+}
+
+/** @deprecated Prefer getCategoryTokenVisuals — kept for call sites expecting a bg class. */
 export function getColorTokenSwatch(token: CategoryColorToken): string {
-  return TOKEN_TO_TW[token].dotColor;
+  return TOKEN_PALETTE[token].swatch;
 }
 
 export function resolveCategoryVisuals(
   category: EventCategory | string | null | undefined,
   memberColorMap?: CategoryColorMap | null,
-): Visuals {
+): CategoryVisuals {
   if (!category || category === 'other') return OTHER_NEUTRAL;
   const cat = category as MainCategory;
   if (!(cat in DEFAULT_CATEGORY_COLOR_MAP)) return OTHER_NEUTRAL;
   const token = memberColorMap?.[cat] ?? DEFAULT_CATEGORY_COLOR_MAP[cat];
-  return TOKEN_TO_TW[token] ?? TOKEN_TO_TW[DEFAULT_CATEGORY_COLOR_MAP[cat]];
+  return TOKEN_PALETTE[token] ?? TOKEN_PALETTE[DEFAULT_CATEGORY_COLOR_MAP[cat]];
 }
 
 export function resolveCategoryLabel(
