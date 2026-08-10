@@ -15,9 +15,9 @@ export const en: Record<MessageKey, string> = {
   'common.undo': 'Undo',
 
   'locale.app': 'App language',
-  'locale.appHint': 'Applies to sign-in, profile, and general UI',
+  'locale.appHint': 'Applies to sign-in and profile. Calendar language under “This calendar” controls text inside the calendar.',
   'locale.calendar': 'Calendar language',
-  'locale.calendarHint': 'Language inside this calendar',
+  'locale.calendarHint': 'Controls language inside this calendar (overrides app language here)',
   'locale.nb': 'Norsk',
   'locale.en': 'English',
 

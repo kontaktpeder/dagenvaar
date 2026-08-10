@@ -15,9 +15,9 @@ export const nb = {
 
   // locales
   'locale.app': 'App-språk',
-  'locale.appHint': 'Gjelder innlogging, profil og generelle tekster',
+  'locale.appHint': 'Gjelder innlogging og profil. Kalenderspråk under «Denne kalenderen» styrer tekst inne i kalenderen.',
   'locale.calendar': 'Kalenderspråk',
-  'locale.calendarHint': 'Språk inne i denne kalenderen',
+  'locale.calendarHint': 'Styrer språk inne i denne kalenderen (overstyrer app-språk her)',
   'locale.nb': 'Norsk',
   'locale.en': 'English',
 

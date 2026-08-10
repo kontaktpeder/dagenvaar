@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate, type PanInfo } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths, getISOWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isWeekend, isSameMonth, addMonths, subMonths, getISOWeek, addDays } from 'date-fns';
 import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import {
   mergeEventsWithOverlays,
@@ -62,8 +62,6 @@ interface CalendarViewProps {
   onReady?: () => void;
   showInOtherCalendars?: boolean;
 }
-
-const WEEKDAYS = ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn'];
 
 const CATEGORY_ORDER: Record<string, number> = {
   important: 0,
@@ -146,6 +144,12 @@ function buildMonthDays(monthDate: Date): Date[] {
 
 const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'home', currentDate: controlledDate, onCurrentDateChange, onSelectDate, onCreateEvent, onCreateCountdown, onEditEvent, onQuickEditEvent, onSwitchCalendar, onSwipeCalendarStack, canSwipeCalendarStack = false, highlight, canSeedWeek = false, onSeedWeek, onReady, showInOtherCalendars = false }: CalendarViewProps) => {
   const { dateLocale } = useLocale();
+  const weekdayLabels = useMemo(() => {
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, i) =>
+      format(addDays(monday, i), 'EEEEEE', { locale: dateLocale }),
+    );
+  }, [dateLocale]);
   const isMobile = useIsMobile();
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate ?? internalDate;
@@ -600,9 +604,9 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
           <div className="flex px-2 py-2 sm:px-4">
             <div className="w-5 shrink-0" aria-hidden />
             <div className="grid grid-cols-7 flex-1 min-w-0">
-              {WEEKDAYS.map((d, i) => (
-                <div key={d} className={`text-center text-[11px] font-semibold uppercase tracking-[0.12em] ${
-                  i >= 5 ? 'text-primary/50' : 'text-foreground/40'
+              {weekdayLabels.map((d, i) => (
+                <div key={`${d}-${i}`} className={`text-center text-[10px] font-medium uppercase tracking-[0.14em] ${
+                  i >= 5 ? 'text-primary/45' : 'text-foreground/35'
                 }`}>
                   {d}
                 </div>
@@ -859,7 +863,7 @@ const MonthPanel = ({
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
             className={`flex flex-1 min-h-0 gap-x-1 ${
-              weekIndex > 0 ? 'border-t border-border/25 pt-0.5' : ''
+              weekIndex > 0 ? 'border-t border-border/15' : ''
             }`}
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
@@ -932,11 +936,13 @@ interface DayCellProps {
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 5;
 /** Shared calendar mark size — single-day icons and multi-day rail icons */
-const CAL_ICON_SIZE = 10;
+const CAL_ICON_SIZE = 9;
 const CAL_ICON_STROKE = 1.75;
-/** Chip / rail — same height so start icon sits cleanly on the span bar */
-const MARK_CHIP = 'w-[14px] h-[14px]';
-const SPAN_ROW_H = 'h-[14px]';
+/** Icon sits on the rail; rail row is a slim pill */
+const MARK_CHIP = 'w-[12px] h-[12px]';
+const SPAN_ROW_H = 'h-[11px]';
+/** Single-day rail: short centered pill (~60% width), not edge-to-edge */
+const DAY_RAIL_POS = 'left-[20%] right-[20%]';
 
 /** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
@@ -964,7 +970,7 @@ const DayCell = ({
   dateStr,
   dayEvents,
   spanSegments,
-  inMonth: _inMonth,
+  inMonth,
   today,
   weekend,
   isHighlighted,
@@ -1010,7 +1016,7 @@ const DayCell = ({
         >
           <div
             aria-hidden
-            className={`absolute inset-y-0 left-0.5 right-0.5 rounded-full bg-muted ring-1 ring-border/50 ${
+            className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full bg-muted/80 ${
               evHighlighted ? 'ring-1 ring-primary/40' : ''
             }`}
           />
@@ -1031,13 +1037,13 @@ const DayCell = ({
       >
         <div
           aria-hidden
-          className={`absolute inset-y-0 left-0.5 right-0.5 rounded-full ${
+          className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full ${
             evHighlighted ? 'ring-1 ring-primary/40' : ''
           }`}
           style={{ backgroundColor: visuals.rail }}
         />
         {Icon ? (
-          <span className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}>
+          <span className={`relative z-[1] ${MARK_CHIP} shrink-0 flex items-center justify-center`}>
             <Icon
               size={CAL_ICON_SIZE}
               strokeWidth={CAL_ICON_STROKE}
@@ -1046,8 +1052,8 @@ const DayCell = ({
           </span>
         ) : (
           <span
-            className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full`}
-            style={{ backgroundColor: visuals.rail }}
+            className={`relative z-[1] w-1.5 h-1.5 shrink-0 rounded-full`}
+            style={{ backgroundColor: visuals.ink }}
           />
         )}
       </div>
@@ -1064,12 +1070,12 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[12px] font-semibold ${
-          weekend && !today ? 'opacity-60' : ''
+        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums ${
+          !inMonth ? 'text-muted-foreground/35' : weekend && !today ? 'text-foreground/45' : 'text-foreground/70'
         }`}
         style={
           today
-            ? { border: '2px solid hsl(var(--primary))', color: 'hsl(var(--primary))' }
+            ? { border: '1.5px solid hsl(var(--primary))', color: 'hsl(var(--primary))', fontWeight: 600 }
             : undefined
         }
       >
@@ -1128,7 +1134,7 @@ const DayCell = ({
                 />
                 {seg.isStart && Icon && (
                   <span
-                    className={`relative z-[1] ${MARK_CHIP} shrink-0 rounded-full flex items-center justify-center`}
+                    className={`relative z-[1] ${MARK_CHIP} shrink-0 flex items-center justify-center`}
                   >
                     <Icon
                       size={CAL_ICON_SIZE}

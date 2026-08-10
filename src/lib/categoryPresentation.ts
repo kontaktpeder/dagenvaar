@@ -30,76 +30,71 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
 };
 
 /**
- * Clearer pastels — soft fill + rail + ink.
- * Soft enough for Pastelly, but with cleaner hue identity than default Tailwind pastels.
+ * Light paper pastels — airy rail fill, clearer midtone ink.
  */
 export type CategoryVisuals = {
-  /** Soft chip / list row background */
   soft: string;
-  /** Calendar rail / mark fill */
   rail: string;
-  /** Icon / accent ink */
   ink: string;
-  /** Solid swatch for color picker */
   swatch: string;
 };
 
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  // Rose quartz / blush
+  // Rose — wet paper, not chalk
   pink: {
-    soft: '#FCE8EE',
-    rail: '#F0B8C8',
-    ink: '#B84E6E',
-    swatch: '#E88A9E',
+    soft: '#FDF0F3',
+    rail: '#F6D6DF',
+    ink: '#C45F7C',
+    swatch: '#E89AAE',
   },
-  // Clear sky
+  // Sky
   blue: {
-    soft: '#E6F2FB',
-    rail: '#A8CFF0',
-    ink: '#2F6FA8',
-    swatch: '#5B9FD4',
+    soft: '#F0F7FC',
+    rail: '#C9E2F4',
+    ink: '#3D7EB0',
+    swatch: '#6BA8D4',
   },
-  // Soft amethyst
+  // Lilac
   purple: {
-    soft: '#F0E8F8',
-    rail: '#C8B0E0',
-    ink: '#6B4A9E',
-    swatch: '#9B7BC8',
+    soft: '#F6F1FA',
+    rail: '#DCCFEA',
+    ink: '#7A58A8',
+    swatch: '#A488C8',
   },
-  // Honey
+  // Honey wash
   amber: {
-    soft: '#FBF3DC',
-    rail: '#E8D078',
-    ink: '#9A7420',
-    swatch: '#D4B03A',
+    soft: '#FCF8EA',
+    rail: '#F0E4A8',
+    ink: '#A67E28',
+    swatch: '#D4B44A',
   },
-  // Coral peach
+  // Peach
   orange: {
-    soft: '#FCEEE4',
-    rail: '#F0B888',
-    ink: '#B8622E',
-    swatch: '#E89050',
+    soft: '#FDF4EC',
+    rail: '#F5D2B4',
+    ink: '#C06E38',
+    swatch: '#E89860',
   },
-  // Sage
+  // Sage mist
   green: {
-    soft: '#E8F5EC',
-    rail: '#A8D8B8',
-    ink: '#2F7A4E',
-    swatch: '#5BAF78',
+    soft: '#F0F8F3',
+    rail: '#C5E6D0',
+    ink: '#3A8558',
+    swatch: '#68B484',
   },
-  // Seafoam / jade
+  // Seafoam
   teal: {
-    soft: '#E4F4F0',
-    rail: '#90D0B8',
-    ink: '#2A7A68',
-    swatch: '#4AAF96',
+    soft: '#EEF8F5',
+    rail: '#B5E0D0',
+    ink: '#348A76',
+    swatch: '#56B49C',
   },
-  // Soft coral-rose (clearer than muddy red-200)
+  // Soft coral
   red: {
-    soft: '#FCE8E8',
-    rail: '#F0A8B0',
-    ink: '#B84858',
-    swatch: '#E07080',
+    soft: '#FDF0F1',
+    rail: '#F5CFD4',
+    ink: '#C45666',
+    swatch: '#E0808E',
   },
 };
 
@@ -125,7 +120,6 @@ export function getCategoryTokenVisuals(token: CategoryColorToken): CategoryVisu
   return TOKEN_PALETTE[token];
 }
 
-/** @deprecated Prefer getCategoryTokenVisuals — kept for call sites expecting a bg class. */
 export function getColorTokenSwatch(token: CategoryColorToken): string {
   return TOKEN_PALETTE[token].swatch;
 }
@@ -152,7 +146,6 @@ export function resolveCategoryLabel(
   return clean ? clean : translateCategory(locale, 'other');
 }
 
-/** Read a member's category_color_map from the row (jsonb) */
 export function getMemberColorMap(member: { category_color_map?: unknown } | null | undefined): CategoryColorMap | null {
   if (!member) return null;
   const raw = (member as any).category_color_map;
