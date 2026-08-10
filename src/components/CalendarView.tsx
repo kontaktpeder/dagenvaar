@@ -1086,7 +1086,7 @@ const DayCell = ({
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
             const seg = spanByLane.get(lane);
             if (!seg) {
-              return <div key={`lane-${lane}`} className={`${SPAN_RAIL_H} w-full`} aria-hidden />;
+              return <div key={`lane-${lane}`} className={`${SPAN_ROW_H} w-full`} aria-hidden />;
             }
             const member = getMemberForEvent(seg.event);
             const visuals = resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
@@ -1094,22 +1094,22 @@ const DayCell = ({
             const Icon = meta?.Icon;
             const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
-            // Bridge gap-x-1 (4px); absolute so start icon can stay centered under the date
+            // Bridge gap-x-1 lightly; absolute so start icon can stay centered under the date
             let railPos = 'left-0 right-0';
             if (seg.isStart && seg.isEnd) railPos = 'left-0.5 right-0.5';
-            else if (seg.isStart) railPos = 'left-0 right-[-2px]';
-            else if (seg.isEnd) railPos = 'left-[-2px] right-0';
-            else railPos = 'left-[-2px] right-[-2px]';
+            else if (seg.isStart) railPos = 'left-0 right-[-1px]';
+            else if (seg.isEnd) railPos = 'left-[-1px] right-0';
+            else railPos = 'left-[-1px] right-[-1px]';
 
             return (
               <div
                 key={seg.event.id}
                 title={seg.event.title}
-                className={`relative ${SPAN_RAIL_H} w-full flex items-center justify-center`}
+                className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
               >
                 <div
                   aria-hidden
-                  className={`absolute inset-y-0 ${railPos} ${visuals.railBg} ${
+                  className={`absolute top-1/2 -translate-y-1/2 ${SPAN_RAIL_BAR} ${railPos} ${visuals.railBg} ${
                     seg.isStart ? 'rounded-l-full' : ''
                   } ${seg.isEnd ? 'rounded-r-full' : ''} ${
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
