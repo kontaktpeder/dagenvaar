@@ -372,7 +372,7 @@ const Index = () => {
         {atmosphere.blobs.map((blob, i) => (
           <div
             key={`${atmosphere.id}-${i}`}
-            className="absolute rounded-full blur-3xl"
+            className="absolute rounded-full blur-[80px] animate-aura-drift"
             style={{
               background: blob.color,
               width: blob.size,
@@ -382,8 +382,11 @@ const Index = () => {
               right: blob.right,
               bottom: blob.bottom,
               opacity: blob.opacity,
+              animationDelay: `${i * -6}s`,
+              animationDuration: `${24 + i * 5}s`,
             }}
           />
+
         ))}
       </div>
 

@@ -14,6 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
+      countdown_participants: {
+        Row: {
+          countdown_id: string
+          id: string
+          invited_at: string
+          invited_by_member_id: string | null
+          joined_at: string | null
+          member_id: string
+          status: string
+        }
+        Insert: {
+          countdown_id: string
+          id?: string
+          invited_at?: string
+          invited_by_member_id?: string | null
+          joined_at?: string | null
+          member_id: string
+          status?: string
+        }
+        Update: {
+          countdown_id?: string
+          id?: string
+          invited_at?: string
+          invited_by_member_id?: string | null
+          joined_at?: string | null
+          member_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countdown_participants_countdown_id_fkey"
+            columns: ["countdown_id"]
+            isOneToOne: false
+            referencedRelation: "countdowns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "countdown_participants_invited_by_member_id_fkey"
+            columns: ["invited_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "countdown_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countdown_push_log: {
+        Row: {
+          countdown_id: string
+          id: string
+          kind: string
+          member_id: string
+          sent_at: string
+          sent_on: string
+        }
+        Insert: {
+          countdown_id: string
+          id?: string
+          kind: string
+          member_id: string
+          sent_at?: string
+          sent_on: string
+        }
+        Update: {
+          countdown_id?: string
+          id?: string
+          kind?: string
+          member_id?: string
+          sent_at?: string
+          sent_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countdown_push_log_countdown_id_fkey"
+            columns: ["countdown_id"]
+            isOneToOne: false
+            referencedRelation: "countdowns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "countdown_push_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countdowns: {
+        Row: {
+          created_at: string
+          created_by_member_id: string
+          emoji: string | null
+          household_id: string
+          id: string
+          status: string
+          target_at: string
+          theme: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_member_id: string
+          emoji?: string | null
+          household_id: string
+          id?: string
+          status?: string
+          target_at: string
+          theme?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_member_id?: string
+          emoji?: string | null
+          household_id?: string
+          id?: string
+          status?: string
+          target_at?: string
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countdowns_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "household_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "countdowns_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entities: {
         Row: {
           created_at: string
@@ -218,154 +366,6 @@ export type Database = {
             columns: ["known_identity_id"]
             isOneToOne: false
             referencedRelation: "known_identities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      countdown_participants: {
-        Row: {
-          countdown_id: string
-          id: string
-          invited_at: string
-          invited_by_member_id: string | null
-          joined_at: string | null
-          member_id: string
-          status: string
-        }
-        Insert: {
-          countdown_id: string
-          id?: string
-          invited_at?: string
-          invited_by_member_id?: string | null
-          joined_at?: string | null
-          member_id: string
-          status?: string
-        }
-        Update: {
-          countdown_id?: string
-          id?: string
-          invited_at?: string
-          invited_by_member_id?: string | null
-          joined_at?: string | null
-          member_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "countdown_participants_countdown_id_fkey"
-            columns: ["countdown_id"]
-            isOneToOne: false
-            referencedRelation: "countdowns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "countdown_participants_invited_by_member_id_fkey"
-            columns: ["invited_by_member_id"]
-            isOneToOne: false
-            referencedRelation: "household_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "countdown_participants_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "household_members"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      countdown_push_log: {
-        Row: {
-          countdown_id: string
-          id: string
-          kind: string
-          member_id: string
-          sent_at: string
-          sent_on: string
-        }
-        Insert: {
-          countdown_id: string
-          id?: string
-          kind: string
-          member_id: string
-          sent_at?: string
-          sent_on: string
-        }
-        Update: {
-          countdown_id?: string
-          id?: string
-          kind?: string
-          member_id?: string
-          sent_at?: string
-          sent_on?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "countdown_push_log_countdown_id_fkey"
-            columns: ["countdown_id"]
-            isOneToOne: false
-            referencedRelation: "countdowns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "countdown_push_log_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "household_members"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      countdowns: {
-        Row: {
-          created_at: string
-          created_by_member_id: string
-          emoji: string | null
-          household_id: string
-          id: string
-          status: string
-          target_at: string
-          theme: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by_member_id: string
-          emoji?: string | null
-          household_id: string
-          id?: string
-          status?: string
-          target_at: string
-          theme?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by_member_id?: string
-          emoji?: string | null
-          household_id?: string
-          id?: string
-          status?: string
-          target_at?: string
-          theme?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "countdowns_created_by_member_id_fkey"
-            columns: ["created_by_member_id"]
-            isOneToOne: false
-            referencedRelation: "household_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "countdowns_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "households"
             referencedColumns: ["id"]
           },
         ]
@@ -587,7 +587,7 @@ export type Database = {
           show_in_other_calendars: boolean
           timezone: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -605,7 +605,7 @@ export type Database = {
           show_in_other_calendars?: boolean
           timezone?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -623,7 +623,7 @@ export type Database = {
           show_in_other_calendars?: boolean
           timezone?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1015,6 +1015,14 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: boolean
       }
+      can_current_user_manage_countdown: {
+        Args: { p_countdown_id: string }
+        Returns: boolean
+      }
+      can_current_user_view_countdown: {
+        Args: { p_countdown_id: string }
+        Returns: boolean
+      }
       can_current_user_view_event: {
         Args: { p_event_id: string }
         Returns: boolean
@@ -1043,14 +1051,6 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      }
-      can_current_user_manage_countdown: {
-        Args: { p_countdown_id: string }
-        Returns: boolean
-      }
-      can_current_user_view_countdown: {
-        Args: { p_countdown_id: string }
-        Returns: boolean
       }
       create_countdown: {
         Args: {
@@ -1184,13 +1184,13 @@ export type Database = {
           start_time: string
         }[]
       }
-      set_member_event_leak: {
-        Args: { p_event_id: string; p_leak: boolean }
-        Returns: undefined
-      }
       hide_overlay_event_for_viewer: {
         Args: { p_event_id: string; p_viewer_household_id: string }
         Returns: undefined
+      }
+      invite_to_countdown: {
+        Args: { p_countdown_id: string; p_member_ids: string[] }
+        Returns: number
       }
       is_household_member: {
         Args: { p_household_id: string; p_user_id: string }
@@ -1204,10 +1204,6 @@ export type Database = {
         Args: { p_household_id: string; p_member_id: string }
         Returns: boolean
       }
-      invite_to_countdown: {
-        Args: { p_countdown_id: string; p_member_ids: string[] }
-        Returns: number
-      }
       join_household_by_code: {
         Args: {
           p_color_token?: string
@@ -1217,6 +1213,7 @@ export type Database = {
         Returns: string
       }
       leave_household: { Args: { p_household_id?: string }; Returns: Json }
+      purge_account_data: { Args: never; Returns: Json }
       respond_to_countdown: {
         Args: { p_accept: boolean; p_countdown_id: string }
         Returns: {
@@ -1234,6 +1231,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_member_event_leak: {
+        Args: { p_event_id: string; p_leak: boolean }
+        Returns: undefined
       }
       sync_event_visible_members: {
         Args: { p_event_id: string; p_member_ids?: string[] }
