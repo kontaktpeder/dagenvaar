@@ -11,7 +11,7 @@ import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/use
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
-import { getDayAtmosphere, type DayAtmosphere } from '@/lib/dayAtmosphere';
+import { getDayAtmosphere, glassPanelChrome, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -610,72 +610,80 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
           )}
         </div>
 
-        <div className="relative shrink-0">
-          <div className="flex px-2 py-2 sm:px-4">
-            <div className="w-5 shrink-0" aria-hidden />
-            <div className="grid grid-cols-7 flex-1 min-w-0">
-              {weekdayLabels.map((d, i) => (
-                <div
-                  key={`${d}-${i}`}
-                  className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
-                  style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
-                >
-                  {d}
-                </div>
-              ))}
+        {/* Frosted glass calendar — thin white frame over aura */}
+        <div
+          className="mx-2.5 mb-2.5 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] backdrop-blur-2xl sm:mx-3"
+          style={{
+            background: atmosphere.glassBg,
+            ...glassPanelChrome(atmosphere.isNight),
+          }}
+        >
+          <div className="relative shrink-0">
+            <div className="flex px-2 py-2.5 sm:px-3">
+              <div className="w-5 shrink-0" aria-hidden />
+              <div className="grid grid-cols-7 flex-1 min-w-0">
+                {weekdayLabels.map((d, i) => (
+                  <div
+                    key={`${d}-${i}`}
+                    className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
+                    style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Month strip sits directly on the aura */}
-        <div
-          ref={trackRef}
-          className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
-        >
-          <motion.div
-            className="absolute top-0 bottom-0 flex will-change-transform"
-            style={{
-              x,
-              width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
-              left: pageWidth ? -pageWidth * WINDOW : '-200%',
-              touchAction: 'none',
-              WebkitUserSelect: 'none',
-              userSelect: 'none',
-            }}
-            onPanStart={showYear ? undefined : handlePanStart}
-            onPan={showYear ? undefined : handlePan}
-            onPanEnd={showYear ? undefined : handlePanEnd}
+          <div
+            ref={trackRef}
+            className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
           >
-            {stripDates.map((date, i) => {
-              const byDate = eventsByOffset[i];
-              const neighbour = {
-                ...(eventsByOffset[i - 1] || {}),
-                ...(eventsByOffset[i + 1] || {}),
-              };
-              return (
-                <MonthPanel
-                  key={`${date.getFullYear()}-${date.getMonth()}`}
-                  width={pageWidth}
-                  monthDate={date}
-                  days={daysByOffset[i]}
-                  eventsByDate={byDate}
-                  neighbourEventsByDate={neighbour}
-                  monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
-                  members={members}
-                  highlight={highlight}
-                  interactive={i === WINDOW}
-                  onTap={handleDayTap}
-                  onLongPress={onCreateEvent}
-                  onPressLock={lockStripForPress}
-                  onPressUnlock={unlockStripForPress}
-                  getMemberForEvent={getMemberForEvent}
-                  countdownEmojiByDate={countdownEmojiByDate}
-                  marksVisible={marksVisible}
-                  atmosphere={atmosphere}
-                />
-              );
-            })}
-          </motion.div>
+            <motion.div
+              className="absolute top-0 bottom-0 flex will-change-transform"
+              style={{
+                x,
+                width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+                left: pageWidth ? -pageWidth * WINDOW : '-200%',
+                touchAction: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+              }}
+              onPanStart={showYear ? undefined : handlePanStart}
+              onPan={showYear ? undefined : handlePan}
+              onPanEnd={showYear ? undefined : handlePanEnd}
+            >
+              {stripDates.map((date, i) => {
+                const byDate = eventsByOffset[i];
+                const neighbour = {
+                  ...(eventsByOffset[i - 1] || {}),
+                  ...(eventsByOffset[i + 1] || {}),
+                };
+                return (
+                  <MonthPanel
+                    key={`${date.getFullYear()}-${date.getMonth()}`}
+                    width={pageWidth}
+                    monthDate={date}
+                    days={daysByOffset[i]}
+                    eventsByDate={byDate}
+                    neighbourEventsByDate={neighbour}
+                    monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
+                    members={members}
+                    highlight={highlight}
+                    interactive={i === WINDOW}
+                    onTap={handleDayTap}
+                    onLongPress={onCreateEvent}
+                    onPressLock={lockStripForPress}
+                    onPressUnlock={unlockStripForPress}
+                    getMemberForEvent={getMemberForEvent}
+                    countdownEmojiByDate={countdownEmojiByDate}
+                    marksVisible={marksVisible}
+                    atmosphere={atmosphere}
+                  />
+                );
+              })}
+            </motion.div>
+          </div>
         </div>
         </div>
 

@@ -1,6 +1,6 @@
 /**
  * Soft aura backgrounds that shift with local time of day.
- * Calendar content sits directly on the wash — no glass panel.
+ * Frosted glass calendar card (thin white frame) floats on the wash.
  */
 
 export type DayAtmosphereId = 'dawn' | 'morning' | 'day' | 'evening' | 'night';
@@ -20,6 +20,8 @@ export type DayAtmosphere = {
   /** Full-bleed page wash */
   wash: string;
   blobs: AtmosphereBlob[];
+  /** Frosted glass fill */
+  glassBg: string;
   /** Weekday / chrome text */
   mutedText: string;
   weekendText: string;
@@ -30,7 +32,8 @@ export type DayAtmosphere = {
 const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   dawn: {
     wash: 'linear-gradient(165deg, #FFF5F0 0%, #FFE8F0 40%, #E8F0FF 100%)',
-    mutedText: 'rgba(60,40,50,0.4)',
+    glassBg: 'rgba(255,255,255,0.38)',
+    mutedText: 'rgba(60,40,50,0.42)',
     weekendText: 'rgba(200,90,120,0.55)',
     isNight: false,
     blobs: [
@@ -41,7 +44,8 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   morning: {
     wash: 'linear-gradient(160deg, #F0FFF8 0%, #E8F4FF 45%, #FFF0F5 100%)',
-    mutedText: 'rgba(40,50,60,0.38)',
+    glassBg: 'rgba(255,255,255,0.4)',
+    mutedText: 'rgba(40,50,60,0.4)',
     weekendText: 'rgba(80,140,160,0.55)',
     isNight: false,
     blobs: [
@@ -52,7 +56,8 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   day: {
     wash: 'linear-gradient(155deg, #FFF9F0 0%, #F5F0FF 50%, #E8F8FF 100%)',
-    mutedText: 'rgba(50,45,60,0.38)',
+    glassBg: 'rgba(255,255,255,0.42)',
+    mutedText: 'rgba(50,45,60,0.4)',
     weekendText: 'rgba(180,90,130,0.5)',
     isNight: false,
     blobs: [
@@ -64,7 +69,8 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   evening: {
     wash: 'linear-gradient(150deg, #FFF0E8 0%, #F8E0F0 40%, #E0D0F8 100%)',
-    mutedText: 'rgba(70,40,70,0.42)',
+    glassBg: 'rgba(255,252,255,0.36)',
+    mutedText: 'rgba(70,40,70,0.44)',
     weekendText: 'rgba(190,80,140,0.55)',
     isNight: false,
     blobs: [
@@ -76,7 +82,8 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   night: {
     wash: 'linear-gradient(165deg, #2A2438 0%, #3A3050 45%, #1E2838 100%)',
-    mutedText: 'rgba(220,210,240,0.45)',
+    glassBg: 'rgba(255,255,255,0.1)',
+    mutedText: 'rgba(220,210,240,0.5)',
     weekendText: 'rgba(240,160,200,0.65)',
     isNight: true,
     blobs: [
@@ -98,4 +105,27 @@ export function resolveDayAtmosphereId(hour = new Date().getHours()): DayAtmosph
 export function getDayAtmosphere(date = new Date()): DayAtmosphere {
   const id = resolveDayAtmosphereId(date.getHours());
   return { id, ...ATMOSPHERES[id] };
+}
+
+/**
+ * Frosted card chrome: soft float + thin white frame (Yooga-style).
+ */
+export function glassPanelChrome(isNight: boolean): { boxShadow: string; border: string } {
+  if (isNight) {
+    return {
+      border: '1px solid rgba(255,255,255,0.28)',
+      boxShadow: [
+        '0 18px 48px rgba(0,0,0,0.28)',
+        'inset 0 1px 0 rgba(255,255,255,0.18)',
+      ].join(', '),
+    };
+  }
+  return {
+    border: '1.5px solid rgba(255,255,255,0.78)',
+    boxShadow: [
+      '0 16px 40px rgba(90,70,110,0.12)',
+      '0 2px 8px rgba(90,70,110,0.06)',
+      'inset 0 1px 0 rgba(255,255,255,0.9)',
+    ].join(', '),
+  };
 }
