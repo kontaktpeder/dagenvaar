@@ -28,6 +28,7 @@ import WelcomeDialog from '@/components/WelcomeDialog';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { toast } from 'sonner';
 import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
+import { getDayAtmosphere, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
@@ -203,6 +204,14 @@ const Index = () => {
 
   const calendarMonthAnchor = useMemo(() => startOfMonth(focusedDate), [focusedDate]);
 
+  const [atmosphere, setAtmosphere] = useState<DayAtmosphere>(() => getDayAtmosphere());
+  useEffect(() => {
+    const refresh = () => setAtmosphere(getDayAtmosphere());
+    refresh();
+    const id = window.setInterval(refresh, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   useEffect(() => {
     setStackMotionOn(true);
   }, []);
@@ -352,9 +361,32 @@ const Index = () => {
     <LocaleProvider calendarLocale={(household as any).locale}>
     <div
       data-calendar-kind={calendarKind}
-      className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
-      style={{ backgroundColor: '#fbf9f6' }}
+      className="h-[100dvh] w-full flex flex-col max-w-6xl mx-auto relative overflow-hidden"
     >
+      {/* Daypart hue — behind chrome + calendar */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 transition-[background] duration-700 ease-out"
+        style={{ background: atmosphere.wash }}
+        aria-hidden
+      >
+        {atmosphere.blobs.map((blob, i) => (
+          <div
+            key={`${atmosphere.id}-${i}`}
+            className="absolute rounded-full blur-3xl"
+            style={{
+              background: blob.color,
+              width: blob.size,
+              height: blob.size,
+              top: blob.top,
+              left: blob.left,
+              right: blob.right,
+              bottom: blob.bottom,
+              opacity: blob.opacity,
+            }}
+          />
+        ))}
+      </div>
+
       {showBootVeil && <BootVeil revealing={bootPhase === 'revealing'} />}
 
       <motion.div
@@ -430,7 +462,7 @@ const Index = () => {
           />
         </motion.div>
 
-        <aside className="hidden min-h-0 flex-col border-l border-border/70 bg-card/70 md:flex">
+        <aside className="hidden min-h-0 flex-col border-l border-black/5 bg-transparent md:flex">
           <DesktopDayPanel
             date={focusedDate}
             householdId={household.id}

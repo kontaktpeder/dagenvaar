@@ -11,7 +11,7 @@ import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/use
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
-import { getDayAtmosphere, glassPanelShadow, type DayAtmosphere } from '@/lib/dayAtmosphere';
+import { getDayAtmosphere, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -574,33 +574,10 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
   return (
     <>
       <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
-        {/* Daypart aura — glass calendar sits on top */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 transition-[background] duration-700 ease-out"
-          style={{ background: atmosphere.wash }}
-          aria-hidden
-        >
-          {atmosphere.blobs.map((blob, i) => (
-            <div
-              key={`${atmosphere.id}-${i}`}
-              className="absolute rounded-full blur-3xl"
-              style={{
-                background: blob.color,
-                width: blob.size,
-                height: blob.size,
-                top: blob.top,
-                left: blob.left,
-                right: blob.right,
-                bottom: blob.bottom,
-                opacity: blob.opacity,
-              }}
-            />
-          ))}
-        </div>
-
+        {/* Daypart aura is painted by Index; calendar sits on it */}
         <div className={`relative z-10 flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
-        <div className="relative rounded-b-3xl overflow-hidden shrink-0 shadow-[0_8px_24px_-12px_rgba(90,58,72,0.22)]">
+        <div className="relative overflow-hidden shrink-0">
           <div className="relative h-14 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
@@ -622,100 +599,83 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
               ))}
             </motion.div>
           </div>
-          {/* Soft brand edge — echoes icon’s pink header band */}
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-70"
-            style={{
-              background: 'linear-gradient(90deg, #F5C0D0 0%, #F5E098 50%, #C8B0E8 100%)',
-            }}
-            aria-hidden
-          />
           {!isOnCurrentMonth && (
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide backdrop-blur-sm"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide"
             >
               I dag
             </button>
           )}
         </div>
 
-        {/* Glass calendar panel */}
-        <div
-          className="mx-2 mb-2 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.35rem] backdrop-blur-xl sm:mx-3"
-          style={{
-            background: atmosphere.glassBg,
-            boxShadow: glassPanelShadow(atmosphere.isNight),
-          }}
-        >
-          <div className="relative shrink-0">
-            <div className="flex px-2 py-2 sm:px-3">
-              <div className="w-5 shrink-0" aria-hidden />
-              <div className="grid grid-cols-7 flex-1 min-w-0">
-                {weekdayLabels.map((d, i) => (
-                  <div
-                    key={`${d}-${i}`}
-                    className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
-                    style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
+        <div className="relative shrink-0">
+          <div className="flex px-2 py-2 sm:px-4">
+            <div className="w-5 shrink-0" aria-hidden />
+            <div className="grid grid-cols-7 flex-1 min-w-0">
+              {weekdayLabels.map((d, i) => (
+                <div
+                  key={`${d}-${i}`}
+                  className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
+                  style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
+                >
+                  {d}
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Continuous infinite-feel month strip — touch-action:none so Android gets H+V gestures */}
-          <div
-            ref={trackRef}
-            className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
+        {/* Month strip sits directly on the aura */}
+        <div
+          ref={trackRef}
+          className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
+        >
+          <motion.div
+            className="absolute top-0 bottom-0 flex will-change-transform"
+            style={{
+              x,
+              width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+              left: pageWidth ? -pageWidth * WINDOW : '-200%',
+              touchAction: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+            }}
+            onPanStart={showYear ? undefined : handlePanStart}
+            onPan={showYear ? undefined : handlePan}
+            onPanEnd={showYear ? undefined : handlePanEnd}
           >
-            <motion.div
-              className="absolute top-0 bottom-0 flex will-change-transform"
-              style={{
-                x,
-                width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
-                left: pageWidth ? -pageWidth * WINDOW : '-200%',
-                touchAction: 'none',
-                WebkitUserSelect: 'none',
-                userSelect: 'none',
-              }}
-              onPanStart={showYear ? undefined : handlePanStart}
-              onPan={showYear ? undefined : handlePan}
-              onPanEnd={showYear ? undefined : handlePanEnd}
-            >
-              {stripDates.map((date, i) => {
-                const byDate = eventsByOffset[i];
-                const neighbour = {
-                  ...(eventsByOffset[i - 1] || {}),
-                  ...(eventsByOffset[i + 1] || {}),
-                };
-                return (
-                  <MonthPanel
-                    key={`${date.getFullYear()}-${date.getMonth()}`}
-                    width={pageWidth}
-                    monthDate={date}
-                    days={daysByOffset[i]}
-                    eventsByDate={byDate}
-                    neighbourEventsByDate={neighbour}
-                    monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
-                    members={members}
-                    highlight={highlight}
-                    interactive={i === WINDOW}
-                    onTap={handleDayTap}
-                    onLongPress={onCreateEvent}
-                    onPressLock={lockStripForPress}
-                    onPressUnlock={unlockStripForPress}
-                    getMemberForEvent={getMemberForEvent}
-                    countdownEmojiByDate={countdownEmojiByDate}
-                    marksVisible={marksVisible}
-                    atmosphere={atmosphere}
-                  />
-                );
-              })}
-            </motion.div>
-          </div>
+            {stripDates.map((date, i) => {
+              const byDate = eventsByOffset[i];
+              const neighbour = {
+                ...(eventsByOffset[i - 1] || {}),
+                ...(eventsByOffset[i + 1] || {}),
+              };
+              return (
+                <MonthPanel
+                  key={`${date.getFullYear()}-${date.getMonth()}`}
+                  width={pageWidth}
+                  monthDate={date}
+                  days={daysByOffset[i]}
+                  eventsByDate={byDate}
+                  neighbourEventsByDate={neighbour}
+                  monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
+                  members={members}
+                  highlight={highlight}
+                  interactive={i === WINDOW}
+                  onTap={handleDayTap}
+                  onLongPress={onCreateEvent}
+                  onPressLock={lockStripForPress}
+                  onPressUnlock={unlockStripForPress}
+                  getMemberForEvent={getMemberForEvent}
+                  countdownEmojiByDate={countdownEmojiByDate}
+                  marksVisible={marksVisible}
+                  atmosphere={atmosphere}
+                />
+              );
+            })}
+          </motion.div>
         </div>
         </div>
 
@@ -930,7 +890,7 @@ const MonthPanel = ({
             }`}
             style={
               weekIndex > 0
-                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.08)' : 'rgba(60,40,70,0.08)' }
+                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.06)' : 'rgba(60,40,70,0.06)' }
                 : undefined
             }
           >
@@ -1085,8 +1045,11 @@ const DayCell = ({
         <div
           key={ev.id}
           title={ev.title}
-          className={`${DAY_PILL} bg-muted/60 ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
-          style={{ boxShadow: silverMarkRim() }}
+          className={`${DAY_PILL} ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
+          style={{
+            background: categoryMarkFill('#E8E4F0', '#C8C0D8'),
+            boxShadow: silverMarkRim(),
+          }}
         />
       );
     }

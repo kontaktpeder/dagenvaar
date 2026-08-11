@@ -1,6 +1,6 @@
 /**
- * Soft aura backgrounds that shift with local time of day —
- * glass calendar sits on top (Pastelly × glassmorphism refs).
+ * Soft aura backgrounds that shift with local time of day.
+ * Calendar content sits directly on the wash — no glass panel.
  */
 
 export type DayAtmosphereId = 'dawn' | 'morning' | 'day' | 'evening' | 'night';
@@ -17,22 +17,19 @@ export type AtmosphereBlob = {
 
 export type DayAtmosphere = {
   id: DayAtmosphereId;
-  /** Full-bleed page wash behind the glass calendar */
+  /** Full-bleed page wash */
   wash: string;
   blobs: AtmosphereBlob[];
-  /** Glass panel fill */
-  glassBg: string;
-  /** Weekday / chrome text on glass */
+  /** Weekday / chrome text */
   mutedText: string;
   weekendText: string;
-  /** True for dark night glass */
+  /** True when night palette needs lighter ink */
   isNight: boolean;
 };
 
 const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   dawn: {
     wash: 'linear-gradient(165deg, #FFF5F0 0%, #FFE8F0 40%, #E8F0FF 100%)',
-    glassBg: 'rgba(255,255,255,0.48)',
     mutedText: 'rgba(60,40,50,0.4)',
     weekendText: 'rgba(200,90,120,0.55)',
     isNight: false,
@@ -44,7 +41,6 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   morning: {
     wash: 'linear-gradient(160deg, #F0FFF8 0%, #E8F4FF 45%, #FFF0F5 100%)',
-    glassBg: 'rgba(255,255,255,0.5)',
     mutedText: 'rgba(40,50,60,0.38)',
     weekendText: 'rgba(80,140,160,0.55)',
     isNight: false,
@@ -56,7 +52,6 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   day: {
     wash: 'linear-gradient(155deg, #FFF9F0 0%, #F5F0FF 50%, #E8F8FF 100%)',
-    glassBg: 'rgba(255,255,255,0.52)',
     mutedText: 'rgba(50,45,60,0.38)',
     weekendText: 'rgba(180,90,130,0.5)',
     isNight: false,
@@ -69,7 +64,6 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   evening: {
     wash: 'linear-gradient(150deg, #FFF0E8 0%, #F8E0F0 40%, #E0D0F8 100%)',
-    glassBg: 'rgba(255,252,255,0.42)',
     mutedText: 'rgba(70,40,70,0.42)',
     weekendText: 'rgba(190,80,140,0.55)',
     isNight: false,
@@ -82,7 +76,6 @@ const ATMOSPHERES: Record<DayAtmosphereId, Omit<DayAtmosphere, 'id'>> = {
   },
   night: {
     wash: 'linear-gradient(165deg, #2A2438 0%, #3A3050 45%, #1E2838 100%)',
-    glassBg: 'rgba(48,42,68,0.48)',
     mutedText: 'rgba(220,210,240,0.45)',
     weekendText: 'rgba(240,160,200,0.65)',
     isNight: true,
@@ -105,20 +98,4 @@ export function resolveDayAtmosphereId(hour = new Date().getHours()): DayAtmosph
 export function getDayAtmosphere(date = new Date()): DayAtmosphere {
   const id = resolveDayAtmosphereId(date.getHours());
   return { id, ...ATMOSPHERES[id] };
-}
-
-/** Glass panel chrome (silver edge + frost). */
-export function glassPanelShadow(isNight: boolean): string {
-  if (isNight) {
-    return [
-      'inset 0 0 0 1px rgba(200,210,230,0.28)',
-      'inset 0 1px 0 rgba(255,255,255,0.12)',
-      '0 12px 40px rgba(0,0,0,0.35)',
-    ].join(', ');
-  }
-  return [
-    'inset 0 0 0 1px rgba(168,176,188,0.55)',
-    'inset 0 1px 0 rgba(255,255,255,0.75)',
-    '0 10px 36px rgba(90,70,100,0.12)',
-  ].join(', ');
 }
