@@ -8,7 +8,7 @@ import {
   type DisplayEvent,
 } from '@/hooks/useOverlayEvents';
 import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
-import { resolveCategoryVisuals, getMemberColorMap, categoryMarkOutline } from '@/lib/categoryPresentation';
+import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
 import {
@@ -954,14 +954,13 @@ interface DayCellProps {
 
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 5;
-/** Shared calendar mark size — single-day icons and multi-day rail icons */
-const CAL_ICON_SIZE = 9;
-const CAL_ICON_STROKE = 1.75;
-/** Icon sits on the rail; rail row is a slim pill */
-const MARK_CHIP = 'w-[12px] h-[12px]';
-const SPAN_ROW_H = 'h-[11px]';
-/** Single-day rail: short centered pill (~60% width), not edge-to-edge */
-const DAY_RAIL_POS = 'left-[20%] right-[20%]';
+/** Icon size — kept smaller than pill so it sits centered */
+const CAL_ICON_SIZE = 8;
+const CAL_ICON_STROKE = 2;
+/** Single-day pill: one box for rim + fill + centered icon */
+const DAY_PILL =
+  'h-[12px] w-[58%] max-w-[2.1rem] mx-auto rounded-full flex items-center justify-center shrink-0';
+const SPAN_ROW_H = 'h-[12px]';
 
 /** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
@@ -1031,16 +1030,9 @@ const DayCell = ({
         <div
           key={ev.id}
           title={ev.title}
-          className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
-        >
-          <div
-            aria-hidden
-            className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full bg-muted/70 ${
-              evHighlighted ? 'ring-1 ring-primary/40' : ''
-            }`}
-            style={{ boxShadow: 'inset 0 0 0 1.5px hsl(var(--muted-foreground) / 0.22)' }}
-          />
-        </div>
+          className={`${DAY_PILL} bg-muted/60 ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
+          style={{ boxShadow: silverMarkRim() }}
+        />
       );
     }
 
@@ -1053,29 +1045,22 @@ const DayCell = ({
       <div
         key={ev.id}
         title={ev.title}
-        className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
+        className={`${DAY_PILL} ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
+        style={{
+          background: categoryMarkFill(visuals.soft, visuals.rail),
+          boxShadow: silverMarkRim(),
+        }}
       >
-        <div
-          aria-hidden
-          className={`absolute inset-y-0 ${DAY_RAIL_POS} rounded-full ${
-            evHighlighted ? 'ring-1 ring-primary/40' : ''
-          }`}
-          style={{
-            backgroundColor: visuals.soft,
-            boxShadow: categoryMarkOutline(visuals.ink, 0.42),
-          }}
-        />
         {Icon ? (
-          <span className={`relative z-[1] ${MARK_CHIP} shrink-0 flex items-center justify-center`}>
-            <Icon
-              size={CAL_ICON_SIZE}
-              strokeWidth={CAL_ICON_STROKE}
-              style={{ color: visuals.ink }}
-            />
-          </span>
+          <Icon
+            size={CAL_ICON_SIZE}
+            strokeWidth={CAL_ICON_STROKE}
+            className="block shrink-0"
+            style={{ color: visuals.ink }}
+          />
         ) : (
           <span
-            className="relative z-[1] w-1.5 h-1.5 shrink-0 rounded-full"
+            className="block w-1 h-1 rounded-full shrink-0"
             style={{ backgroundColor: visuals.ink }}
           />
         )}
@@ -1160,20 +1145,17 @@ const DayCell = ({
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
                   }`}
                   style={{
-                    backgroundColor: visuals.rail,
-                    boxShadow: categoryMarkOutline(visuals.ink, 0.32),
+                    background: categoryMarkFill(visuals.soft, visuals.rail),
+                    boxShadow: silverMarkRim(),
                   }}
                 />
                 {seg.isStart && Icon && (
-                  <span
-                    className={`relative z-[1] ${MARK_CHIP} shrink-0 flex items-center justify-center`}
-                  >
-                    <Icon
-                      size={CAL_ICON_SIZE}
-                      strokeWidth={CAL_ICON_STROKE}
-                      style={{ color: visuals.ink }}
-                    />
-                  </span>
+                  <Icon
+                    size={CAL_ICON_SIZE}
+                    strokeWidth={CAL_ICON_STROKE}
+                    className="relative z-[1] block shrink-0"
+                    style={{ color: visuals.ink }}
+                  />
                 )}
               </div>
             );

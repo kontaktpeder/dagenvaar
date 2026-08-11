@@ -30,7 +30,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
 };
 
 /**
- * Light paper pastels — soft fill + clearer ink for outlined “drawn” marks.
+ * Light paper pastels — soft fill + clearer ink inside silver-rimmed marks.
  */
 export type CategoryVisuals = {
   soft: string;
@@ -39,12 +39,23 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
-/** Inset outline matching the icon’s drawn contour (soft, not harsh black). */
-export function categoryMarkOutline(ink: string, strength = 0.38): string {
-  const alpha = Math.round(Math.min(1, Math.max(0, strength)) * 255)
-    .toString(16)
-    .padStart(2, '0');
-  return `inset 0 0 0 1.5px ${ink}${alpha}`;
+/** Thin chrome / silver metal rim (highlight + cool edge). */
+export function silverMarkRim(): string {
+  return [
+    'inset 0 0 0 1px #A8B0BC',
+    'inset 0 0.5px 0 #F7F8FA',
+    'inset 0 -0.5px 0 rgba(70,80,100,0.22)',
+  ].join(', ');
+}
+
+/** Soft pastel fill with extra depth for pill marks. */
+export function categoryMarkFill(soft: string, rail: string): string {
+  return `linear-gradient(165deg, #FFFFFF 0%, ${soft} 38%, ${rail} 100%)`;
+}
+
+/** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
+export function categoryMarkOutline(_ink?: string, _strength?: number): string {
+  return silverMarkRim();
 }
 
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
