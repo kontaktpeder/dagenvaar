@@ -612,7 +612,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
         {/* Frosted glass calendar — thin white frame over aura */}
         <div
-          className="mx-2.5 mb-2.5 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] backdrop-blur-2xl sm:mx-3"
+          className="mx-2.5 mb-2.5 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] backdrop-blur-3xl backdrop-saturate-150 sm:mx-3"
           style={{
             background: atmosphere.glassBg,
             ...glassPanelChrome(atmosphere.isNight),
