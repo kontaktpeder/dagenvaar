@@ -11,7 +11,7 @@ import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/use
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
-import { getDayAtmosphere, glassPanelChrome, type DayAtmosphere } from '@/lib/dayAtmosphere';
+import { getDayAtmosphere, glassPanelChrome, glassChipChrome, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -576,9 +576,16 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
         {/* Daypart aura is painted by Index; calendar sits on it */}
         <div className={`relative z-10 flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
-        {/* Month header peeks with the same x as the day grid */}
-        <div className="relative overflow-hidden shrink-0">
-          <div className="relative h-14 overflow-hidden">
+        {/* One glass plate: month title + weekdays + grid */}
+        <div
+          className="mx-2.5 mb-2.5 mt-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] backdrop-blur-3xl backdrop-saturate-150 sm:mx-3"
+          style={{
+            background: atmosphere.glassBg,
+            ...glassPanelChrome(atmosphere.isNight),
+          }}
+        >
+          {/* Month title — transparent, swipe-synced with grid */}
+          <div className="relative shrink-0 h-12 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -592,40 +599,34 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
-                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
+                  ink={atmosphere.ink}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
             </motion.div>
+            {!isOnCurrentMonth && (
+              <button
+                type="button"
+                onClick={goToToday}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 min-h-8 px-3 rounded-full text-[11px] font-semibold tracking-wide backdrop-blur-md"
+                style={{
+                  color: atmosphere.ink,
+                  ...glassChipChrome(atmosphere.isNight),
+                }}
+              >
+                I dag
+              </button>
+            )}
           </div>
-          {!isOnCurrentMonth && (
-            <button
-              type="button"
-              onClick={goToToday}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide"
-            >
-              I dag
-            </button>
-          )}
-        </div>
 
-        {/* Frosted glass calendar — thin white frame over aura */}
-        <div
-          className="mx-2.5 mb-2.5 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] backdrop-blur-3xl backdrop-saturate-150 sm:mx-3"
-          style={{
-            background: atmosphere.glassBg,
-            ...glassPanelChrome(atmosphere.isNight),
-          }}
-        >
           <div className="relative shrink-0">
-            <div className="flex px-2 py-2.5 sm:px-3">
+            <div className="flex px-2 pb-1.5 pt-0.5 sm:px-3">
               <div className="w-5 shrink-0" aria-hidden />
               <div className="grid grid-cols-7 flex-1 min-w-0">
                 {weekdayLabels.map((d, i) => (
                   <div
                     key={`${d}-${i}`}
-                    className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
+                    className="text-center text-[10px] font-medium uppercase tracking-[0.12em]"
                     style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
                   >
                     {d}
@@ -790,38 +791,34 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 const MonthHeaderPanel = ({
   width,
   label,
-  gradient,
-  textColor,
+  ink,
   onTitleClick,
 }: {
   width: number;
   label: string;
-  gradient: string;
-  textColor: string;
+  ink: string;
   onTitleClick?: () => void;
 }) => (
   <div
-    className="h-full shrink-0 flex items-center justify-center px-5 relative"
-    style={{
-      width: width || '33.333%',
-      background: gradient,
-      color: textColor,
-    }}
+    className="h-full shrink-0 flex items-center justify-center px-5 relative bg-transparent"
+    style={{ width: width || '33.333%' }}
   >
-    {/* Soft highlight — illustrated calendar sheen */}
-    <div
-      className="pointer-events-none absolute inset-0 opacity-40"
-      style={{
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
-      }}
-      aria-hidden
-    />
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide drop-shadow-sm">{label}</h2>
+        <h2
+          className="text-[1.15rem] font-semibold capitalize tracking-tight"
+          style={{ color: ink }}
+        >
+          {label}
+        </h2>
       </button>
     ) : (
-      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center drop-shadow-sm">{label}</h2>
+      <h2
+        className="relative text-[1.15rem] font-semibold capitalize tracking-tight text-center"
+        style={{ color: ink }}
+      >
+        {label}
+      </h2>
     )}
   </div>
 );
@@ -898,7 +895,7 @@ const MonthPanel = ({
             }`}
             style={
               weekIndex > 0
-                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.06)' : 'rgba(60,40,70,0.06)' }
+                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.05)' : 'rgba(60,40,70,0.05)' }
                 : undefined
             }
           >
@@ -1108,20 +1105,20 @@ const DayCell = ({
         style={
           today
             ? {
-                border: `1.5px solid ${atmosphere.isNight ? 'rgba(240,180,220,0.9)' : 'hsl(var(--primary))'}`,
-                color: atmosphere.isNight ? 'rgba(255,230,245,0.95)' : 'hsl(var(--primary))',
+                border: `1.5px solid ${atmosphere.isNight ? 'rgba(255,200,230,0.75)' : 'hsl(var(--primary) / 0.75)'}`,
+                color: atmosphere.ink,
                 fontWeight: 600,
+                background: atmosphere.isNight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.35)',
               }
             : {
                 color: !inMonth
                   ? atmosphere.isNight
-                    ? 'rgba(220,210,240,0.22)'
-                    : 'rgba(60,40,70,0.28)'
+                    ? 'rgba(220,210,240,0.2)'
+                    : 'rgba(60,40,70,0.24)'
                   : weekend
                     ? atmosphere.weekendText
-                    : atmosphere.isNight
-                      ? 'rgba(235,225,250,0.78)'
-                      : 'rgba(50,40,60,0.72)',
+                    : atmosphere.ink,
+                opacity: weekend && inMonth && !today ? 0.85 : 1,
               }
         }
       >
@@ -1138,9 +1135,9 @@ const DayCell = ({
         >
           <Sparkles
             size={11}
-            strokeWidth={2.25}
-            className="text-primary drop-shadow-sm"
-            fill="hsl(var(--primary) / 0.35)"
+            strokeWidth={2}
+            className="text-primary"
+            fill="hsl(var(--primary) / 0.3)"
           />
         </span>
       )}

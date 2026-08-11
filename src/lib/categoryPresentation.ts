@@ -17,20 +17,18 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
-  // WORK core hues
   meeting: 'amber',
   production: 'green',
   development: 'blue',
   admin: 'purple',
   personal: 'orange',
-  // Legacy
   client: 'teal',
   deadline: 'orange',
   focus: 'purple',
 };
 
 /**
- * Clear pastel marks — solid color sitting on the daypart aura (no glass/chrome).
+ * Milky pastels — clear on glass without neon punch.
  */
 export type CategoryVisuals = {
   soft: string;
@@ -39,12 +37,12 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
-/** Soft depth only — no metallic rim. */
+/** Soft lift only — no metal rim. */
 export function silverMarkRim(): string {
-  return '0 0.5px 1.5px rgba(40,30,50,0.08)';
+  return '0 1px 2px rgba(40,30,50,0.07)';
 }
 
-/** Clear pastel fill for event marks. */
+/** Soft candy fill for marks on frosted glass. */
 export function categoryMarkFill(soft: string, rail: string): string {
   return `linear-gradient(180deg, ${soft} 0%, ${rail} 100%)`;
 }
@@ -55,54 +53,53 @@ export function categoryMarkOutline(_ink?: string, _strength?: number): string {
 }
 
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  // Clear, vivid pastels
   pink: {
-    soft: '#F9C8D6',
-    rail: '#F09AB0',
-    ink: '#B03858',
-    swatch: '#E8789A',
+    soft: '#F8D6E0',
+    rail: '#ECA8BC',
+    ink: '#B04868',
+    swatch: '#E0809C',
   },
   blue: {
-    soft: '#B8DCF5',
-    rail: '#7EBBE8',
-    ink: '#246898',
-    swatch: '#5B9FD0',
+    soft: '#CDE6F7',
+    rail: '#96C8EC',
+    ink: '#2E6FA0',
+    swatch: '#5BA8D4',
   },
   purple: {
-    soft: '#D8C4F0',
-    rail: '#B898E0',
-    ink: '#5C3898',
-    swatch: '#9B72C8',
+    soft: '#E4D4F4',
+    rail: '#C4A8E4',
+    ink: '#6848A0',
+    swatch: '#9B78C8',
   },
   amber: {
-    soft: '#F5E08A',
-    rail: '#E8C848',
-    ink: '#8A6810',
-    swatch: '#D4AE35',
+    soft: '#F7EBB0',
+    rail: '#EAD070',
+    ink: '#8F7018',
+    swatch: '#D4B040',
   },
   orange: {
-    soft: '#F5C89A',
-    rail: '#ECA068',
-    ink: '#A84E20',
-    swatch: '#E88848',
+    soft: '#F8D8BC',
+    rail: '#F0B080',
+    ink: '#B05828',
+    swatch: '#E89058',
   },
   green: {
-    soft: '#A8E0BE',
-    rail: '#6EC898',
-    ink: '#207048',
-    swatch: '#52B078',
+    soft: '#C4E8D4',
+    rail: '#88D0A8',
+    ink: '#2A7850',
+    swatch: '#58B480',
   },
   teal: {
-    soft: '#9EE0D0',
-    rail: '#5EC8B0',
-    ink: '#1C6E60',
-    swatch: '#48B098',
+    soft: '#C0E8DC',
+    rail: '#78D0BC',
+    ink: '#247868',
+    swatch: '#48B4A0',
   },
   red: {
-    soft: '#F5B8C0',
-    rail: '#E88898',
-    ink: '#A83848',
-    swatch: '#E06878',
+    soft: '#F8D0D6',
+    rail: '#ECA0AC',
+    ink: '#B04050',
+    swatch: '#E07080',
   },
 };
 

@@ -28,7 +28,7 @@ import WelcomeDialog from '@/components/WelcomeDialog';
 import ProfileSheet, { type ProfileSheetMode } from '@/components/ProfileSheet';
 import { toast } from 'sonner';
 import { peekWelcomeIntent, consumeWelcomeIntent, type WelcomeIntent } from '@/lib/welcomeIntent';
-import { getDayAtmosphere, type DayAtmosphere } from '@/lib/dayAtmosphere';
+import { getDayAtmosphere, glassChipChrome, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import { peekPendingInviteCode } from '@/lib/inviteLink';
 import { peekSessionNotice } from '@/lib/auth/sessionNotice';
 import type { Event } from '@/hooks/useEvents';
@@ -418,12 +418,13 @@ const Index = () => {
               tryOpenSheet(() => setProfileMode('account'));
             });
           }}
-          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shadow-sm"
-          style={
-            !currentMember.avatar_url
-              ? { backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}))` }
-              : undefined
-          }
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden backdrop-blur-md"
+          style={{
+            ...glassChipChrome(atmosphere.isNight),
+            ...(!currentMember.avatar_url
+              ? { backgroundColor: `hsl(var(--member-${currentMember.color_token.replace('pastel-', '')}) / 0.85)` }
+              : {}),
+          }}
         >
           {currentMember.avatar_url ? (
             <img src={currentMember.avatar_url} alt={currentMember.display_name} className="w-full h-full object-cover" />
