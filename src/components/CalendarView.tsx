@@ -11,6 +11,7 @@ import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/use
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
+import { getDayAtmosphere, glassPanelShadow, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -39,6 +40,7 @@ import {
   subscribePendingOpenCountdown,
 } from '@/lib/native/pendingOpenCountdown';
 import { Sparkles } from 'lucide-react';
+
 interface CalendarViewProps {
   householdId: string;
   members: HouseholdMember[];
@@ -318,6 +320,14 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
+  const [atmosphere, setAtmosphere] = useState<DayAtmosphere>(() => getDayAtmosphere());
+  useEffect(() => {
+    const refresh = () => setAtmosphere(getDayAtmosphere());
+    refresh();
+    const id = window.setInterval(refresh, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const mergedByOffset = useMemo(() => {
     const locals = [eventsM2, eventsM1, events, eventsP1, eventsP2];
     return locals.map((local, i) => {
@@ -563,8 +573,32 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   return (
     <>
-      <div className="relative flex flex-col h-full min-h-0">
-        <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
+      <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
+        {/* Daypart aura — glass calendar sits on top */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 transition-[background] duration-700 ease-out"
+          style={{ background: atmosphere.wash }}
+          aria-hidden
+        >
+          {atmosphere.blobs.map((blob, i) => (
+            <div
+              key={`${atmosphere.id}-${i}`}
+              className="absolute rounded-full blur-3xl"
+              style={{
+                background: blob.color,
+                width: blob.size,
+                height: blob.size,
+                top: blob.top,
+                left: blob.left,
+                right: blob.right,
+                bottom: blob.bottom,
+                opacity: blob.opacity,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className={`relative z-10 flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
         <div className="relative rounded-b-3xl overflow-hidden shrink-0 shadow-[0_8px_24px_-12px_rgba(90,58,72,0.22)]">
           <div className="relative h-14 overflow-hidden">
@@ -607,73 +641,81 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
           )}
         </div>
 
-        <div className="bg-transparent relative">
-          <div className="flex px-2 py-2 sm:px-4">
-            <div className="w-5 shrink-0" aria-hidden />
-            <div className="grid grid-cols-7 flex-1 min-w-0">
-              {weekdayLabels.map((d, i) => (
-                <div key={`${d}-${i}`} className={`text-center text-[10px] font-medium uppercase tracking-[0.14em] ${
-                  i >= 5 ? 'text-primary/45' : 'text-foreground/35'
-                }`}>
-                  {d}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Continuous infinite-feel month strip — touch-action:none so Android gets H+V gestures */}
+        {/* Glass calendar panel */}
         <div
-          ref={trackRef}
-          className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
+          className="mx-2 mb-2 mt-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.35rem] backdrop-blur-xl sm:mx-3"
           style={{
-            background:
-              'linear-gradient(165deg, hsl(340 45% 98%) 0%, hsl(48 35% 98.5%) 42%, hsl(210 35% 98%) 100%)',
+            background: atmosphere.glassBg,
+            boxShadow: glassPanelShadow(atmosphere.isNight),
           }}
         >
-          <motion.div
-            className="absolute top-0 bottom-0 flex will-change-transform"
-            style={{
-              x,
-              width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
-              left: pageWidth ? -pageWidth * WINDOW : '-200%',
-              touchAction: 'none',
-              WebkitUserSelect: 'none',
-              userSelect: 'none',
-            }}
-            onPanStart={showYear ? undefined : handlePanStart}
-            onPan={showYear ? undefined : handlePan}
-            onPanEnd={showYear ? undefined : handlePanEnd}
+          <div className="relative shrink-0">
+            <div className="flex px-2 py-2 sm:px-3">
+              <div className="w-5 shrink-0" aria-hidden />
+              <div className="grid grid-cols-7 flex-1 min-w-0">
+                {weekdayLabels.map((d, i) => (
+                  <div
+                    key={`${d}-${i}`}
+                    className="text-center text-[10px] font-medium uppercase tracking-[0.14em]"
+                    style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Continuous infinite-feel month strip — touch-action:none so Android gets H+V gestures */}
+          <div
+            ref={trackRef}
+            className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
           >
-            {stripDates.map((date, i) => {
-              const byDate = eventsByOffset[i];
-              const neighbour = {
-                ...(eventsByOffset[i - 1] || {}),
-                ...(eventsByOffset[i + 1] || {}),
-              };
-              return (
-                <MonthPanel
-                  key={`${date.getFullYear()}-${date.getMonth()}`}
-                  width={pageWidth}
-                  monthDate={date}
-                  days={daysByOffset[i]}
-                  eventsByDate={byDate}
-                  neighbourEventsByDate={neighbour}
-                  monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
-                  members={members}
-                  highlight={highlight}
-                  interactive={i === WINDOW}
-                  onTap={handleDayTap}
-                  onLongPress={onCreateEvent}
-                  onPressLock={lockStripForPress}
-                  onPressUnlock={unlockStripForPress}
-                  getMemberForEvent={getMemberForEvent}
-                  countdownEmojiByDate={countdownEmojiByDate}
-                  marksVisible={marksVisible}
-                />
-              );
-            })}
-          </motion.div>
+            <motion.div
+              className="absolute top-0 bottom-0 flex will-change-transform"
+              style={{
+                x,
+                width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+                left: pageWidth ? -pageWidth * WINDOW : '-200%',
+                touchAction: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+              }}
+              onPanStart={showYear ? undefined : handlePanStart}
+              onPan={showYear ? undefined : handlePan}
+              onPanEnd={showYear ? undefined : handlePanEnd}
+            >
+              {stripDates.map((date, i) => {
+                const byDate = eventsByOffset[i];
+                const neighbour = {
+                  ...(eventsByOffset[i - 1] || {}),
+                  ...(eventsByOffset[i + 1] || {}),
+                };
+                return (
+                  <MonthPanel
+                    key={`${date.getFullYear()}-${date.getMonth()}`}
+                    width={pageWidth}
+                    monthDate={date}
+                    days={daysByOffset[i]}
+                    eventsByDate={byDate}
+                    neighbourEventsByDate={neighbour}
+                    monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
+                    members={members}
+                    highlight={highlight}
+                    interactive={i === WINDOW}
+                    onTap={handleDayTap}
+                    onLongPress={onCreateEvent}
+                    onPressLock={lockStripForPress}
+                    onPressUnlock={unlockStripForPress}
+                    getMemberForEvent={getMemberForEvent}
+                    countdownEmojiByDate={countdownEmojiByDate}
+                    marksVisible={marksVisible}
+                    atmosphere={atmosphere}
+                  />
+                );
+              })}
+            </motion.div>
+          </div>
         </div>
         </div>
 
@@ -836,6 +878,7 @@ interface MonthPanelProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmojiByDate?: Record<string, string>;
   marksVisible?: boolean;
+  atmosphere: DayAtmosphere;
 }
 
 const MonthPanel = ({
@@ -855,6 +898,7 @@ const MonthPanel = ({
   getMemberForEvent,
   countdownEmojiByDate,
   marksVisible = true,
+  atmosphere,
 }: MonthPanelProps) => {
   const spanByDate = useMemo(
     () => buildSpanSegmentsByDate(days, eventsByDate, neighbourEventsByDate),
@@ -871,7 +915,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-4 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-3 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -882,11 +926,19 @@ const MonthPanel = ({
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
             className={`flex flex-1 min-h-0 gap-x-1 ${
-              weekIndex > 0 ? 'border-t border-border/15' : ''
+              weekIndex > 0 ? 'border-t' : ''
             }`}
+            style={
+              weekIndex > 0
+                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.08)' : 'rgba(60,40,70,0.08)' }
+                : undefined
+            }
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
-              <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground/35 select-none">
+              <span
+                className="text-[9px] font-medium tabular-nums leading-none select-none"
+                style={{ color: atmosphere.mutedText }}
+              >
                 {weekNum}
               </span>
             </div>
@@ -918,6 +970,7 @@ const MonthPanel = ({
                     getMemberForEvent={getMemberForEvent}
                     countdownEmoji={countdownEmojiByDate?.[dateStr]}
                     marksVisible={marksVisible}
+                    atmosphere={atmosphere}
                   />
                 );
               })}
@@ -950,6 +1003,7 @@ interface DayCellProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmoji?: string;
   marksVisible?: boolean;
+  atmosphere: DayAtmosphere;
 }
 
 /** Max single-day marks shown before +N overflow */
@@ -1002,6 +1056,7 @@ const DayCell = ({
   getMemberForEvent,
   countdownEmoji,
   marksVisible = true,
+  atmosphere,
 }: DayCellProps) => {
   const { dateLocale } = useLocale();
   const dayAriaLabel = format(day, 'EEEE d. MMMM yyyy', { locale: dateLocale });
@@ -1078,13 +1133,25 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums ${
-          !inMonth ? 'text-muted-foreground/35' : weekend && !today ? 'text-foreground/45' : 'text-foreground/70'
-        }`}
+        className="w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums"
         style={
           today
-            ? { border: '1.5px solid hsl(var(--primary))', color: 'hsl(var(--primary))', fontWeight: 600 }
-            : undefined
+            ? {
+                border: `1.5px solid ${atmosphere.isNight ? 'rgba(240,180,220,0.9)' : 'hsl(var(--primary))'}`,
+                color: atmosphere.isNight ? 'rgba(255,230,245,0.95)' : 'hsl(var(--primary))',
+                fontWeight: 600,
+              }
+            : {
+                color: !inMonth
+                  ? atmosphere.isNight
+                    ? 'rgba(220,210,240,0.22)'
+                    : 'rgba(60,40,70,0.28)'
+                  : weekend
+                    ? atmosphere.weekendText
+                    : atmosphere.isNight
+                      ? 'rgba(235,225,250,0.78)'
+                      : 'rgba(50,40,60,0.72)',
+              }
         }
       >
         {format(day, 'd')}

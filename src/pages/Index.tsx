@@ -358,7 +358,7 @@ const Index = () => {
       {showBootVeil && <BootVeil revealing={bootPhase === 'revealing'} />}
 
       <motion.div
-        className="relative z-10 flex min-h-0 flex-1 flex-col bg-background"
+        className="relative z-10 flex min-h-0 flex-1 flex-col bg-transparent"
         initial={false}
         animate={bootPhase === 'covering' ? { y: 12 } : { y: 0 }}
         transition={{ duration: 0.85, ease: welcomeEase }}
@@ -398,14 +398,14 @@ const Index = () => {
         </button>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden relative bg-background md:grid md:grid-cols-[minmax(0,1fr)_22rem] lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <main className="flex-1 min-h-0 overflow-hidden relative bg-transparent md:grid md:grid-cols-[minmax(0,1fr)_22rem] lg:grid-cols-[minmax(0,1fr)_24rem]">
         {/* Single instance — no exit/enter overlap (avoids layered calendars) */}
         <motion.div
           key={household.id}
           initial={stackMotionOn ? { y: stackDirection >= 0 ? 36 : -36 } : false}
           animate={{ y: 0 }}
           transition={stackTransition}
-          className="h-full min-w-0 flex flex-col bg-background"
+          className="h-full min-w-0 flex flex-col bg-transparent"
         >
           <CalendarView
             householdId={household.id}
