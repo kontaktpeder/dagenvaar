@@ -58,7 +58,7 @@ const DailyDigestSettings = ({ member }: DailyDigestSettingsProps) => {
     setTestStatus('sending');
     setTestError('');
     const { data, error } = await supabase.functions.invoke('send-daily-digests', {
-      body: { mode: 'self' },
+      body: { mode: 'self', household_id: member.household_id },
     });
     if (error) {
       setTestStatus('error');

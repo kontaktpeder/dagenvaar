@@ -5,12 +5,13 @@ import { formatMultiDayLabel } from '@/lib/multiDaySpans';
 import { translateDayPart } from '@/lib/i18n';
 import { useLocale } from '@/hooks/useLocale';
 import type { Event } from '@/hooks/useEvents';
-import type { DisplayEvent } from '@/hooks/useOverlayEvents';
+import { OVERLAY_MARK, type DisplayEvent } from '@/hooks/useOverlayEvents';
 import type { HouseholdMember } from '@/hooks/useHousehold';
 import type { CountdownWithParticipants } from '@/hooks/useCountdowns';
 import { calendarDaysUntil } from '@/lib/countdownTime';
 import { getCountdownTheme } from '@/lib/countdownThemes';
 import PopupStickyFooter from '@/components/PopupStickyFooter';
+import { BriefcaseBusiness } from 'lucide-react';
 
 export interface DayOverviewProps {
   date: Date;
@@ -161,20 +162,34 @@ const DayOverview = ({
               });
 
               if (ev.isOverlay) {
+                const fromWork = (ev.sourceHouseholdKind || '').toLowerCase() === 'work';
                 return (
                   <button
                     key={ev.id}
                     type="button"
                     onClick={() => onPickEvent(ev)}
-                    className="w-full rounded-xl border border-border/50 bg-muted/70 p-3 text-left"
+                    className="w-full rounded-xl p-3 text-left"
+                    style={{ backgroundColor: OVERLAY_MARK.soft }}
                   >
-                    <span className="block truncate text-sm font-semibold">{ev.title}</span>
-                    {timeLabel && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{timeLabel}</p>
-                    )}
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      {t('event.overlayHint')}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      {fromWork && (
+                        <span
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px]"
+                          style={{ backgroundColor: OVERLAY_MARK.rail }}
+                        >
+                          <BriefcaseBusiness size={12} strokeWidth={2} style={{ color: OVERLAY_MARK.ink }} />
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{ev.title}</span>
+                        {timeLabel && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{timeLabel}</p>
+                        )}
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {t('event.overlayHint')}
+                        </p>
+                      </span>
+                    </div>
                   </button>
                 );
               }

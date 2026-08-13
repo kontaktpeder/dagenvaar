@@ -22,9 +22,18 @@ export type DisplayEvent = Event & {
   isOverlay?: boolean;
   sourceHouseholdId?: string;
   sourceHouseholdName?: string;
+  sourceHouseholdKind?: string;
 };
 
+/** Light busy-block pastels (same weight as month overview). */
+export const OVERLAY_MARK = {
+  soft: '#E8E4F0',
+  rail: '#D4CEE0',
+  ink: '#6E6480',
+} as const;
+
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
+  const kind = (row.source_household_kind || 'home').toLowerCase();
   return {
     id: row.id,
     household_id: row.source_household_id,
@@ -40,7 +49,9 @@ export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
     visibility_type: 'all_members',
     location: null,
     notes: null,
-    category: 'work',
+    // Neutral category so multi-day rails don't look like local work events;
+    // CalendarView uses sourceHouseholdKind for the suitcase icon.
+    category: 'other',
     category_label_override: null,
     priority: 'normal',
     created_at: '',
@@ -49,6 +60,7 @@ export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
     isOverlay: true,
     sourceHouseholdId: row.source_household_id,
     sourceHouseholdName: row.source_household_name,
+    sourceHouseholdKind: kind,
   };
 }
 

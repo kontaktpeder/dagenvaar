@@ -44,8 +44,10 @@ Deno.serve(async (req) => {
       return json({ error: 'Push/digest is not configured on the server' }, 500);
     }
 
-    const body = await req.json().catch(() => ({} as { mode?: string }));
+    const body = await req.json().catch(() => ({} as { mode?: string; household_id?: string }));
     const mode = body.mode === 'self' ? 'self' : 'cron';
+    const requestedHouseholdId =
+      typeof body.household_id === 'string' && body.household_id ? body.household_id : null;
 
     const admin = createClient(supabaseUrl, serviceKey);
 
@@ -61,16 +63,20 @@ Deno.serve(async (req) => {
       } = await userClient.auth.getUser();
       if (userError || !user) return json({ error: 'Unauthorized' }, 401);
 
-      const { data: member, error: memberError } = await admin
+      let memberQuery = admin
         .from('household_members')
         .select(
           'id, user_id, household_id, display_name, daily_digest_enabled, daily_digest_time, timezone, daily_digest_last_sent_on',
         )
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
+
+      if (requestedHouseholdId) {
+        memberQuery = memberQuery.eq('household_id', requestedHouseholdId);
+      }
+
+      const { data: member, error: memberError } = await memberQuery.limit(1).maybeSingle();
 
       if (memberError || !member) return json({ error: 'No active household membership' }, 404);
 
@@ -114,12 +120,39 @@ Deno.serve(async (req) => {
     if (membersError) return json({ error: membersError.message }, 500);
 
     const due = (members as MemberRow[]).filter(isDueNow);
-    const results = [];
+    // One push per user — prefer earliest membership when several calendars are due.
+    const dueByUser = new Map<string, MemberRow>();
     for (const member of due) {
-      results.push(await sendDigestForMember(admin, member, onesignalAppId, onesignalKey, { force: false }));
+      if (!dueByUser.has(member.user_id)) dueByUser.set(member.user_id, member);
+    }
+    const uniqueDue = [...dueByUser.values()];
+    const results = [];
+    for (const member of uniqueDue) {
+      const result = await sendDigestForMember(admin, member, onesignalAppId, onesignalKey, {
+        force: false,
+      });
+      results.push(result);
+      // Mark all of this user's due memberships sent so we don't double-fire next tick.
+      if ((result as { sent?: boolean }).sent) {
+        const tz = member.timezone || 'Europe/Oslo';
+        const dateStr = localParts(tz).dateStr;
+        const siblingIds = due.filter((m) => m.user_id === member.user_id).map((m) => m.id);
+        if (siblingIds.length > 1) {
+          await admin
+            .from('household_members')
+            .update({ daily_digest_last_sent_on: dateStr })
+            .in('id', siblingIds);
+        }
+      }
     }
 
-    return json({ ok: true, checked: members?.length ?? 0, due: due.length, results });
+    return json({
+      ok: true,
+      checked: members?.length ?? 0,
+      due: due.length,
+      sentUsers: uniqueDue.length,
+      results,
+    });
   } catch (err) {
     console.error(err);
     return json({ error: err instanceof Error ? err.message : 'Unknown error' }, 500);
@@ -288,7 +321,9 @@ async function filterVisibleEventIds(
     } else if (ev.visibility_type === 'private') {
       if (ev.owner_member_id === memberId) out.add(ev.id);
     } else if (ev.visibility_type === 'selected_members') {
-      selectedIds.push(ev.id);
+      // Owner always sees their own event (not stored in event_visible_members).
+      if (ev.owner_member_id === memberId) out.add(ev.id);
+      else selectedIds.push(ev.id);
     } else {
       out.add(ev.id);
     }

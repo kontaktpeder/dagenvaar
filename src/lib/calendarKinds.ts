@@ -35,8 +35,8 @@ export function resolveCalendarKind(source: KindSource | string | null | undefin
   const k = (source.kind ?? '').toLowerCase().trim();
   if (k === 'work' || k === 'jobb') return 'work';
   if (k === 'home' || k === 'hjem') return 'home';
-  // Work calendars defaulted show_in_other_calendars=true at create time
-  if (source.show_in_other_calendars === true) return 'work';
+  // Missing kind: default home (do not infer from show_in_other_calendars —
+  // home can also opt into leak).
   return 'home';
 }
 

@@ -5,6 +5,7 @@ import { useEventsForMonth, type Event } from '@/hooks/useEvents';
 import {
   mergeEventsWithOverlays,
   useOverlayEventsForRange,
+  OVERLAY_MARK,
   type DisplayEvent,
 } from '@/hooks/useOverlayEvents';
 import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
@@ -38,7 +39,7 @@ import {
   peekPendingOpenCountdown,
   subscribePendingOpenCountdown,
 } from '@/lib/native/pendingOpenCountdown';
-import { Sparkles } from 'lucide-react';
+import { BriefcaseBusiness, Sparkles } from 'lucide-react';
 
 interface CalendarViewProps {
   householdId: string;
@@ -104,18 +105,27 @@ function rubberBand(offset: number, limit: number): number {
   return sign * (limit + (abs - limit) * RUBBER);
 }
 
+function addCalendarDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 function buildEventsByDate(events: DisplayEvent[]): Record<string, DisplayEvent[]> {
   const map: Record<string, DisplayEvent[]> = {};
   events.forEach((e) => {
     const start = e.event_date;
     const end = e.end_date || e.event_date;
     let current = start;
-    while (current <= end) {
+    let guard = 0;
+    while (current <= end && guard < 400) {
       if (!map[current]) map[current] = [];
       map[current].push(e);
-      const d = new Date(current + 'T12:00:00');
-      d.setDate(d.getDate() + 1);
-      current = d.toISOString().slice(0, 10);
+      current = addCalendarDaysYmd(current, 1);
+      guard += 1;
     }
   });
   return map;
@@ -1023,16 +1033,26 @@ const DayCell = ({
     const evHighlighted = highlight && highlight.eventId === ev.id;
 
     if (ev.isOverlay) {
+      const fromWork = (ev.sourceHouseholdKind || '').toLowerCase() === 'work';
       return (
         <div
           key={ev.id}
           title={ev.title}
           className={`${DAY_PILL} ${evHighlighted ? 'ring-1 ring-primary/40' : ''}`}
           style={{
-            background: categoryMarkFill('#E8E4F0', '#C8C0D8'),
+            background: categoryMarkFill(OVERLAY_MARK.soft, OVERLAY_MARK.rail),
             boxShadow: silverMarkRim(),
           }}
-        />
+        >
+          {fromWork ? (
+            <BriefcaseBusiness
+              size={CAL_ICON_SIZE}
+              strokeWidth={CAL_ICON_STROKE}
+              className="block shrink-0"
+              style={{ color: OVERLAY_MARK.ink }}
+            />
+          ) : null}
+        </div>
       );
     }
 
@@ -1118,10 +1138,15 @@ const DayCell = ({
             if (!seg) {
               return <div key={`lane-${lane}`} className={`${SPAN_ROW_H} w-full`} aria-hidden />;
             }
-            const member = getMemberForEvent(seg.event);
-            const visuals = resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
+            const segEvent = seg.event as DisplayEvent;
+            const isOverlay = !!segEvent.isOverlay;
+            const fromWork = isOverlay && (segEvent.sourceHouseholdKind || '').toLowerCase() === 'work';
+            const member = isOverlay ? undefined : getMemberForEvent(seg.event);
+            const visuals = isOverlay
+              ? OVERLAY_MARK
+              : resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
             const meta = EVENT_CATEGORY_META[(seg.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
-            const Icon = meta?.Icon;
+            const Icon = fromWork ? BriefcaseBusiness : isOverlay ? null : meta?.Icon;
             const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
             // Bridge gap-x-1 lightly; absolute so start icon can stay centered under the date
