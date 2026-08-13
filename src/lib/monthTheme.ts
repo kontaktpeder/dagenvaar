@@ -55,16 +55,12 @@ function mix(hexA: string, hexB: string, amount: number) {
   );
 }
 
-/** Soft multi-stop wash — richer pastel sheen like the Pastelly icon. */
+/** Clear month pastel — solid wash, no glass sheen. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = mix(base, "#FFF8F5", 0.42);
-  const dark = mix(base, "#5A3A48", 0.28);
-  const blush = mix(base, "#F5C0D0", 0.4);
-  const cream = mix(base, "#FFF6E8", 0.5);
-  const lilac = mix(base, "#D8C8F0", 0.28);
-  const mint = mix(base, "#C8E8D8", 0.22);
+  const light = mix(base, "#FFFFFF", 0.22);
+  const dark = mix(base, "#5A3A48", 0.32);
   const textOnStrong = "#FFFFFF";
-  const gradient = `linear-gradient(148deg, ${cream} 0%, ${mint} 22%, ${base} 52%, ${blush} 78%, ${lilac} 100%)`;
+  const gradient = `linear-gradient(180deg, ${light} 0%, ${base} 100%)`;
   return { base, light, dark, textOnStrong, gradient };
 }

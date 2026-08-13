@@ -601,7 +601,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide backdrop-blur-sm"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/90 active:bg-white text-[11px] font-semibold tracking-wide shadow-sm"
+              style={{ color: monthTheme.dark }}
             >
               I dag
             </button>
@@ -799,20 +800,12 @@ const MonthHeaderPanel = ({
       color: textColor,
     }}
   >
-    {/* Soft highlight — illustrated calendar sheen */}
-    <div
-      className="pointer-events-none absolute inset-0 opacity-40"
-      style={{
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
-      }}
-      aria-hidden
-    />
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide drop-shadow-sm">{label}</h2>
+        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center drop-shadow-sm">{label}</h2>
+      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
