@@ -168,18 +168,6 @@ body {
   }
 }
 
-/* Dreamy floating aura blobs */
-@keyframes aura-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  33%  { transform: translate3d(4%, -3%, 0) scale(1.08); }
-  66%  { transform: translate3d(-3%, 4%, 0) scale(0.96); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-.animate-aura-drift {
-  animation: aura-drift 26s ease-in-out infinite;
-  will-change: transform;
-}
-
 /* One-shot highlight pulse (avoids continuous animate-pulse GPU cost) */
 @keyframes highlight-once {
   0%, 100% { opacity: 1; }

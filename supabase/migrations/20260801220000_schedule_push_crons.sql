@@ -2,10 +2,10 @@
 -- calls send-daily-digests / send-countdown-reminders automatically —
 -- only the in-app "send now" button worked.
 --
--- ONE-TIME SETUP (SQL editor, run once per environment):
---   select vault.create_secret('<same value as the CRON_SECRET function secret>', 'cron_secret');
--- The secret is read from Vault at runtime, so it is never stored in this file
--- or in the cron.job table.
+-- NOTE: Prefer 20260812002000_fix_cron_auth_bearer.sql — auth via
+-- Vault service_role_key (Bearer), which matches what the edge functions
+-- already accept. The x-cron-secret / CRON_SECRET path often 401s when
+-- Vault and Edge secrets drift.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;

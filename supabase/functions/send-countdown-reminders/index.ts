@@ -47,14 +47,29 @@ Deno.serve(async (req) => {
       return json({ error: 'Countdown reminders not configured' }, 500);
     }
 
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // Note: pg_net often strips Authorization — prefer x-cron-secret.
+    // Accept: CRON_SECRET env, DB token (app_cron_token), or Bearer service role.
     const providedCron = req.headers.get('x-cron-secret');
     const authHeader = req.headers.get('Authorization') ?? '';
+
+    let dbToken: string | null = null;
+    {
+      const { data: tokenRow } = await admin
+        .from('app_cron_token')
+        .select('token')
+        .eq('id', 1)
+        .maybeSingle();
+      dbToken = typeof tokenRow?.token === 'string' ? tokenRow.token : null;
+    }
+
     const okCron =
       (cronSecret && providedCron === cronSecret) ||
+      (dbToken != null && providedCron === dbToken) ||
+      (providedCron != null && providedCron === serviceKey) ||
       authHeader === `Bearer ${serviceKey}`;
     if (!okCron) return json({ error: 'Unauthorized' }, 401);
-
-    const admin = createClient(supabaseUrl, serviceKey);
 
     const { data: countdowns, error } = await admin
       .from('countdowns')

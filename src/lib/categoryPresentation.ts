@@ -17,18 +17,20 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
+  // WORK core hues
   meeting: 'amber',
   production: 'green',
   development: 'blue',
   admin: 'purple',
   personal: 'orange',
+  // Legacy
   client: 'teal',
   deadline: 'orange',
   focus: 'purple',
 };
 
 /**
- * Milky pastels — clear on glass without neon punch.
+ * Light paper pastels — soft fill + clearer ink inside silver-rimmed marks.
  */
 export type CategoryVisuals = {
   soft: string;
@@ -37,69 +39,81 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
-/** Soft lift only — no metal rim. */
+/** Thin chrome / silver metal rim (highlight + cool edge). */
 export function silverMarkRim(): string {
-  return '0 1px 2px rgba(40,30,50,0.07)';
+  return [
+    'inset 0 0 0 1px #A8B0BC',
+    'inset 0 0.5px 0 #F7F8FA',
+    'inset 0 -0.5px 0 rgba(70,80,100,0.22)',
+  ].join(', ');
 }
 
-/** Soft candy fill for marks on frosted glass. */
+/** Soft pastel fill with extra depth for pill marks. */
 export function categoryMarkFill(soft: string, rail: string): string {
-  return `linear-gradient(180deg, ${soft} 0%, ${rail} 100%)`;
+  return `linear-gradient(165deg, #FFFFFF 0%, ${soft} 38%, ${rail} 100%)`;
 }
 
-/** @deprecated Prefer silverMarkRim */
+/** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
 export function categoryMarkOutline(_ink?: string, _strength?: number): string {
   return silverMarkRim();
 }
 
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
+  // Rose — wet paper, not chalk
   pink: {
-    soft: '#F8D6E0',
-    rail: '#ECA8BC',
-    ink: '#B04868',
-    swatch: '#E0809C',
+    soft: '#FDF2F5',
+    rail: '#F8DCE5',
+    ink: '#C45F7C',
+    swatch: '#E89AAE',
   },
+  // Sky
   blue: {
-    soft: '#CDE6F7',
-    rail: '#96C8EC',
-    ink: '#2E6FA0',
-    swatch: '#5BA8D4',
+    soft: '#F2F8FC',
+    rail: '#D0E8F6',
+    ink: '#3D7EB0',
+    swatch: '#6BA8D4',
   },
+  // Lilac
   purple: {
-    soft: '#E4D4F4',
-    rail: '#C4A8E4',
-    ink: '#6848A0',
-    swatch: '#9B78C8',
+    soft: '#F7F3FB',
+    rail: '#E2D6EF',
+    ink: '#7A58A8',
+    swatch: '#A488C8',
   },
+  // Honey wash
   amber: {
-    soft: '#F7EBB0',
-    rail: '#EAD070',
-    ink: '#8F7018',
-    swatch: '#D4B040',
+    soft: '#FCF9EE',
+    rail: '#F2E8B4',
+    ink: '#A67E28',
+    swatch: '#D4B44A',
   },
+  // Peach
   orange: {
-    soft: '#F8D8BC',
-    rail: '#F0B080',
-    ink: '#B05828',
-    swatch: '#E89058',
+    soft: '#FDF5EE',
+    rail: '#F7D9BE',
+    ink: '#C06E38',
+    swatch: '#E89860',
   },
+  // Sage mist
   green: {
-    soft: '#C4E8D4',
-    rail: '#88D0A8',
-    ink: '#2A7850',
-    swatch: '#58B480',
+    soft: '#F1F8F4',
+    rail: '#CDE9D6',
+    ink: '#3A8558',
+    swatch: '#68B484',
   },
+  // Seafoam
   teal: {
-    soft: '#C0E8DC',
-    rail: '#78D0BC',
-    ink: '#247868',
-    swatch: '#48B4A0',
+    soft: '#EFF8F5',
+    rail: '#BEE4D6',
+    ink: '#348A76',
+    swatch: '#56B49C',
   },
+  // Soft coral
   red: {
-    soft: '#F8D0D6',
-    rail: '#ECA0AC',
-    ink: '#B04050',
-    swatch: '#E07080',
+    soft: '#FDF2F3',
+    rail: '#F6D5DA',
+    ink: '#C45666',
+    swatch: '#E0808E',
   },
 };
 
@@ -151,6 +165,7 @@ export function resolveCategoryLabel(
   return clean ? clean : translateCategory(locale, 'other');
 }
 
+/** Read a member's category_color_map from the row (jsonb) */
 export function getMemberColorMap(member: { category_color_map?: unknown } | null | undefined): CategoryColorMap | null {
   if (!member) return null;
   const raw = (member as any).category_color_map;

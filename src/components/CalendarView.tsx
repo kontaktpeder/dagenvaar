@@ -11,7 +11,6 @@ import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/use
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
 import { getMonthTheme } from '@/lib/monthTheme';
-import { getDayAtmosphere, glassPanelChrome, glassChipChrome, type DayAtmosphere } from '@/lib/dayAtmosphere';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -320,14 +319,6 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   const monthTheme = useMemo(() => getMonthTheme(currentDate), [currentDate]);
 
-  const [atmosphere, setAtmosphere] = useState<DayAtmosphere>(() => getDayAtmosphere());
-  useEffect(() => {
-    const refresh = () => setAtmosphere(getDayAtmosphere());
-    refresh();
-    const id = window.setInterval(refresh, 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-
   const mergedByOffset = useMemo(() => {
     const locals = [eventsM2, eventsM1, events, eventsP1, eventsP2];
     return locals.map((local, i) => {
@@ -573,19 +564,11 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 
   return (
     <>
-      <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
-        {/* Daypart aura is painted by Index; calendar sits on it */}
-        <div className={`relative z-10 flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
-        {/* One glass plate: month title + weekdays + grid */}
-        <div
-          className="mx-2.5 mb-2.5 mt-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.85rem] backdrop-blur-3xl backdrop-saturate-150 sm:mx-3"
-          style={{
-            background: atmosphere.glassBg,
-            ...glassPanelChrome(atmosphere.isNight),
-          }}
-        >
-          {/* Month title — transparent, swipe-synced with grid */}
-          <div className="relative shrink-0 h-12 overflow-hidden">
+      <div className="relative flex flex-col h-full min-h-0">
+        <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
+        {/* Month header peeks with the same x as the day grid */}
+        <div className="relative rounded-b-3xl overflow-hidden shrink-0 shadow-[0_8px_24px_-12px_rgba(90,58,72,0.22)]">
+          <div className="relative h-14 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -599,92 +582,99 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  ink={atmosphere.ink}
+                  gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
+                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
             </motion.div>
-            {!isOnCurrentMonth && (
-              <button
-                type="button"
-                onClick={goToToday}
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 min-h-8 px-3 rounded-full text-[11px] font-semibold tracking-wide backdrop-blur-md"
-                style={{
-                  color: atmosphere.ink,
-                  ...glassChipChrome(atmosphere.isNight),
-                }}
-              >
-                I dag
-              </button>
-            )}
           </div>
+          {/* Soft brand edge — echoes icon’s pink header band */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-70"
+            style={{
+              background: 'linear-gradient(90deg, #F5C0D0 0%, #F5E098 50%, #C8B0E8 100%)',
+            }}
+            aria-hidden
+          />
+          {!isOnCurrentMonth && (
+            <button
+              type="button"
+              onClick={goToToday}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/25 active:bg-white/40 text-white text-[11px] font-semibold tracking-wide backdrop-blur-sm"
+            >
+              I dag
+            </button>
+          )}
+        </div>
 
-          <div className="relative shrink-0">
-            <div className="flex px-2 pb-1.5 pt-0.5 sm:px-3">
-              <div className="w-5 shrink-0" aria-hidden />
-              <div className="grid grid-cols-7 flex-1 min-w-0">
-                {weekdayLabels.map((d, i) => (
-                  <div
-                    key={`${d}-${i}`}
-                    className="text-center text-[10px] font-medium uppercase tracking-[0.12em]"
-                    style={{ color: i >= 5 ? atmosphere.weekendText : atmosphere.mutedText }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
+        <div className="bg-transparent relative">
+          <div className="flex px-2 py-2 sm:px-4">
+            <div className="w-5 shrink-0" aria-hidden />
+            <div className="grid grid-cols-7 flex-1 min-w-0">
+              {weekdayLabels.map((d, i) => (
+                <div key={`${d}-${i}`} className={`text-center text-[10px] font-medium uppercase tracking-[0.14em] ${
+                  i >= 5 ? 'text-primary/45' : 'text-foreground/35'
+                }`}>
+                  {d}
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          <div
-            ref={trackRef}
-            className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface bg-transparent"
+        {/* Continuous infinite-feel month strip — touch-action:none so Android gets H+V gestures */}
+        <div
+          ref={trackRef}
+          className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
+          style={{
+            background:
+              'linear-gradient(165deg, hsl(340 45% 98%) 0%, hsl(48 35% 98.5%) 42%, hsl(210 35% 98%) 100%)',
+          }}
+        >
+          <motion.div
+            className="absolute top-0 bottom-0 flex will-change-transform"
+            style={{
+              x,
+              width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
+              left: pageWidth ? -pageWidth * WINDOW : '-200%',
+              touchAction: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+            }}
+            onPanStart={showYear ? undefined : handlePanStart}
+            onPan={showYear ? undefined : handlePan}
+            onPanEnd={showYear ? undefined : handlePanEnd}
           >
-            <motion.div
-              className="absolute top-0 bottom-0 flex will-change-transform"
-              style={{
-                x,
-                width: pageWidth ? pageWidth * (WINDOW * 2 + 1) : '500%',
-                left: pageWidth ? -pageWidth * WINDOW : '-200%',
-                touchAction: 'none',
-                WebkitUserSelect: 'none',
-                userSelect: 'none',
-              }}
-              onPanStart={showYear ? undefined : handlePanStart}
-              onPan={showYear ? undefined : handlePan}
-              onPanEnd={showYear ? undefined : handlePanEnd}
-            >
-              {stripDates.map((date, i) => {
-                const byDate = eventsByOffset[i];
-                const neighbour = {
-                  ...(eventsByOffset[i - 1] || {}),
-                  ...(eventsByOffset[i + 1] || {}),
-                };
-                return (
-                  <MonthPanel
-                    key={`${date.getFullYear()}-${date.getMonth()}`}
-                    width={pageWidth}
-                    monthDate={date}
-                    days={daysByOffset[i]}
-                    eventsByDate={byDate}
-                    neighbourEventsByDate={neighbour}
-                    monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
-                    members={members}
-                    highlight={highlight}
-                    interactive={i === WINDOW}
-                    onTap={handleDayTap}
-                    onLongPress={onCreateEvent}
-                    onPressLock={lockStripForPress}
-                    onPressUnlock={unlockStripForPress}
-                    getMemberForEvent={getMemberForEvent}
-                    countdownEmojiByDate={countdownEmojiByDate}
-                    marksVisible={marksVisible}
-                    atmosphere={atmosphere}
-                  />
-                );
-              })}
-            </motion.div>
-          </div>
+            {stripDates.map((date, i) => {
+              const byDate = eventsByOffset[i];
+              const neighbour = {
+                ...(eventsByOffset[i - 1] || {}),
+                ...(eventsByOffset[i + 1] || {}),
+              };
+              return (
+                <MonthPanel
+                  key={`${date.getFullYear()}-${date.getMonth()}`}
+                  width={pageWidth}
+                  monthDate={date}
+                  days={daysByOffset[i]}
+                  eventsByDate={byDate}
+                  neighbourEventsByDate={neighbour}
+                  monthTheme={i === WINDOW ? monthTheme : getMonthTheme(date)}
+                  members={members}
+                  highlight={highlight}
+                  interactive={i === WINDOW}
+                  onTap={handleDayTap}
+                  onLongPress={onCreateEvent}
+                  onPressLock={lockStripForPress}
+                  onPressUnlock={unlockStripForPress}
+                  getMemberForEvent={getMemberForEvent}
+                  countdownEmojiByDate={countdownEmojiByDate}
+                  marksVisible={marksVisible}
+                />
+              );
+            })}
+          </motion.div>
         </div>
         </div>
 
@@ -791,34 +781,38 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 const MonthHeaderPanel = ({
   width,
   label,
-  ink,
+  gradient,
+  textColor,
   onTitleClick,
 }: {
   width: number;
   label: string;
-  ink: string;
+  gradient: string;
+  textColor: string;
   onTitleClick?: () => void;
 }) => (
   <div
-    className="h-full shrink-0 flex items-center justify-center px-5 relative bg-transparent"
-    style={{ width: width || '33.333%' }}
+    className="h-full shrink-0 flex items-center justify-center px-5 relative"
+    style={{
+      width: width || '33.333%',
+      background: gradient,
+      color: textColor,
+    }}
   >
+    {/* Soft highlight — illustrated calendar sheen */}
+    <div
+      className="pointer-events-none absolute inset-0 opacity-40"
+      style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
+      }}
+      aria-hidden
+    />
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2
-          className="text-[1.15rem] font-semibold capitalize tracking-tight"
-          style={{ color: ink }}
-        >
-          {label}
-        </h2>
+        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide drop-shadow-sm">{label}</h2>
       </button>
     ) : (
-      <h2
-        className="relative text-[1.15rem] font-semibold capitalize tracking-tight text-center"
-        style={{ color: ink }}
-      >
-        {label}
-      </h2>
+      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center drop-shadow-sm">{label}</h2>
     )}
   </div>
 );
@@ -843,7 +837,6 @@ interface MonthPanelProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmojiByDate?: Record<string, string>;
   marksVisible?: boolean;
-  atmosphere: DayAtmosphere;
 }
 
 const MonthPanel = ({
@@ -863,7 +856,6 @@ const MonthPanel = ({
   getMemberForEvent,
   countdownEmojiByDate,
   marksVisible = true,
-  atmosphere,
 }: MonthPanelProps) => {
   const spanByDate = useMemo(
     () => buildSpanSegmentsByDate(days, eventsByDate, neighbourEventsByDate),
@@ -880,7 +872,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-3 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-4 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -891,19 +883,11 @@ const MonthPanel = ({
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
             className={`flex flex-1 min-h-0 gap-x-1 ${
-              weekIndex > 0 ? 'border-t' : ''
+              weekIndex > 0 ? 'border-t border-border/40' : ''
             }`}
-            style={
-              weekIndex > 0
-                ? { borderColor: atmosphere.isNight ? 'rgba(255,255,255,0.05)' : 'rgba(60,40,70,0.05)' }
-                : undefined
-            }
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
-              <span
-                className="text-[9px] font-medium tabular-nums leading-none select-none"
-                style={{ color: atmosphere.mutedText }}
-              >
+              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/45">
                 {weekNum}
               </span>
             </div>
@@ -935,7 +919,6 @@ const MonthPanel = ({
                     getMemberForEvent={getMemberForEvent}
                     countdownEmoji={countdownEmojiByDate?.[dateStr]}
                     marksVisible={marksVisible}
-                    atmosphere={atmosphere}
                   />
                 );
               })}
@@ -968,7 +951,6 @@ interface DayCellProps {
   getMemberForEvent: (event: Event) => HouseholdMember | undefined;
   countdownEmoji?: string;
   marksVisible?: boolean;
-  atmosphere: DayAtmosphere;
 }
 
 /** Max single-day marks shown before +N overflow */
@@ -1021,7 +1003,6 @@ const DayCell = ({
   getMemberForEvent,
   countdownEmoji,
   marksVisible = true,
-  atmosphere,
 }: DayCellProps) => {
   const { dateLocale } = useLocale();
   const dayAriaLabel = format(day, 'EEEE d. MMMM yyyy', { locale: dateLocale });
@@ -1101,25 +1082,13 @@ const DayCell = ({
       }`}
     >
       <span
-        className="w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums"
+        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums ${
+          !inMonth ? 'text-muted-foreground/35' : weekend && !today ? 'text-foreground/45' : 'text-foreground/70'
+        }`}
         style={
           today
-            ? {
-                border: `1.5px solid ${atmosphere.isNight ? 'rgba(255,200,230,0.75)' : 'hsl(var(--primary) / 0.75)'}`,
-                color: atmosphere.ink,
-                fontWeight: 600,
-                background: atmosphere.isNight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.35)',
-              }
-            : {
-                color: !inMonth
-                  ? atmosphere.isNight
-                    ? 'rgba(220,210,240,0.2)'
-                    : 'rgba(60,40,70,0.24)'
-                  : weekend
-                    ? atmosphere.weekendText
-                    : atmosphere.ink,
-                opacity: weekend && inMonth && !today ? 0.85 : 1,
-              }
+            ? { border: '1.5px solid hsl(var(--primary))', color: 'hsl(var(--primary))', fontWeight: 600 }
+            : undefined
         }
       >
         {format(day, 'd')}
