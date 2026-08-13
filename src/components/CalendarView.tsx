@@ -951,10 +951,13 @@ const MAX_VISIBLE_MARKS = 5;
 /** Icon size — kept smaller than pill so it sits centered */
 const CAL_ICON_SIZE = 8;
 const CAL_ICON_STROKE = 2;
-/** Single-day pill: one box for rim + fill + centered icon */
+/** Single-day mark: soft corners, not a full pill */
 const DAY_PILL =
-  'h-[12px] w-[58%] max-w-[2.1rem] mx-auto rounded-full flex items-center justify-center shrink-0';
+  'h-[12px] w-[58%] max-w-[2.1rem] mx-auto rounded-[4px] flex items-center justify-center shrink-0';
 const SPAN_ROW_H = 'h-[12px]';
+/** Multi-day rail ends — softly squared, not capsule */
+const SPAN_ROUND_START = 'rounded-l-[4px]';
+const SPAN_ROUND_END = 'rounded-r-[4px]';
 
 /** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
@@ -1137,8 +1140,8 @@ const DayCell = ({
                 <div
                   aria-hidden
                   className={`absolute inset-y-0 ${railPos} ${
-                    seg.isStart ? 'rounded-l-full' : ''
-                  } ${seg.isEnd ? 'rounded-r-full' : ''} ${
+                    seg.isStart ? SPAN_ROUND_START : ''
+                  } ${seg.isEnd ? SPAN_ROUND_END : ''} ${
                     evHighlighted ? 'ring-1 ring-primary/40' : ''
                   }`}
                   style={{
