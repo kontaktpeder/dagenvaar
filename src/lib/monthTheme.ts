@@ -65,12 +65,12 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
 }
 
-/** Calendar header uses a lifted wash; year chips keep the full pastel. */
+/** Month band, year chips, and list header share the same solid pastel. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
   const light = mix(base, "#FFFFFF", 0.42);
   const dark = mix(base, "#3A2A38", 0.42);
-  const textOnStrong = dark;
-  const gradient = light;
+  const textOnStrong = "#FFFFFF";
+  const gradient = base;
   return { base, light, dark, textOnStrong, gradient };
 }

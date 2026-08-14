@@ -592,8 +592,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  fill={i === WINDOW ? monthTheme.light : getMonthTheme(date).light}
-                  textColor={i === WINDOW ? monthTheme.dark : getMonthTheme(date).dark}
+                  fill={i === WINDOW ? monthTheme.base : getMonthTheme(date).base}
+                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
@@ -1125,69 +1125,60 @@ const DayCell = ({
         </span>
       )}
 
-      {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
-      {laneCount > 0 && (
+      {(laneCount > 0 || rows.length > 0) && (
         <div
-          className="mt-0.5 w-full flex flex-col gap-1 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col items-stretch gap-1 min-h-0 flex-1 px-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
-          {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
-            const seg = spanByLane.get(lane);
-            if (!seg) {
-              return <div key={`lane-${lane}`} className={`${SPAN_ROW_H} w-full`} aria-hidden />;
-            }
-            const segEvent = seg.event as DisplayEvent;
-            const isOverlay = !!segEvent.isOverlay;
-            const fromWork = isOverlay && (segEvent.sourceHouseholdKind || '').toLowerCase() === 'work';
-            const member = isOverlay ? undefined : getMemberForEvent(seg.event);
-            const visuals = isOverlay
-              ? OVERLAY_MARK
-              : resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
-            const meta = EVENT_CATEGORY_META[(seg.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
-            const Icon = fromWork ? BriefcaseBusiness : isOverlay ? null : meta?.Icon;
-            const evHighlighted = highlight && highlight.eventId === seg.event.id;
+          {laneCount > 0 &&
+            Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
+              const seg = spanByLane.get(lane);
+              if (!seg) {
+                return <div key={`lane-${lane}`} className={`${SPAN_ROW_H} w-full`} aria-hidden />;
+              }
+              const segEvent = seg.event as DisplayEvent;
+              const isOverlay = !!segEvent.isOverlay;
+              const fromWork = isOverlay && (segEvent.sourceHouseholdKind || '').toLowerCase() === 'work';
+              const member = isOverlay ? undefined : getMemberForEvent(seg.event);
+              const visuals = isOverlay
+                ? OVERLAY_MARK
+                : resolveCategoryVisuals(seg.event.category, getMemberColorMap(member));
+              const meta = EVENT_CATEGORY_META[(seg.event.category as keyof typeof EVENT_CATEGORY_META) || 'other'];
+              const Icon = fromWork ? BriefcaseBusiness : isOverlay ? null : meta?.Icon;
+              const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
-            // Bridge gap-x-1 lightly; absolute so start icon can stay centered under the date
-            let railPos = 'left-0 right-0';
-            if (seg.isStart && seg.isEnd) railPos = 'left-0.5 right-0.5';
-            else if (seg.isStart) railPos = 'left-0 right-[-1px]';
-            else if (seg.isEnd) railPos = 'left-[-1px] right-0';
-            else railPos = 'left-[-1px] right-[-1px]';
+              let railPos = 'left-0 right-0';
+              if (seg.isStart && seg.isEnd) railPos = 'left-0.5 right-0.5';
+              else if (seg.isStart) railPos = 'left-0 right-[-1px]';
+              else if (seg.isEnd) railPos = 'left-[-1px] right-0';
+              else railPos = 'left-[-1px] right-[-1px]';
 
-            return (
-              <div
-                key={seg.event.id}
-                title={seg.event.title}
-                className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
-              >
+              return (
                 <div
-                  aria-hidden
-                  className={`absolute inset-y-0 ${railPos} ${
-                    seg.isStart ? SPAN_ROUND_START : ''
-                  } ${seg.isEnd ? SPAN_ROUND_END : ''} ${
-                    evHighlighted ? 'ring-1 ring-primary/40' : ''
-                  }`}
-                  style={{
-                    background: categoryMarkFill(visuals.soft, visuals.rail),
-                    boxShadow: silverMarkRim(),
-                  }}
-                />
-                {seg.isStart && Icon && (
-                  <span className="relative z-[1] flex h-full w-4 items-center justify-center leading-none">
-                    <MarkGlyph Icon={Icon} color={visuals.ink} />
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {rows.length > 0 && (
-        <div
-          className="mt-0.5 w-full flex flex-col items-center gap-1 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
-          style={{ opacity: marksVisible ? 1 : 0 }}
-        >
+                  key={seg.event.id}
+                  title={seg.event.title}
+                  className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
+                >
+                  <div
+                    aria-hidden
+                    className={`absolute inset-y-0 ${railPos} ${
+                      seg.isStart ? SPAN_ROUND_START : ''
+                    } ${seg.isEnd ? SPAN_ROUND_END : ''} ${
+                      evHighlighted ? 'ring-1 ring-primary/40' : ''
+                    }`}
+                    style={{
+                      background: categoryMarkFill(visuals.soft, visuals.rail),
+                      boxShadow: silverMarkRim(),
+                    }}
+                  />
+                  {seg.isStart && Icon && (
+                    <span className="relative z-[1] flex h-full w-4 items-center justify-center leading-none">
+                      <MarkGlyph Icon={Icon} color={visuals.ink} />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}
@@ -1197,7 +1188,7 @@ const DayCell = ({
             </div>
           ))}
           {overflow > 0 && (
-            <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0 mt-0.5">
+            <div className="text-[8px] text-muted-foreground text-center font-medium leading-none shrink-0">
               +{overflow}
             </div>
           )}
@@ -1220,7 +1211,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         onPrev={() => onChangeYear(year - 1)}
         onNext={() => onChangeYear(year + 1)}
         onTitleClick={onBack}
-        calendarStyle={{ backgroundColor: theme.base }}
+        calendarStyle={{ backgroundColor: theme.base, color: theme.textOnStrong }}
       >
         {year}
       </ViewHeader>
@@ -1242,7 +1233,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
                 ...(isCurrentMonth ? { ringColor: theme.dark, borderColor: theme.dark } : {}),
               }}
             >
-              <span className="text-sm font-semibold capitalize" style={{ color: theme.dark }}>
+              <span className="text-sm font-semibold capitalize" style={{ color: theme.textOnStrong }}>
                 {format(new Date(year, m, 1), 'MMM', { locale: dateLocale })}
               </span>
             </button>
