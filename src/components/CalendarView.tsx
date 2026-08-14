@@ -39,7 +39,7 @@ import {
   peekPendingOpenCountdown,
   subscribePendingOpenCountdown,
 } from '@/lib/native/pendingOpenCountdown';
-import { BriefcaseBusiness, Sparkles } from 'lucide-react';
+import { BriefcaseBusiness, Sparkles, type LucideIcon } from 'lucide-react';
 
 interface CalendarViewProps {
   householdId: string;
@@ -950,16 +950,36 @@ interface DayCellProps {
 
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 5;
-/** Icon sits inside a tight square chip */
-const CAL_ICON_SIZE = 9;
-const CAL_ICON_STROKE = 2;
-/** Single-day mark: narrow square frame around the icon */
+/** Icon sits optically centered in the chip */
+const CAL_ICON_SIZE = 10;
+const CAL_ICON_STROKE = 2.5;
+/** Single-day mark: square frame; flex box centers the SVG */
 const DAY_PILL =
-  'h-[14px] w-[14px] mx-auto rounded-[3px] flex items-center justify-center shrink-0';
-const SPAN_ROW_H = 'h-[12px]';
+  'h-4 w-4 mx-auto rounded-[3px] inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
+const SPAN_ROW_H = 'h-3.5';
 /** Multi-day rail ends — softly squared, not capsule */
 const SPAN_ROUND_START = 'rounded-l-[3px]';
 const SPAN_ROUND_END = 'rounded-r-[3px]';
+
+function MarkGlyph({
+  Icon,
+  color,
+}: {
+  Icon: LucideIcon;
+  color: string;
+}) {
+  return (
+    <span className="pointer-events-none flex h-full w-full items-center justify-center leading-none">
+      <Icon
+        size={CAL_ICON_SIZE}
+        strokeWidth={CAL_ICON_STROKE}
+        absoluteStrokeWidth
+        className="block shrink-0"
+        style={{ color, display: 'block' }}
+      />
+    </span>
+  );
+}
 
 /** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {
@@ -1037,12 +1057,7 @@ const DayCell = ({
           }}
         >
           {fromWork ? (
-            <BriefcaseBusiness
-              size={CAL_ICON_SIZE}
-              strokeWidth={CAL_ICON_STROKE}
-              className="block shrink-0"
-              style={{ color: OVERLAY_MARK.ink }}
-            />
+            <MarkGlyph Icon={BriefcaseBusiness} color={OVERLAY_MARK.ink} />
           ) : null}
         </div>
       );
@@ -1064,12 +1079,7 @@ const DayCell = ({
         }}
       >
         {Icon ? (
-          <Icon
-            size={CAL_ICON_SIZE}
-            strokeWidth={CAL_ICON_STROKE}
-            className="block shrink-0"
-            style={{ color: visuals.ink }}
-          />
+          <MarkGlyph Icon={Icon} color={visuals.ink} />
         ) : (
           <span
             className="block w-1 h-1 rounded-full shrink-0"
@@ -1167,12 +1177,9 @@ const DayCell = ({
                   }}
                 />
                 {seg.isStart && Icon && (
-                  <Icon
-                    size={CAL_ICON_SIZE}
-                    strokeWidth={CAL_ICON_STROKE}
-                    className="relative z-[1] block shrink-0"
-                    style={{ color: visuals.ink }}
-                  />
+                  <span className="relative z-[1] flex h-full w-4 items-center justify-center leading-none">
+                    <MarkGlyph Icon={Icon} color={visuals.ink} />
+                  </span>
                 )}
               </div>
             );

@@ -27,9 +27,9 @@ export type DisplayEvent = Event & {
 
 /** Light busy-block — lavender from month overview, still quieter than local marks. */
 export const OVERLAY_MARK = {
-  soft: '#E0D4F0',
-  rail: '#D0B8E8',
-  ink: '#684888',
+  soft: '#E4D8F0',
+  rail: '#D8C8E8',
+  ink: '#5C2888',
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
