@@ -952,7 +952,7 @@ interface DayCellProps {
 const MAX_VISIBLE_MARKS = 5;
 /** Icon sits optically centered in the chip */
 const CAL_ICON_SIZE = 10;
-const CAL_ICON_STROKE = 2.5;
+const CAL_ICON_STROKE = 2;
 /** Single-day mark: square frame; flex box centers the SVG */
 const DAY_PILL =
   'h-4 w-4 mx-auto rounded-[3px] inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
@@ -973,7 +973,6 @@ function MarkGlyph({
       <Icon
         size={CAL_ICON_SIZE}
         strokeWidth={CAL_ICON_STROKE}
-        absoluteStrokeWidth
         className="block shrink-0"
         style={{ color, display: 'block' }}
       />

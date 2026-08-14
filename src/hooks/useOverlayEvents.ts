@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Event } from '@/hooks/useEvents';
+import { shadeInk } from '@/lib/monthTheme';
 
 export type OverlayEventRow = {
   id: string;
@@ -29,7 +30,7 @@ export type DisplayEvent = Event & {
 export const OVERLAY_MARK = {
   soft: '#E4D8F0',
   rail: '#D8C8E8',
-  ink: '#5C2888',
+  ink: shadeInk('#D8C8E8'),
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {

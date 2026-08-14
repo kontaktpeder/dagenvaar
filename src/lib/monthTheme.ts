@@ -55,6 +55,11 @@ function mix(hexA: string, hexB: string, amount: number) {
   );
 }
 
+/** Same hue as the fill, shaded like month-overview labels. */
+export function shadeInk(fill: string): string {
+  return mix(fill, "#3A2A38", 0.46);
+}
+
 /** Solid pastel month color — same fill in header and year overview. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
