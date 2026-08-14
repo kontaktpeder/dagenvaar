@@ -577,8 +577,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
       <div className="relative flex flex-col h-full min-h-0">
         <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month header peeks with the same x as the day grid */}
-        <div className="relative rounded-b-3xl overflow-hidden shrink-0 shadow-[0_8px_24px_-12px_rgba(90,58,72,0.22)]">
-          <div className="relative h-14 overflow-hidden">
+        <div className="relative rounded-b-3xl overflow-hidden shrink-0">
+          <div className="relative h-12 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -592,8 +592,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  fill={i === WINDOW ? monthTheme.base : getMonthTheme(date).base}
-                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
+                  fill={i === WINDOW ? monthTheme.light : getMonthTheme(date).light}
+                  textColor={i === WINDOW ? monthTheme.dark : getMonthTheme(date).dark}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
@@ -630,10 +630,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         <div
           ref={trackRef}
           className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
-          style={{
-            background:
-              'linear-gradient(165deg, hsl(340 45% 98%) 0%, hsl(48 35% 98.5%) 42%, hsl(210 35% 98%) 100%)',
-          }}
+          style={{ backgroundColor: '#fbf9f6' }}
         >
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"
@@ -804,10 +801,10 @@ const MonthHeaderPanel = ({
   >
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2 className="text-lg font-extrabold capitalize text-current tracking-wide">{label}</h2>
+        <h2 className="text-lg font-semibold capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="relative text-lg font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
+      <h2 className="relative text-lg font-semibold capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
@@ -877,16 +874,16 @@ const MonthPanel = ({
         return (
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
-            className={`flex flex-1 min-h-0 gap-x-1 ${
-              weekIndex > 0 ? 'border-t border-border/40' : ''
+            className={`flex flex-1 min-h-0 gap-x-px ${
+              weekIndex > 0 ? 'border-t border-border/20' : ''
             }`}
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
-              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/45">
+              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/30">
                 {weekNum}
               </span>
             </div>
-            <div className="grid grid-cols-7 flex-1 min-w-0 min-h-0 auto-rows-[minmax(0,1fr)] gap-x-1 content-stretch">
+            <div className="grid grid-cols-7 flex-1 min-w-0 min-h-0 auto-rows-[minmax(0,1fr)] gap-x-px content-stretch">
               {weekDays.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const inMonth = isSameMonth(day, monthDate);
@@ -949,14 +946,14 @@ interface DayCellProps {
 }
 
 /** Max single-day marks shown before +N overflow */
-const MAX_VISIBLE_MARKS = 5;
+const MAX_VISIBLE_MARKS = 3;
 /** Icon sits optically centered in the chip */
-const CAL_ICON_SIZE = 10;
+const CAL_ICON_SIZE = 8;
 const CAL_ICON_STROKE = 2;
 /** Single-day mark: square frame; flex box centers the SVG */
 const DAY_PILL =
-  'h-4 w-4 mx-auto rounded-[3px] inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
-const SPAN_ROW_H = 'h-3.5';
+  'h-3 w-3 mx-auto rounded-[3px] inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
+const SPAN_ROW_H = 'h-3';
 /** Multi-day rail ends — softly squared, not capsule */
 const SPAN_ROUND_START = 'rounded-l-[3px]';
 const SPAN_ROUND_END = 'rounded-r-[3px]';
@@ -1100,7 +1097,7 @@ const DayCell = ({
     >
       <span
         className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums ${
-          !inMonth ? 'text-muted-foreground/35' : weekend && !today ? 'text-foreground/45' : 'text-foreground/70'
+          !inMonth ? 'text-muted-foreground/30' : weekend && !today ? 'text-foreground/40' : 'text-foreground/55'
         }`}
         style={
           today
@@ -1131,7 +1128,7 @@ const DayCell = ({
       {/* Pastel multi-day rails — stacked lanes; start icon centered under date */}
       {laneCount > 0 && (
         <div
-          className="mt-0.5 w-full flex flex-col gap-0.5 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col gap-1 px-0 shrink-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {Array.from({ length: Math.min(laneCount, MAX_SPAN_LANES) }, (_, lane) => {
@@ -1188,7 +1185,7 @@ const DayCell = ({
 
       {rows.length > 0 && (
         <div
-          className="mt-0.5 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col items-center gap-1 min-h-0 flex-1 px-0.5 transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {rows.map((row, i) => (

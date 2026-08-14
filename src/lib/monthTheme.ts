@@ -60,12 +60,17 @@ export function shadeInk(fill: string): string {
   return mix(fill, "#3A2A38", 0.46);
 }
 
-/** Solid pastel month color — same fill in header and year overview. */
+export function withAlpha(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+/** Calendar header uses a lifted wash; year chips keep the full pastel. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = base;
+  const light = mix(base, "#FFFFFF", 0.42);
   const dark = mix(base, "#3A2A38", 0.42);
-  const textOnStrong = "#FFFFFF";
-  const gradient = base;
+  const textOnStrong = dark;
+  const gradient = light;
   return { base, light, dark, textOnStrong, gradient };
 }

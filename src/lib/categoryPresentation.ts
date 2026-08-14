@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { shadeInk } from '@/lib/monthTheme';
+import { shadeInk, withAlpha } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -42,12 +42,13 @@ export type CategoryVisuals = {
 
 /** Soft edge only — no chrome/glass rim. */
 export function silverMarkRim(): string {
-  return '0 0.5px 1px rgba(40,30,50,0.07)';
+  return 'none';
 }
 
-/** Solid pastel fill. */
+/** Airy pastel fill so paper shows through. */
 export function categoryMarkFill(_soft: string, rail: string): string {
-  return rail;
+  if (rail.startsWith('hsl')) return rail;
+  return withAlpha(rail, 0.78);
 }
 
 /** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
