@@ -958,16 +958,16 @@ interface DayCellProps {
 
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 5;
-/** Icon size — kept smaller than pill so it sits centered */
-const CAL_ICON_SIZE = 8;
+/** Icon sits inside a tight square chip */
+const CAL_ICON_SIZE = 9;
 const CAL_ICON_STROKE = 2;
-/** Single-day mark: soft corners, not a full pill */
+/** Single-day mark: narrow square frame around the icon */
 const DAY_PILL =
-  'h-[12px] w-[58%] max-w-[2.1rem] mx-auto rounded-[4px] flex items-center justify-center shrink-0';
+  'h-[14px] w-[14px] mx-auto rounded-[3px] flex items-center justify-center shrink-0';
 const SPAN_ROW_H = 'h-[12px]';
 /** Multi-day rail ends — softly squared, not capsule */
-const SPAN_ROUND_START = 'rounded-l-[4px]';
-const SPAN_ROUND_END = 'rounded-r-[4px]';
+const SPAN_ROUND_START = 'rounded-l-[3px]';
+const SPAN_ROUND_END = 'rounded-r-[3px]';
 
 /** Pack single-day marks: one mini-rail per row (same language as multi-day spans). */
 function packEventRows(events: DisplayEvent[], maxMarks: number): { rows: DisplayEvent[][]; overflow: number } {

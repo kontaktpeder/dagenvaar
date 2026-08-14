@@ -30,7 +30,7 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
 };
 
 /**
- * Airy pastels — same weight as month-overview chips (monthTheme.light / base).
+ * Month-overview pastels, one step stronger — same hues as MONTH_COLORS.
  */
 export type CategoryVisuals = {
   soft: string;
@@ -44,7 +44,7 @@ export function silverMarkRim(): string {
   return '0 0.5px 1px rgba(40,30,50,0.06)';
 }
 
-/** Flat pastel fill (no white gloss). */
+/** Solid pastel fill (no white wash). */
 export function categoryMarkFill(soft: string, rail: string): string {
   return `linear-gradient(180deg, ${soft} 0%, ${rail} 100%)`;
 }
@@ -55,54 +55,53 @@ export function categoryMarkOutline(_ink?: string, _strength?: number): string {
 }
 
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  // Tuned to month-overview pastels (MONTH_COLORS + light mix)
   pink: {
-    soft: '#F8D4DE',
-    rail: '#F0B8C8',
-    ink: '#9A5068',
-    swatch: '#E8A8BC',
+    soft: '#F5B8C8',
+    rail: '#F0A8B8',
+    ink: '#A84868',
+    swatch: '#F0A8B8',
   },
   blue: {
-    soft: '#D4E8F6',
-    rail: '#B8D8F0',
-    ink: '#4A7898',
-    swatch: '#98C4E4',
+    soft: '#B8D8F0',
+    rail: '#88B8E8',
+    ink: '#3A6898',
+    swatch: '#88B8E8',
   },
   purple: {
-    soft: '#E6D8F2',
-    rail: '#D0B8E8',
-    ink: '#6E5898',
-    swatch: '#B8A0D8',
+    soft: '#D0B8E8',
+    rail: '#C0A8D8',
+    ink: '#684888',
+    swatch: '#C0A8D8',
   },
   amber: {
-    soft: '#F8ECC0',
-    rail: '#F0DC98',
-    ink: '#8A7040',
-    swatch: '#E0C870',
+    soft: '#F5E098',
+    rail: '#E8C878',
+    ink: '#8A6820',
+    swatch: '#E8C878',
   },
   orange: {
-    soft: '#F8DCC8',
-    rail: '#F0C0A0',
-    ink: '#9A6040',
-    swatch: '#E8B088',
+    soft: '#F5C090',
+    rail: '#F0B888',
+    ink: '#9A5828',
+    swatch: '#F0B888',
   },
   green: {
-    soft: '#D0ECD8',
-    rail: '#B0E0C0',
-    ink: '#3A7858',
-    swatch: '#88C8A0',
+    soft: '#A8E0B8',
+    rail: '#90D0B8',
+    ink: '#2A7850',
+    swatch: '#90D0B8',
   },
   teal: {
-    soft: '#CCEAE0',
-    rail: '#A8DCC8',
-    ink: '#3A7868',
-    swatch: '#78C4B0',
+    soft: '#90D0B8',
+    rail: '#78C4A8',
+    ink: '#2A7060',
+    swatch: '#78C4A8',
   },
   red: {
-    soft: '#F6D8DC',
-    rail: '#EEC0C8',
-    ink: '#985058',
-    swatch: '#E0A0A8',
+    soft: '#F0A8B8',
+    rail: '#E898A8',
+    ink: '#A84050',
+    swatch: '#E898A8',
   },
 };
 

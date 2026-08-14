@@ -25,11 +25,11 @@ export type DisplayEvent = Event & {
   sourceHouseholdKind?: string;
 };
 
-/** Light busy-block pastels (same weight as month overview). */
+/** Light busy-block — lavender from month overview, still quieter than local marks. */
 export const OVERLAY_MARK = {
-  soft: '#E8E4F0',
-  rail: '#D4CEE0',
-  ink: '#6E6480',
+  soft: '#E0D4F0',
+  rail: '#D0B8E8',
+  ink: '#684888',
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
