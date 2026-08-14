@@ -7,18 +7,18 @@ export type MonthTheme = {
 };
 
 const MONTH_COLORS = [
-  "#B8D8F0", // Jan – frisk isblå
-  "#D0B8E8", // Feb – klar lavendel
-  "#A8E0B8", // Mar – frisk mintgrønn
-  "#F5B8C8", // Apr – klar blush pink
-  "#F0A8B8", // May – frisk rosa
-  "#F5E098", // Jun – klar smørgul
-  "#F5C090", // Jul – frisk fersken
-  "#E8C878", // Aug – varm honninggul
-  "#90D0B8", // Sep – frisk jadegrønn
-  "#F0B888", // Oct – klar oransje pastell
-  "#88B8E8", // Nov – frisk himmelblå
-  "#C0A8D8", // Dec – klar ametyst
+  "#6BB8F0", // Jan – knall isblå
+  "#C48AE8", // Feb – knall lavendel
+  "#5EDC98", // Mar – knall mint
+  "#F878B0", // Apr – knall blush
+  "#F25C98", // May – knall rosa
+  "#F5D040", // Jun – knall smørgul
+  "#F89858", // Jul – knall fersken
+  "#E8B83A", // Aug – knall honning
+  "#3DCC9A", // Sep – knall jade
+  "#F09048", // Oct – knall oransje
+  "#4A9EE8", // Nov – knall himmel
+  "#B078E0", // Dec – knall ametyst
 ];
 
 function clamp(v: number, min = 0, max = 255) {
@@ -55,12 +55,12 @@ function mix(hexA: string, hexB: string, amount: number) {
   );
 }
 
-/** Clear month pastel — solid wash, no glass sheen. */
+/** Solid punchy month color — same fill in header and year overview. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = mix(base, "#FFFFFF", 0.22);
-  const dark = mix(base, "#5A3A48", 0.32);
+  const light = base;
+  const dark = mix(base, "#2A1C28", 0.48);
   const textOnStrong = "#FFFFFF";
-  const gradient = `linear-gradient(180deg, ${light} 0%, ${base} 100%)`;
+  const gradient = base;
   return { base, light, dark, textOnStrong, gradient };
 }

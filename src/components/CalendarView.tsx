@@ -592,21 +592,13 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  gradient={i === WINDOW ? monthTheme.gradient : getMonthTheme(date).gradient}
+                  fill={i === WINDOW ? monthTheme.base : getMonthTheme(date).base}
                   textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
             </motion.div>
           </div>
-          {/* Soft brand edge — echoes icon’s pink header band */}
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-70"
-            style={{
-              background: 'linear-gradient(90deg, #F5C0D0 0%, #F5E098 50%, #C8B0E8 100%)',
-            }}
-            aria-hidden
-          />
           {!isOnCurrentMonth && (
             <button
               type="button"
@@ -792,13 +784,13 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
 const MonthHeaderPanel = ({
   width,
   label,
-  gradient,
+  fill,
   textColor,
   onTitleClick,
 }: {
   width: number;
   label: string;
-  gradient: string;
+  fill: string;
   textColor: string;
   onTitleClick?: () => void;
 }) => (
@@ -806,7 +798,7 @@ const MonthHeaderPanel = ({
     className="h-full shrink-0 flex items-center justify-center px-5 relative"
     style={{
       width: width || '33.333%',
-      background: gradient,
+      backgroundColor: fill,
       color: textColor,
     }}
   >
@@ -1225,7 +1217,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         onPrev={() => onChangeYear(year - 1)}
         onNext={() => onChangeYear(year + 1)}
         onTitleClick={onBack}
-        calendarStyle={{ background: theme.gradient }}
+        calendarStyle={{ backgroundColor: theme.base }}
       >
         {year}
       </ViewHeader>
@@ -1243,7 +1235,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
                 isCurrentMonth ? 'ring-2 ring-offset-2' : ''
               }`}
               style={{
-                backgroundColor: theme.light,
+                backgroundColor: theme.base,
                 ...(isCurrentMonth ? { ringColor: theme.dark, borderColor: theme.dark } : {}),
               }}
             >
