@@ -138,9 +138,9 @@ export function punchInk(fill: string): string {
   return rgbToHex(out.r, out.g, out.b);
 }
 
-/** White on readable pastels; dark ink on very light washes. */
-export function textOnFill(fill: string): string {
-  return relativeLuma(fill) > 0.78 ? shadeInk(fill) : "#FFFFFF";
+/** Always white month labels on pastel bands. */
+export function textOnFill(_fill: string): string {
+  return "#FFFFFF";
 }
 
 export function withAlpha(hex: string, alpha: number): string {
@@ -151,11 +151,11 @@ export function withAlpha(hex: string, alpha: number): string {
 /** Calendar month strip uses a paper wash; year chips keep fuller `base`. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  // Richer wash so knæsj months still read with white labels.
-  const light = mix(base, PASTEL.paper, 0.28);
+  // Richer wash so white labels stay readable.
+  const light = mix(base, PASTEL.paper, 0.22);
   const dark = mix(base, PASTEL.ink, 0.42);
-  const textOnStrong = textOnFill(base);
-  const textOnLight = textOnFill(light);
+  const textOnStrong = "#FFFFFF";
+  const textOnLight = "#FFFFFF";
   const gradient = light;
   return { base, light, dark, textOnStrong, textOnLight, gradient };
 }

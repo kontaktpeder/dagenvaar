@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Event } from '@/hooks/useEvents';
-import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
+import { PASTEL, mix } from '@/lib/monthTheme';
 
 export type OverlayEventRow = {
   id: string;
@@ -26,11 +26,11 @@ export type DisplayEvent = Event & {
   sourceHouseholdKind?: string;
 };
 
-/** Busy-block — knæsj periwinkle, still a touch quieter than local marks. */
+/** Busy-block — knæsj periwinkle, white icon like local marks. */
 export const OVERLAY_MARK = {
   soft: mix(PASTEL.periwinkle, PASTEL.paper, 0.28),
   rail: mix(PASTEL.periwinkle, PASTEL.paper, 0.1),
-  ink: punchInk(PASTEL.periwinkle),
+  ink: '#FFFFFF',
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
