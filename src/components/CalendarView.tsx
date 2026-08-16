@@ -39,7 +39,7 @@ import {
   peekPendingOpenCountdown,
   subscribePendingOpenCountdown,
 } from '@/lib/native/pendingOpenCountdown';
-import { BriefcaseBusiness, Sparkles, type LucideIcon } from 'lucide-react';
+import { BriefcaseBusiness, type LucideIcon } from 'lucide-react';
 
 interface CalendarViewProps {
   householdId: string;
