@@ -576,9 +576,9 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
     <>
       <div className="relative flex flex-col h-full min-h-0">
         <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
-        {/* Month header peeks with the same x as the day grid */}
-        <div className="relative rounded-b-3xl overflow-hidden shrink-0">
-          <div className="relative h-12 overflow-hidden">
+        {/* Month hint strip — soft wash, peeks with the day grid */}
+        <div className="relative rounded-b-xl overflow-hidden shrink-0">
+          <div className="relative h-10 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -592,7 +592,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   key={`${date.getFullYear()}-${date.getMonth()}`}
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
-                  fill={i === WINDOW ? monthTheme.base : getMonthTheme(date).base}
+                  fill={i === WINDOW ? monthTheme.light : getMonthTheme(date).light}
                   textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
@@ -603,7 +603,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 min-h-9 px-2.5 rounded-full bg-white/90 active:bg-white text-[11px] font-semibold tracking-wide shadow-sm"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 min-h-8 px-2.5 rounded-full bg-white/80 active:bg-white text-[11px] font-semibold tracking-wide"
               style={{ color: monthTheme.dark }}
             >
               I dag
@@ -801,10 +801,10 @@ const MonthHeaderPanel = ({
   >
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2 className="text-lg font-semibold capitalize text-current tracking-wide">{label}</h2>
+        <h2 className="text-base font-medium capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="relative text-lg font-semibold capitalize text-current tracking-wide text-center">{label}</h2>
+      <h2 className="relative text-base font-medium capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
@@ -1211,7 +1211,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         onPrev={() => onChangeYear(year - 1)}
         onNext={() => onChangeYear(year + 1)}
         onTitleClick={onBack}
-        calendarStyle={{ backgroundColor: theme.base, color: theme.textOnStrong }}
+        calendarStyle={{ backgroundColor: theme.light, color: theme.textOnStrong }}
       >
         {year}
       </ViewHeader>

@@ -83,13 +83,13 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
 }
 
-/** Month band, year chips, and list header share the same solid pastel. */
+/** Calendar month strip uses a paper wash; year chips keep fuller `base`. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = mix(base, "#FFFFFF", 0.42);
+  const light = mix(base, PASTEL.paper, 0.58);
   const dark = mix(base, PASTEL.ink, 0.42);
   // Pastel fills — white-on-base is unreadable. Use shaded ink on the same hue.
   const textOnStrong = shadeInk(base);
-  const gradient = base;
+  const gradient = light;
   return { base, light, dark, textOnStrong, gradient };
 }
