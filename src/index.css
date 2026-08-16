@@ -15,52 +15,52 @@
     --popover: 0 0% 100%;
     --popover-foreground: 330 10% 15%;
 
-    --primary: 340 55% 68%;
+    --primary: 340 70% 62%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 30% 95%;
+    --secondary: 270 40% 92%;
     --secondary-foreground: 330 10% 15%;
 
-    --muted: 330 15% 96%;
-    --muted-foreground: 0 0% 52%;
+    --muted: 330 18% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 20 70% 88%;
+    --accent: 20 82% 82%;
     --accent-foreground: 330 10% 15%;
 
-    --destructive: 0 70% 58%;
+    --destructive: 0 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 330 15% 90%;
-    --input: 330 15% 90%;
-    --ring: 340 55% 68%;
+    --border: 330 18% 88%;
+    --input: 330 18% 88%;
+    --ring: 340 70% 62%;
 
     --radius: 1rem;
 
     /* Custom tokens */
-    --today: 340 50% 82%;
-    --weekend: 330 20% 96%;
-    --month-stripe: 340 50% 78%;
+    --today: 340 65% 76%;
+    --weekend: 330 22% 96%;
+    --month-stripe: 340 62% 72%;
     --nav-bg: 0 0% 100%;
-    --nav-shadow: 340 30% 85%;
+    --nav-shadow: 340 35% 82%;
 
     /* Section accents */
-    --calendar-accent: 220 55% 85%;
-    --list-accent: 270 35% 88%;
+    --calendar-accent: 220 65% 80%;
+    --list-accent: 270 45% 84%;
 
-    /* Member colors */
-    --member-blue: 210 45% 78%;
-    --member-peach: 20 75% 85%;
-    --member-lavender: 270 45% 85%;
-    --member-mint: 160 40% 78%;
-    --member-rose: 340 55% 85%;
-    --member-yellow: 45 65% 82%;
+    /* Member colors — knæsj pastels for detail cards */
+    --member-blue: 210 62% 70%;
+    --member-peach: 18 88% 74%;
+    --member-lavender: 270 58% 74%;
+    --member-mint: 155 55% 68%;
+    --member-rose: 340 72% 74%;
+    --member-yellow: 44 82% 68%;
 
     /* Day parts */
-    --morning: 40 60% 88%;
-    --late-morning: 35 50% 85%;
-    --afternoon: 25 55% 85%;
-    --evening: 280 35% 87%;
-    --night: 250 30% 82%;
+    --morning: 40 72% 82%;
+    --late-morning: 32 65% 78%;
+    --afternoon: 22 70% 78%;
+    --evening: 280 45% 80%;
+    --night: 250 42% 76%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

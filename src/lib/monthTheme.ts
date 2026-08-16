@@ -14,13 +14,13 @@ export type MonthTheme = {
  * Cream stays a soft summer / neutral wash; never a loud category.
  */
 export const PASTEL = {
-  mustard: "#F0C060",
-  periwinkle: "#A8B8E8",
-  cream: "#F0D0C0",
-  teal: "#88C0D0",
-  coral: "#F89888",
-  sage: "#D0E8C0",
-  blush: "#F8C8C8",
+  mustard: "#F5B832",
+  periwinkle: "#8FA0F0",
+  cream: "#F5C4A0",
+  teal: "#4EB8C8",
+  coral: "#FF7E6C",
+  sage: "#8FDC7A",
+  blush: "#FFA0B8",
   /** Clean white — pastels read clearer than on warm cream */
   paper: "#FFFFFF",
   ink: "#3A2A38",
@@ -132,8 +132,8 @@ export function shadeInk(fill: string): string {
 export function punchInk(fill: string): string {
   const { r, g, b } = hexToRgb(fill);
   const { h, s, l } = rgbToHsl(r, g, b);
-  const nextS = Math.min(0.78, Math.max(s * 1.85, 0.58));
-  const nextL = Math.min(0.46, Math.max(0.36, l * 0.52));
+  const nextS = Math.min(0.9, Math.max(s * 2.15, 0.68));
+  const nextL = Math.min(0.42, Math.max(0.3, l * 0.48));
   const out = hslToRgb(h, nextS, nextL);
   return rgbToHex(out.r, out.g, out.b);
 }
@@ -151,8 +151,8 @@ export function withAlpha(hex: string, alpha: number): string {
 /** Calendar month strip uses a paper wash; year chips keep fuller `base`. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  // Slightly richer wash so white labels often read; cream/blush still go dark.
-  const light = mix(base, PASTEL.paper, 0.42);
+  // Richer wash so knæsj months still read with white labels.
+  const light = mix(base, PASTEL.paper, 0.28);
   const dark = mix(base, PASTEL.ink, 0.42);
   const textOnStrong = textOnFill(base);
   const textOnLight = textOnFill(light);

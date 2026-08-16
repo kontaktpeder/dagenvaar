@@ -26,10 +26,10 @@ export type DisplayEvent = Event & {
   sourceHouseholdKind?: string;
 };
 
-/** Soft busy-block — same wash language as local marks, quieter. */
+/** Busy-block — knæsj periwinkle, still a touch quieter than local marks. */
 export const OVERLAY_MARK = {
-  soft: mix(PASTEL.periwinkle, PASTEL.paper, 0.5),
-  rail: mix(PASTEL.periwinkle, PASTEL.paper, 0.28),
+  soft: mix(PASTEL.periwinkle, PASTEL.paper, 0.28),
+  rail: mix(PASTEL.periwinkle, PASTEL.paper, 0.1),
   ink: punchInk(PASTEL.periwinkle),
 } as const;
 

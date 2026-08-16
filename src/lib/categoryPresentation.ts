@@ -41,24 +41,23 @@ export type CategoryVisuals = {
 };
 
 /**
- * Event fills match the soft member washes used on EventDetail cards
- * (`--member-*`), not the punchier month-band accents.
+ * Event fills share the knæsj PASTEL family — soft wash, punchy icons.
  */
 const EVENT_PASTEL: Record<CategoryColorToken, string> = {
-  pink: '#EEC4D0', // member-rose
-  blue: '#ADC7E0', // member-blue
-  purple: '#D9C8EA', // member-lavender
-  amber: '#E8D49A', // member-yellow
-  orange: '#F5CFBC', // member-peach
-  green: '#B0DED0', // member-mint
-  teal: '#A8D0D4',
-  red: '#F0B8A8',
+  pink: PASTEL.blush,
+  blue: PASTEL.periwinkle,
+  purple: mix(PASTEL.periwinkle, PASTEL.blush, 0.4),
+  amber: PASTEL.mustard,
+  orange: mix(PASTEL.coral, PASTEL.cream, 0.35),
+  green: PASTEL.sage,
+  teal: PASTEL.teal,
+  red: PASTEL.coral,
 };
 
 function tokenVisuals(base: string): CategoryVisuals {
-  // Soft fill ≈ wash; ink is a knæsj same-hue so icons pop.
-  const rail = mix(base, PASTEL.paper, 0.1);
-  const soft = mix(base, PASTEL.paper, 0.36);
+  // Keep fill airy but closer to the knæsj hue; ink pops hard.
+  const rail = mix(base, PASTEL.paper, 0.06);
+  const soft = mix(base, PASTEL.paper, 0.18);
   return {
     soft,
     rail,
@@ -72,10 +71,10 @@ export function silverMarkRim(): string {
   return 'none';
 }
 
-/** Calendar marks use the same soft wash as day/list cards. */
-export function categoryMarkFill(soft: string, _rail: string): string {
-  if (soft.startsWith('hsl')) return soft;
-  return soft;
+/** Calendar marks use the knæsj rail (soft wash kept for list/detail cards). */
+export function categoryMarkFill(_soft: string, rail: string): string {
+  if (rail.startsWith('hsl')) return rail;
+  return rail;
 }
 
 /** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
