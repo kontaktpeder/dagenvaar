@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix } from '@/lib/monthTheme';
+import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -55,13 +55,13 @@ const EVENT_PASTEL: Record<CategoryColorToken, string> = {
 };
 
 function tokenVisuals(base: string): CategoryVisuals {
-  // Pastel fill; white icon so the glyph reads as a bright mark.
-  const rail = mix(base, PASTEL.paper, 0.06);
-  const soft = mix(base, PASTEL.paper, 0.18);
+  // Lighter pastel blobs; knæsj same-hue icons on top.
+  const rail = mix(base, PASTEL.paper, 0.28);
+  const soft = mix(base, PASTEL.paper, 0.42);
   return {
     soft,
     rail,
-    ink: '#FFFFFF',
+    ink: punchInk(base),
     swatch: rail,
   };
 }
