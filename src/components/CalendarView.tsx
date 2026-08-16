@@ -874,7 +874,7 @@ const MonthPanel = ({
         return (
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
-            className={`flex flex-1 min-h-0 gap-x-px ${
+            className={`flex flex-1 min-h-0 gap-x-0 ${
               weekIndex > 0 ? 'border-t border-border/20' : ''
             }`}
           >
@@ -883,7 +883,7 @@ const MonthPanel = ({
                 {weekNum}
               </span>
             </div>
-            <div className="grid grid-cols-7 flex-1 min-w-0 min-h-0 auto-rows-[minmax(0,1fr)] gap-x-px content-stretch">
+            <div className="grid grid-cols-7 flex-1 min-w-0 min-h-0 auto-rows-[minmax(0,1fr)] gap-x-0 content-stretch">
               {weekDays.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const inMonth = isSameMonth(day, monthDate);
@@ -1096,16 +1096,15 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums border ${
-          !inMonth
-            ? 'text-muted-foreground/40 border-transparent'
-            : weekend && !today
-              ? 'text-foreground/70 border-foreground/18'
-              : today
-                ? 'text-primary border-primary'
-                : 'text-foreground/90 border-foreground/20'
+        className={`shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums leading-none ${
+          today
+            ? 'w-6 h-6 border-[1.5px] border-primary text-primary font-bold'
+            : !inMonth
+              ? 'w-5 h-5 text-muted-foreground/40'
+              : weekend
+                ? 'w-5 h-5 text-foreground/70'
+                : 'w-5 h-5 text-foreground/90'
         }`}
-        style={today ? { fontWeight: 700 } : undefined}
       >
         {format(day, 'd')}
       </span>
@@ -1149,11 +1148,11 @@ const DayCell = ({
               const Icon = fromWork ? BriefcaseBusiness : isOverlay ? null : meta?.Icon;
               const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
+              // Flush rails across day cells (no gap) — avoid ±1px overlap seams.
               let railPos = 'left-0 right-0';
-              if (seg.isStart && seg.isEnd) railPos = 'left-0.5 right-0.5';
-              else if (seg.isStart) railPos = 'left-0 right-[-1px]';
-              else if (seg.isEnd) railPos = 'left-[-1px] right-0';
-              else railPos = 'left-[-1px] right-[-1px]';
+              if (seg.isStart && seg.isEnd) railPos = 'left-1 right-1';
+              else if (seg.isStart) railPos = 'left-1 right-0';
+              else if (seg.isEnd) railPos = 'left-0 right-1';
 
               return (
                 <div
@@ -1174,7 +1173,7 @@ const DayCell = ({
                     }}
                   />
                   {seg.isStart && Icon && (
-                    <span className="relative z-[1] flex h-full w-full items-center justify-center leading-none">
+                    <span className="relative z-[1] flex h-full w-6 items-center justify-center leading-none">
                       <MarkGlyph Icon={Icon} color={visuals.ink} />
                     </span>
                   )}
