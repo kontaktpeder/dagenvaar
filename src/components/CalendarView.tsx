@@ -578,7 +578,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         <div className={`flex flex-col h-full min-h-0 ${showYear ? 'invisible pointer-events-none' : ''}`}>
         {/* Month hint strip — soft wash, peeks with the day grid */}
         <div className="relative rounded-b-xl overflow-hidden shrink-0">
-          <div className="relative h-10 overflow-hidden">
+          <div className="relative h-9 overflow-hidden">
             <motion.div
               className="absolute top-0 bottom-0 flex will-change-transform"
               style={{
@@ -603,7 +603,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <button
               type="button"
               onClick={goToToday}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 min-h-8 px-2.5 rounded-full bg-white/80 active:bg-white text-[11px] font-semibold tracking-wide"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 min-h-7 px-2 rounded-full bg-white/80 active:bg-white text-[11px] font-semibold tracking-wide"
               style={{ color: monthTheme.dark }}
             >
               I dag
@@ -612,11 +612,11 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         </div>
 
         <div className="bg-transparent relative">
-          <div className="flex px-2 py-2 sm:px-4">
-            <div className="w-5 shrink-0" aria-hidden />
+          <div className="flex px-1 py-1">
+            <div className="w-3.5 shrink-0" aria-hidden />
             <div className="grid grid-cols-7 flex-1 min-w-0">
               {weekdayLabels.map((d, i) => (
-                <div key={`${d}-${i}`} className={`text-center text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                <div key={`${d}-${i}`} className={`text-center text-[10px] font-semibold uppercase tracking-[0.12em] ${
                   i >= 5 ? 'text-primary/60' : 'text-foreground/55'
                 }`}>
                   {d}
@@ -864,7 +864,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-1 pt-0.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -875,11 +875,11 @@ const MonthPanel = ({
           <div
             key={format(weekDays[0], 'yyyy-MM-dd')}
             className={`flex flex-1 min-h-0 gap-x-0 ${
-              weekIndex > 0 ? 'border-t border-border/20' : ''
+              weekIndex > 0 ? 'border-t border-border/15' : ''
             }`}
           >
-            <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
-              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/45">
+            <div className="w-3.5 shrink-0 flex items-start justify-center pt-1">
+              <span className="text-[8px] font-medium tabular-nums leading-none select-none text-muted-foreground/40">
                 {weekNum}
               </span>
             </div>
@@ -1091,7 +1091,7 @@ const DayCell = ({
       {...longPressHandlers}
       onClick={handleClick}
       aria-label={dayAriaLabel}
-      className={`relative flex flex-col items-center justify-start pt-0.5 pb-0.5 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
+      className={`relative flex flex-col items-center justify-start pt-0 pb-0 px-0 rounded-2xl min-h-0 h-full overflow-visible ${
         isHighlighted ? 'ring-2 ring-primary/40' : ''
       }`}
     >
@@ -1112,7 +1112,7 @@ const DayCell = ({
       {/* Corner sparkle — brand signature from the Pastelly icon */}
       {countdownEmoji && (
         <span
-          className="absolute top-0.5 right-0 pointer-events-none z-[2] transition-opacity duration-500 ease-out flex items-center justify-center"
+          className="absolute top-0 right-0 pointer-events-none z-[2] transition-opacity duration-500 ease-out flex items-center justify-center"
           style={{ opacity: marksVisible ? 1 : 0 }}
           aria-hidden
           title={countdownEmoji}
@@ -1128,7 +1128,7 @@ const DayCell = ({
 
       {(laneCount > 0 || rows.length > 0) && (
         <div
-          className="mt-0.5 w-full flex flex-col items-center gap-1 min-h-0 flex-1 px-0 z-[1] transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col items-center gap-0.5 min-h-0 flex-1 px-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {laneCount > 0 &&
@@ -1148,21 +1148,16 @@ const DayCell = ({
               const Icon = fromWork ? BriefcaseBusiness : isOverlay ? null : meta?.Icon;
               const evHighlighted = highlight && highlight.eventId === seg.event.id;
 
-              // Flush rails across day cells (no gap) — avoid ±1px overlap seams.
-              let railPos = 'left-0 right-0';
-              if (seg.isStart && seg.isEnd) railPos = 'left-1 right-1';
-              else if (seg.isStart) railPos = 'left-1 right-0';
-              else if (seg.isEnd) railPos = 'left-0 right-1';
-
               return (
                 <div
                   key={seg.event.id}
                   title={seg.event.title}
-                  className={`relative ${SPAN_ROW_H} w-full flex items-center justify-center`}
+                  className={`relative ${SPAN_ROW_H} w-full`}
                 >
+                  {/* Flush rail — same geometry every day so the line never jumps */}
                   <div
                     aria-hidden
-                    className={`absolute inset-y-0 ${railPos} ${
+                    className={`absolute inset-0 ${
                       seg.isStart ? SPAN_ROUND_START : ''
                     } ${seg.isEnd ? SPAN_ROUND_END : ''} ${
                       evHighlighted ? 'ring-1 ring-primary/40' : ''
@@ -1173,7 +1168,7 @@ const DayCell = ({
                     }}
                   />
                   {seg.isStart && Icon && (
-                    <span className="relative z-[1] flex h-full w-6 items-center justify-center leading-none">
+                    <span className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center leading-none">
                       <MarkGlyph Icon={Icon} color={visuals.ink} />
                     </span>
                   )}

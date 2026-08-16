@@ -364,7 +364,7 @@ const Index = () => {
         animate={bootPhase === 'covering' ? { y: 12 } : { y: 0 }}
         transition={{ duration: 0.85, ease: welcomeEase }}
       >
-      <header className="flex items-center justify-between gap-3 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-1 z-10">
+      <header className="flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-0.5 z-10">
         <CalendarSwitcher
           household={household}
           memberships={orderedMemberships}
