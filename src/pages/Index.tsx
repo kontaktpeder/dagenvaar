@@ -12,6 +12,7 @@ import { adjacentCalendarId, sortCalendarMemberships } from '@/lib/calendarStack
 import { resolveCalendarKind } from '@/lib/calendarKinds';
 import { isSeedWeekDismissed } from '@/lib/seedWeekStorage';
 import { LocaleProvider } from '@/hooks/useLocale';
+import { PASTEL } from '@/lib/monthTheme';
 import AuthPage from '@/pages/Auth';
 import Landing from '@/pages/Landing';
 import { isNativePlatform } from '@/lib/native/platform';
@@ -251,7 +252,7 @@ const Index = () => {
       <LocaleProvider>
         <div
           className="min-h-[100dvh] bg-background"
-          style={{ backgroundColor: '#fbf9f6' }}
+          style={{ backgroundColor: PASTEL.paper }}
           aria-busy="true"
           aria-label="Laster"
         />
@@ -353,7 +354,7 @@ const Index = () => {
     <div
       data-calendar-kind={calendarKind}
       className="h-[100dvh] w-full bg-background flex flex-col max-w-6xl mx-auto relative overflow-hidden"
-      style={{ backgroundColor: '#fbf9f6' }}
+      style={{ backgroundColor: PASTEL.paper }}
     >
       {showBootVeil && <BootVeil revealing={bootPhase === 'revealing'} />}
 

@@ -6,19 +6,37 @@ export type MonthTheme = {
   gradient: string;
 };
 
+/**
+ * Muted blob pastels — one shared family for months, events, and paper.
+ * Cream stays a soft summer / neutral wash; never a loud category.
+ */
+export const PASTEL = {
+  mustard: "#E6C56A",
+  periwinkle: "#A7B3D9",
+  cream: "#EFE4D6",
+  teal: "#8AAFB2",
+  coral: "#E6988A",
+  sage: "#B9C9A9",
+  blush: "#E9C5C9",
+  /** Warm paper — cream nudged into white */
+  paper: "#FBF8F4",
+  ink: "#3A2A38",
+} as const;
+
+/** Seasonal rotation of the 7-tone set across 12 months. */
 const MONTH_COLORS = [
-  "#B8D8F0", // Jan – myk isblå
-  "#D4B8E8", // Feb – myk lavendel
-  "#B0E4C4", // Mar – myk mint
-  "#F5C0D0", // Apr – myk blush
-  "#F2B4C4", // May – myk rosa
-  "#F5E4A8", // Jun – myk smørgul
-  "#F5C8A8", // Jul – myk fersken
-  "#E8D08A", // Aug – myk honning
-  "#A8DCC8", // Sep – myk jade
-  "#F0C8A0", // Oct – myk oransje
-  "#A8C8EC", // Nov – myk himmel
-  "#C8B4E0", // Dec – myk ametyst
+  PASTEL.periwinkle, // Jan
+  PASTEL.blush, // Feb
+  PASTEL.sage, // Mar
+  PASTEL.blush, // Apr
+  PASTEL.coral, // May
+  PASTEL.mustard, // Jun
+  PASTEL.cream, // Jul
+  PASTEL.mustard, // Aug
+  PASTEL.teal, // Sep
+  PASTEL.coral, // Oct
+  PASTEL.periwinkle, // Nov
+  PASTEL.blush, // Dec
 ];
 
 function clamp(v: number, min = 0, max = 255) {
@@ -44,7 +62,7 @@ function rgbToHex(r: number, g: number, b: number) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function mix(hexA: string, hexB: string, amount: number) {
+export function mix(hexA: string, hexB: string, amount: number) {
   const a = hexToRgb(hexA);
   const b = hexToRgb(hexB);
   const t = Math.max(0, Math.min(1, amount));
@@ -57,7 +75,7 @@ function mix(hexA: string, hexB: string, amount: number) {
 
 /** Same hue as the fill, shaded like month-overview labels. */
 export function shadeInk(fill: string): string {
-  return mix(fill, "#3A2A38", 0.46);
+  return mix(fill, PASTEL.ink, 0.46);
 }
 
 export function withAlpha(hex: string, alpha: number): string {
@@ -69,7 +87,7 @@ export function withAlpha(hex: string, alpha: number): string {
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
   const light = mix(base, "#FFFFFF", 0.42);
-  const dark = mix(base, "#3A2A38", 0.42);
+  const dark = mix(base, PASTEL.ink, 0.42);
   // Pastel fills — white-on-base is unreadable. Use shaded ink on the same hue.
   const textOnStrong = shadeInk(base);
   const gradient = base;

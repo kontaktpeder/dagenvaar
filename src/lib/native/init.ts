@@ -13,7 +13,7 @@ export async function initNative(): Promise<void> {
     // Draw under the status bar; CSS safe-area padding handles the inset once.
     await StatusBar.setOverlaysWebView({ overlay: true });
     if (!isIOS()) {
-      await StatusBar.setBackgroundColor({ color: '#fbf9f6' });
+      await StatusBar.setBackgroundColor({ color: '#FBF8F4' });
     }
   } catch (err) {
     console.warn('StatusBar init failed', err);

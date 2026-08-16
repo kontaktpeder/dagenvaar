@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 50 11% 98%;
+    --background: 40 33% 97%;
     --foreground: 0 5% 17%;
 
     --card: 0 0% 100%;
@@ -132,7 +132,7 @@ html {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background-color: #fbf9f6;
+  background-color: #FBF8F4;
 }
 
 body {
@@ -142,13 +142,13 @@ body {
   position: fixed;
   inset: 0;
   width: 100%;
-  background-color: #fbf9f6;
+  background-color: #FBF8F4;
 }
 
 #root {
   height: 100%;
   overflow: hidden;
-  background-color: #fbf9f6;
+  background-color: #FBF8F4;
 }
 
 /* Native-feeling inner scrollers */

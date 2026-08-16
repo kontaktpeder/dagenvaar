@@ -11,7 +11,7 @@ import {
 import { useActiveCountdowns, type CountdownWithParticipants } from '@/hooks/useCountdowns';
 import { resolveCategoryVisuals, getMemberColorMap, silverMarkRim, categoryMarkFill } from '@/lib/categoryPresentation';
 import { EVENT_CATEGORY_META } from '@/lib/eventCategories';
-import { getMonthTheme } from '@/lib/monthTheme';
+import { getMonthTheme, PASTEL } from '@/lib/monthTheme';
 import {
   buildSpanSegmentsByDate,
   isMultiDayEvent,
@@ -630,7 +630,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
         <div
           ref={trackRef}
           className="relative flex-1 min-h-0 overflow-hidden select-none calendar-gesture-surface"
-          style={{ backgroundColor: '#fbf9f6' }}
+          style={{ backgroundColor: PASTEL.paper }}
         >
           <motion.div
             className="absolute top-0 bottom-0 flex will-change-transform"

@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { shadeInk, withAlpha } from '@/lib/monthTheme';
+import { PASTEL, mix, shadeInk, withAlpha } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -40,6 +40,15 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
+function tokenVisuals(rail: string): CategoryVisuals {
+  return {
+    soft: mix(rail, PASTEL.paper, 0.22),
+    rail,
+    ink: shadeInk(rail),
+    swatch: rail,
+  };
+}
+
 /** Soft edge only — no chrome/glass rim. */
 export function silverMarkRim(): string {
   return 'none';
@@ -56,55 +65,17 @@ export function categoryMarkOutline(_ink?: string, _strength?: number): string {
   return silverMarkRim();
 }
 
+/** Same hex family as month bands — tokens are aliases into PASTEL. */
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  pink: {
-    soft: '#F5C0D0',
-    rail: '#F0B0C4',
-    ink: shadeInk('#F0B0C4'),
-    swatch: '#F0B0C4',
-  },
-  blue: {
-    soft: '#B8D8F0',
-    rail: '#A0CCEC',
-    ink: shadeInk('#A0CCEC'),
-    swatch: '#A0CCEC',
-  },
-  purple: {
-    soft: '#D4B8E8',
-    rail: '#C8A8E0',
-    ink: shadeInk('#C8A8E0'),
-    swatch: '#C8A8E0',
-  },
-  amber: {
-    soft: '#F5E4A8',
-    rail: '#E8D08A',
-    ink: shadeInk('#E8D08A'),
-    swatch: '#E8D08A',
-  },
-  orange: {
-    soft: '#F5C8A8',
-    rail: '#F0BE90',
-    ink: shadeInk('#F0BE90'),
-    swatch: '#F0BE90',
-  },
-  green: {
-    soft: '#B0E4C4',
-    rail: '#A8DCC8',
-    ink: shadeInk('#A8DCC8'),
-    swatch: '#A8DCC8',
-  },
-  teal: {
-    soft: '#A8DCC8',
-    rail: '#90D4BC',
-    ink: shadeInk('#90D4BC'),
-    swatch: '#90D4BC',
-  },
-  red: {
-    soft: '#F2B4C4',
-    rail: '#ECA8B8',
-    ink: shadeInk('#ECA8B8'),
-    swatch: '#ECA8B8',
-  },
+  pink: tokenVisuals(PASTEL.blush),
+  blue: tokenVisuals(PASTEL.periwinkle),
+  // No dedicated purple in the blob set — periwinkle nudged toward blush.
+  purple: tokenVisuals(mix(PASTEL.periwinkle, PASTEL.blush, 0.35)),
+  amber: tokenVisuals(PASTEL.mustard),
+  orange: tokenVisuals(mix(PASTEL.coral, PASTEL.cream, 0.28)),
+  green: tokenVisuals(PASTEL.sage),
+  teal: tokenVisuals(PASTEL.teal),
+  red: tokenVisuals(PASTEL.coral),
 };
 
 const OTHER_NEUTRAL: CategoryVisuals = {

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Event } from '@/hooks/useEvents';
-import { shadeInk } from '@/lib/monthTheme';
+import { PASTEL, mix, shadeInk } from '@/lib/monthTheme';
 
 export type OverlayEventRow = {
   id: string;
@@ -26,11 +26,11 @@ export type DisplayEvent = Event & {
   sourceHouseholdKind?: string;
 };
 
-/** Light busy-block — lavender from month overview, still quieter than local marks. */
+/** Light busy-block — quiet periwinkle wash, still softer than local marks. */
 export const OVERLAY_MARK = {
-  soft: '#E4D8F0',
-  rail: '#D8C8E8',
-  ink: shadeInk('#D8C8E8'),
+  soft: mix(PASTEL.periwinkle, PASTEL.paper, 0.45),
+  rail: mix(PASTEL.periwinkle, PASTEL.paper, 0.22),
+  ink: shadeInk(PASTEL.periwinkle),
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {
