@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix, shadeInk } from '@/lib/monthTheme';
+import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -56,13 +56,13 @@ const EVENT_PASTEL: Record<CategoryColorToken, string> = {
 };
 
 function tokenVisuals(base: string): CategoryVisuals {
-  // Soft ≈ detail-card wash; rail slightly stronger for icon chips.
+  // Soft fill ≈ wash; ink is a knæsj same-hue so icons pop.
   const rail = mix(base, PASTEL.paper, 0.1);
   const soft = mix(base, PASTEL.paper, 0.36);
   return {
     soft,
     rail,
-    ink: shadeInk(base),
+    ink: punchInk(base),
     swatch: rail,
   };
 }

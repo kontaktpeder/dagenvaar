@@ -164,7 +164,10 @@ const ListView = ({
             variant="calendar"
             onPrev={() => setSelectedDate((d) => subDays(d, 1))}
             onNext={() => setSelectedDate((d) => addDays(d, 1))}
-            calendarStyle={{ background: getMonthTheme(selectedDate).gradient }}
+            calendarStyle={{
+              background: getMonthTheme(selectedDate).gradient,
+              color: getMonthTheme(selectedDate).textOnLight,
+            }}
           >
             {isToday(selectedDate)
               ? `I dag · ${format(selectedDate, 'd. MMM', { locale: dateLocale })}`

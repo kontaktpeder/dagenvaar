@@ -2,7 +2,10 @@ export type MonthTheme = {
   base: string;
   light: string;
   dark: string;
+  /** Label on `base` chips / strong fills */
   textOnStrong: string;
+  /** Label on the soft calendar month wash */
+  textOnLight: string;
   gradient: string;
 };
 
@@ -73,9 +76,71 @@ export function mix(hexA: string, hexB: string, amount: number) {
   );
 }
 
+function relativeLuma(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function rgbToHsl(r: number, g: number, b: number) {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+  else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+  else h = ((rn - gn) / d + 4) / 6;
+  return { h, s, l };
+}
+
+function hslToRgb(h: number, s: number, l: number) {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return { r: v, g: v, b: v };
+  }
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, h) * 255),
+    b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+  };
+}
+
 /** Same hue as the fill, shaded like month-overview labels. */
 export function shadeInk(fill: string): string {
   return mix(fill, PASTEL.ink, 0.46);
+}
+
+/**
+ * Knæsj same-hue accent — soft fill stays pastel; icon almost lights up.
+ */
+export function punchInk(fill: string): string {
+  const { r, g, b } = hexToRgb(fill);
+  const { h, s, l } = rgbToHsl(r, g, b);
+  const nextS = Math.min(0.78, Math.max(s * 1.85, 0.58));
+  const nextL = Math.min(0.46, Math.max(0.36, l * 0.52));
+  const out = hslToRgb(h, nextS, nextL);
+  return rgbToHex(out.r, out.g, out.b);
+}
+
+/** White on readable pastels; dark ink on very light washes. */
+export function textOnFill(fill: string): string {
+  return relativeLuma(fill) > 0.78 ? shadeInk(fill) : "#FFFFFF";
 }
 
 export function withAlpha(hex: string, alpha: number): string {
@@ -86,10 +151,11 @@ export function withAlpha(hex: string, alpha: number): string {
 /** Calendar month strip uses a paper wash; year chips keep fuller `base`. */
 export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
-  const light = mix(base, PASTEL.paper, 0.58);
+  // Slightly richer wash so white labels often read; cream/blush still go dark.
+  const light = mix(base, PASTEL.paper, 0.42);
   const dark = mix(base, PASTEL.ink, 0.42);
-  // Pastel fills — white-on-base is unreadable. Use shaded ink on the same hue.
-  const textOnStrong = shadeInk(base);
+  const textOnStrong = textOnFill(base);
+  const textOnLight = textOnFill(light);
   const gradient = light;
-  return { base, light, dark, textOnStrong, gradient };
+  return { base, light, dark, textOnStrong, textOnLight, gradient };
 }

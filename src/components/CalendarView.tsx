@@ -593,7 +593,7 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
                   width={pageWidth}
                   label={format(date, 'MMMM yyyy', { locale: dateLocale })}
                   fill={i === WINDOW ? monthTheme.light : getMonthTheme(date).light}
-                  textColor={i === WINDOW ? monthTheme.textOnStrong : getMonthTheme(date).textOnStrong}
+                  textColor={i === WINDOW ? monthTheme.textOnLight : getMonthTheme(date).textOnLight}
                   onTitleClick={i === WINDOW ? openYearView : undefined}
                 />
               ))}
@@ -801,10 +801,10 @@ const MonthHeaderPanel = ({
   >
     {onTitleClick ? (
       <button type="button" onClick={onTitleClick} className="relative text-center">
-        <h2 className="text-base font-medium capitalize text-current tracking-wide">{label}</h2>
+        <h2 className="text-base font-extrabold capitalize text-current tracking-wide">{label}</h2>
       </button>
     ) : (
-      <h2 className="relative text-base font-medium capitalize text-current tracking-wide text-center">{label}</h2>
+      <h2 className="relative text-base font-extrabold capitalize text-current tracking-wide text-center">{label}</h2>
     )}
   </div>
 );
@@ -1211,7 +1211,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         onPrev={() => onChangeYear(year - 1)}
         onNext={() => onChangeYear(year + 1)}
         onTitleClick={onBack}
-        calendarStyle={{ backgroundColor: theme.light, color: theme.textOnStrong }}
+        calendarStyle={{ backgroundColor: theme.light, color: theme.textOnLight }}
       >
         {year}
       </ViewHeader>
@@ -1233,7 +1233,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
                 ...(isCurrentMonth ? { ringColor: theme.dark, borderColor: theme.dark } : {}),
               }}
             >
-              <span className="text-sm font-semibold capitalize" style={{ color: theme.textOnStrong }}>
+              <span className="text-sm font-extrabold capitalize" style={{ color: theme.textOnStrong }}>
                 {format(new Date(year, m, 1), 'MMM', { locale: dateLocale })}
               </span>
             </button>
