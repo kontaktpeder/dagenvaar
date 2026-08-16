@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 /** Matches the native splash background (capacitor.config.ts). */
-const SPLASH_BG = '#FBF8F4';
+const SPLASH_BG = '#FFFFFF';
 
 const DOT_VARS = ['--member-blue', '--member-peach', '--member-mint', '--member-rose'];
 

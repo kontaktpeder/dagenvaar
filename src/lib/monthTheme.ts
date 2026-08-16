@@ -18,8 +18,8 @@ export const PASTEL = {
   coral: "#F89888",
   sage: "#D0E8C0",
   blush: "#F8C8C8",
-  /** Warm paper — cream nudged into white */
-  paper: "#FBF8F4",
+  /** Clean white — pastels read clearer than on warm cream */
+  paper: "#FFFFFF",
   ink: "#3A2A38",
 } as const;
 

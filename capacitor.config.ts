@@ -17,12 +17,12 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchAutoHide: false,
       launchShowDuration: 3000,
-      backgroundColor: '#FBF8F4',
+      backgroundColor: '#FFFFFF',
       showSpinner: false,
     },
     StatusBar: {
       style: 'LIGHT',
-      backgroundColor: '#FBF8F4',
+      backgroundColor: '#FFFFFF',
     },
     Keyboard: {
       // App manages sticky CTAs via useKeyboardInset — avoid WebView resize fighting padding.

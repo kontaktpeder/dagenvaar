@@ -616,8 +616,8 @@ const CalendarView = ({ householdId, members, currentMemberId, calendarKind = 'h
             <div className="w-5 shrink-0" aria-hidden />
             <div className="grid grid-cols-7 flex-1 min-w-0">
               {weekdayLabels.map((d, i) => (
-                <div key={`${d}-${i}`} className={`text-center text-[10px] font-medium uppercase tracking-[0.14em] ${
-                  i >= 5 ? 'text-primary/45' : 'text-foreground/35'
+                <div key={`${d}-${i}`} className={`text-center text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                  i >= 5 ? 'text-primary/60' : 'text-foreground/55'
                 }`}>
                   {d}
                 </div>
@@ -879,7 +879,7 @@ const MonthPanel = ({
             }`}
           >
             <div className="w-5 shrink-0 flex items-start justify-center pt-1.5">
-              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/30">
+              <span className="text-[9px] font-medium tabular-nums leading-none select-none text-muted-foreground/45">
                 {weekNum}
               </span>
             </div>
@@ -1096,8 +1096,8 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-medium tabular-nums ${
-          !inMonth ? 'text-muted-foreground/30' : weekend && !today ? 'text-foreground/40' : 'text-foreground/55'
+        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${
+          !inMonth ? 'text-muted-foreground/40' : weekend && !today ? 'text-foreground/70' : 'text-foreground/90'
         }`}
         style={
           today
