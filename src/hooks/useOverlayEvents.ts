@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Event } from '@/hooks/useEvents';
-import { PASTEL, mix } from '@/lib/monthTheme';
+import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
 
 export type OverlayEventRow = {
   id: string;
@@ -26,11 +26,11 @@ export type DisplayEvent = Event & {
   sourceHouseholdKind?: string;
 };
 
-/** Same language as category marks: soft wash + exact hue for the icon. */
+/** Picker-colored blob + stronger icon, same as local marks. */
 export const OVERLAY_MARK = {
-  soft: mix(PASTEL.periwinkle, PASTEL.paper, 0.38),
-  rail: mix(PASTEL.periwinkle, PASTEL.paper, 0.22),
-  ink: PASTEL.periwinkle,
+  soft: PASTEL.periwinkle,
+  rail: PASTEL.periwinkle,
+  ink: punchInk(PASTEL.periwinkle),
 } as const;
 
 export function overlayToDisplayEvent(row: OverlayEventRow): DisplayEvent {

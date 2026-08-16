@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix } from '@/lib/monthTheme';
+import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -56,13 +56,11 @@ const EVENT_PASTEL: Record<CategoryColorToken, string> = {
 };
 
 function tokenVisuals(base: string): CategoryVisuals {
-  // Swatch/ink = exact picker color. Soft fill lets the icon read as that color.
-  const soft = mix(base, PASTEL.paper, 0.38);
-  const rail = mix(base, PASTEL.paper, 0.22);
+  // Blob = exact picker swatch; icon = stronger same-hue accent.
   return {
-    soft,
-    rail,
-    ink: base,
+    soft: base,
+    rail: base,
+    ink: punchInk(base),
     swatch: base,
   };
 }
@@ -72,10 +70,11 @@ export function silverMarkRim(): string {
   return 'none';
 }
 
-/** Calendar marks use the soft wash so picker-colored icons stay knæsj. */
-export function categoryMarkFill(soft: string, _rail: string): string {
-  if (soft.startsWith('hsl')) return soft;
-  return soft;
+/** Calendar marks use the picker swatch color. */
+export function categoryMarkFill(soft: string, rail: string): string {
+  const fill = rail || soft;
+  if (fill.startsWith('hsl')) return fill;
+  return fill;
 }
 
 /** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
