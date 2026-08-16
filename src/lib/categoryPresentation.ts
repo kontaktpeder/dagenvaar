@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix, shadeInk, withAlpha } from '@/lib/monthTheme';
+import { PASTEL, mix, shadeInk } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -40,11 +40,29 @@ export type CategoryVisuals = {
   swatch: string;
 };
 
-function tokenVisuals(rail: string): CategoryVisuals {
+/**
+ * Event fills match the soft member washes used on EventDetail cards
+ * (`--member-*`), not the punchier month-band accents.
+ */
+const EVENT_PASTEL: Record<CategoryColorToken, string> = {
+  pink: '#EEC4D0', // member-rose
+  blue: '#ADC7E0', // member-blue
+  purple: '#D9C8EA', // member-lavender
+  amber: '#E8D49A', // member-yellow
+  orange: '#F5CFBC', // member-peach
+  green: '#B0DED0', // member-mint
+  teal: '#A8D0D4',
+  red: '#F0B8A8',
+};
+
+function tokenVisuals(base: string): CategoryVisuals {
+  // Soft ≈ detail-card wash; rail slightly stronger for icon chips.
+  const rail = mix(base, PASTEL.paper, 0.1);
+  const soft = mix(base, PASTEL.paper, 0.36);
   return {
-    soft: mix(rail, PASTEL.paper, 0.22),
+    soft,
     rail,
-    ink: shadeInk(rail),
+    ink: shadeInk(base),
     swatch: rail,
   };
 }
@@ -54,10 +72,10 @@ export function silverMarkRim(): string {
   return 'none';
 }
 
-/** Airy pastel fill so paper shows through. */
-export function categoryMarkFill(_soft: string, rail: string): string {
-  if (rail.startsWith('hsl')) return rail;
-  return withAlpha(rail, 0.78);
+/** Calendar marks use the same soft wash as day/list cards. */
+export function categoryMarkFill(soft: string, _rail: string): string {
+  if (soft.startsWith('hsl')) return soft;
+  return soft;
 }
 
 /** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
@@ -65,17 +83,16 @@ export function categoryMarkOutline(_ink?: string, _strength?: number): string {
   return silverMarkRim();
 }
 
-/** Same hex family as month bands — tokens are aliases into PASTEL. */
+/** Category tokens → soft member-like fills (detail-card aesthetic). */
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  pink: tokenVisuals(PASTEL.blush),
-  blue: tokenVisuals(PASTEL.periwinkle),
-  // No dedicated purple in the blob set — periwinkle nudged toward blush.
-  purple: tokenVisuals(mix(PASTEL.periwinkle, PASTEL.blush, 0.35)),
-  amber: tokenVisuals(PASTEL.mustard),
-  orange: tokenVisuals(mix(PASTEL.coral, PASTEL.cream, 0.28)),
-  green: tokenVisuals(PASTEL.sage),
-  teal: tokenVisuals(PASTEL.teal),
-  red: tokenVisuals(PASTEL.coral),
+  pink: tokenVisuals(EVENT_PASTEL.pink),
+  blue: tokenVisuals(EVENT_PASTEL.blue),
+  purple: tokenVisuals(EVENT_PASTEL.purple),
+  amber: tokenVisuals(EVENT_PASTEL.amber),
+  orange: tokenVisuals(EVENT_PASTEL.orange),
+  green: tokenVisuals(EVENT_PASTEL.green),
+  teal: tokenVisuals(EVENT_PASTEL.teal),
+  red: tokenVisuals(EVENT_PASTEL.red),
 };
 
 const OTHER_NEUTRAL: CategoryVisuals = {
