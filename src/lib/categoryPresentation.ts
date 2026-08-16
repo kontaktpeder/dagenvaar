@@ -3,7 +3,7 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
+import { PASTEL, mix } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -41,7 +41,8 @@ export type CategoryVisuals = {
 };
 
 /**
- * Event fills share the knæsj PASTEL family — soft wash, punchy icons.
+ * Event fills share the knæsj PASTEL family.
+ * Picker swatch === icon color; soft/rail are lighter washes of the same hue.
  */
 const EVENT_PASTEL: Record<CategoryColorToken, string> = {
   pink: PASTEL.blush,
@@ -55,14 +56,14 @@ const EVENT_PASTEL: Record<CategoryColorToken, string> = {
 };
 
 function tokenVisuals(base: string): CategoryVisuals {
-  // Lighter pastel blobs; knæsj same-hue icons on top.
-  const rail = mix(base, PASTEL.paper, 0.28);
-  const soft = mix(base, PASTEL.paper, 0.42);
+  // Swatch/ink = exact picker color. Soft fill lets the icon read as that color.
+  const soft = mix(base, PASTEL.paper, 0.38);
+  const rail = mix(base, PASTEL.paper, 0.22);
   return {
     soft,
     rail,
-    ink: punchInk(base),
-    swatch: rail,
+    ink: base,
+    swatch: base,
   };
 }
 
@@ -71,10 +72,10 @@ export function silverMarkRim(): string {
   return 'none';
 }
 
-/** Calendar marks use the knæsj rail (soft wash kept for list/detail cards). */
-export function categoryMarkFill(_soft: string, rail: string): string {
-  if (rail.startsWith('hsl')) return rail;
-  return rail;
+/** Calendar marks use the soft wash so picker-colored icons stay knæsj. */
+export function categoryMarkFill(soft: string, _rail: string): string {
+  if (soft.startsWith('hsl')) return soft;
+  return soft;
 }
 
 /** @deprecated Prefer silverMarkRim — kept for any leftover call sites. */
