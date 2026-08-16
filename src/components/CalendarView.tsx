@@ -948,15 +948,15 @@ interface DayCellProps {
 /** Max single-day marks shown before +N overflow */
 const MAX_VISIBLE_MARKS = 3;
 /** Icon sits optically centered in the chip */
-const CAL_ICON_SIZE = 8;
-const CAL_ICON_STROKE = 2;
-/** Single-day mark: square frame; flex box centers the SVG */
+const CAL_ICON_SIZE = 10;
+const CAL_ICON_STROKE = 2.25;
+/** Single-day mark: round chip; flex box centers the SVG */
 const DAY_PILL =
-  'h-3 w-3 mx-auto rounded-[3px] inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
-const SPAN_ROW_H = 'h-3';
-/** Multi-day rail ends — softly squared, not capsule */
-const SPAN_ROUND_START = 'rounded-l-[3px]';
-const SPAN_ROUND_END = 'rounded-r-[3px]';
+  'h-4 w-4 mx-auto rounded-full inline-flex items-center justify-center shrink-0 leading-none overflow-hidden';
+const SPAN_ROW_H = 'h-4';
+/** Multi-day rail ends — soft round to match circular chips */
+const SPAN_ROUND_START = 'rounded-l-full';
+const SPAN_ROUND_END = 'rounded-r-full';
 
 function MarkGlyph({
   Icon,
@@ -1096,14 +1096,16 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${
-          !inMonth ? 'text-muted-foreground/40' : weekend && !today ? 'text-foreground/70' : 'text-foreground/90'
+        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums border ${
+          !inMonth
+            ? 'text-muted-foreground/40 border-transparent'
+            : weekend && !today
+              ? 'text-foreground/70 border-foreground/18'
+              : today
+                ? 'text-primary border-primary'
+                : 'text-foreground/90 border-foreground/20'
         }`}
-        style={
-          today
-            ? { border: '1.5px solid hsl(var(--primary))', color: 'hsl(var(--primary))', fontWeight: 600 }
-            : undefined
-        }
+        style={today ? { fontWeight: 700 } : undefined}
       >
         {format(day, 'd')}
       </span>
@@ -1127,7 +1129,7 @@ const DayCell = ({
 
       {(laneCount > 0 || rows.length > 0) && (
         <div
-          className="mt-0.5 w-full flex flex-col items-stretch gap-1 min-h-0 flex-1 px-0 z-[1] transition-opacity duration-500 ease-out"
+          className="mt-0.5 w-full flex flex-col items-center gap-1 min-h-0 flex-1 px-0 z-[1] transition-opacity duration-500 ease-out"
           style={{ opacity: marksVisible ? 1 : 0 }}
         >
           {laneCount > 0 &&
@@ -1172,7 +1174,7 @@ const DayCell = ({
                     }}
                   />
                   {seg.isStart && Icon && (
-                    <span className="relative z-[1] flex h-full w-4 items-center justify-center leading-none">
+                    <span className="relative z-[1] flex h-full w-full items-center justify-center leading-none">
                       <MarkGlyph Icon={Icon} color={visuals.ink} />
                     </span>
                   )}
@@ -1182,7 +1184,7 @@ const DayCell = ({
           {rows.map((row, i) => (
             <div
               key={row.map((e) => e.id).join('-') || i}
-              className="w-full flex flex-col items-stretch"
+              className="w-full flex flex-col items-center"
             >
               {row.map((ev) => renderEventMark(ev))}
             </div>
