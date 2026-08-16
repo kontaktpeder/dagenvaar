@@ -1096,33 +1096,28 @@ const DayCell = ({
       }`}
     >
       <span
-        className={`shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums leading-none ${
+        className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold tabular-nums leading-none ${
           today
-            ? 'w-6 h-6 border-[1.5px] border-primary text-primary font-bold'
+            ? 'border-[1.5px] border-primary text-primary font-bold'
             : !inMonth
-              ? 'w-5 h-5 text-muted-foreground/40'
+              ? 'text-muted-foreground/40'
               : weekend
-                ? 'w-5 h-5 text-foreground/70'
-                : 'w-5 h-5 text-foreground/90'
+                ? 'text-foreground/70'
+                : 'text-foreground/90'
         }`}
       >
         {format(day, 'd')}
       </span>
 
-      {/* Corner sparkle — brand signature from the Pastelly icon */}
+      {/* Countdown — show the emoji the user picked */}
       {countdownEmoji && (
         <span
-          className="absolute top-0 right-0 pointer-events-none z-[2] transition-opacity duration-500 ease-out flex items-center justify-center"
+          className="absolute top-0 right-0 pointer-events-none z-[2] transition-opacity duration-500 ease-out flex h-4 w-4 items-center justify-center text-[11px] leading-none"
           style={{ opacity: marksVisible ? 1 : 0 }}
           aria-hidden
           title={countdownEmoji}
         >
-          <Sparkles
-            size={11}
-            strokeWidth={2}
-            className="text-primary"
-            fill="hsl(var(--primary) / 0.3)"
-          />
+          {countdownEmoji}
         </span>
       )}
 
