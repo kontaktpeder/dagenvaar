@@ -3,7 +3,6 @@ import { getCategoryOptionsForKind } from '@/lib/eventCategories';
 import type { CalendarKind } from '@/lib/calendarKinds';
 import { translateCategory } from '@/lib/i18n';
 import type { AppLocale } from '@/lib/i18n/types';
-import { PASTEL, mix, punchInk } from '@/lib/monthTheme';
 
 export type CategoryColorToken = 'pink' | 'blue' | 'purple' | 'amber' | 'orange' | 'green' | 'teal' | 'red';
 
@@ -41,27 +40,27 @@ export type CategoryVisuals = {
 };
 
 /**
- * Event fills share the knæsj PASTEL family.
- * Picker swatch === icon color; soft/rail are lighter washes of the same hue.
+ * Calendar mark colors matched to the live calendar look:
+ * soft picker blob + stronger same-hue icon (not near-black).
  */
-const EVENT_PASTEL: Record<CategoryColorToken, string> = {
-  pink: PASTEL.blush,
-  blue: PASTEL.periwinkle,
-  purple: mix(PASTEL.periwinkle, PASTEL.blush, 0.4),
-  amber: PASTEL.mustard,
-  orange: mix(PASTEL.coral, PASTEL.cream, 0.35),
-  green: PASTEL.sage,
-  teal: PASTEL.teal,
-  red: PASTEL.coral,
+const TOKEN_COLORS: Record<CategoryColorToken, { blob: string; ink: string }> = {
+  pink: { blob: '#F0C8E6', ink: '#D25096' },
+  blue: { blob: '#BED2FA', ink: '#4678E6' },
+  purple: { blob: '#E0C8F0', ink: '#9B5AD0' },
+  amber: { blob: '#E8D090', ink: '#C09018' },
+  orange: { blob: '#F0D2AA', ink: '#E67832' },
+  green: { blob: '#C0E8C0', ink: '#3FA85A' },
+  teal: { blob: '#AAF0DC', ink: '#50B4A0' },
+  red: { blob: '#F0C8C8', ink: '#DC5046' },
 };
 
-function tokenVisuals(base: string): CategoryVisuals {
-  // Blob = exact picker swatch; icon = stronger same-hue accent.
+function tokenVisuals(token: CategoryColorToken): CategoryVisuals {
+  const { blob, ink } = TOKEN_COLORS[token];
   return {
-    soft: base,
-    rail: base,
-    ink: punchInk(base),
-    swatch: base,
+    soft: blob,
+    rail: blob,
+    ink,
+    swatch: blob,
   };
 }
 
@@ -70,7 +69,7 @@ export function silverMarkRim(): string {
   return 'none';
 }
 
-/** Calendar marks use the picker swatch color. */
+/** Calendar marks use the picker blob color. */
 export function categoryMarkFill(soft: string, rail: string): string {
   const fill = rail || soft;
   if (fill.startsWith('hsl')) return fill;
@@ -82,16 +81,16 @@ export function categoryMarkOutline(_ink?: string, _strength?: number): string {
   return silverMarkRim();
 }
 
-/** Category tokens → soft member-like fills (detail-card aesthetic). */
+/** Category tokens → blob from picker, stronger icon ink. */
 const TOKEN_PALETTE: Record<CategoryColorToken, CategoryVisuals> = {
-  pink: tokenVisuals(EVENT_PASTEL.pink),
-  blue: tokenVisuals(EVENT_PASTEL.blue),
-  purple: tokenVisuals(EVENT_PASTEL.purple),
-  amber: tokenVisuals(EVENT_PASTEL.amber),
-  orange: tokenVisuals(EVENT_PASTEL.orange),
-  green: tokenVisuals(EVENT_PASTEL.green),
-  teal: tokenVisuals(EVENT_PASTEL.teal),
-  red: tokenVisuals(EVENT_PASTEL.red),
+  pink: tokenVisuals('pink'),
+  blue: tokenVisuals('blue'),
+  purple: tokenVisuals('purple'),
+  amber: tokenVisuals('amber'),
+  orange: tokenVisuals('orange'),
+  green: tokenVisuals('green'),
+  teal: tokenVisuals('teal'),
+  red: tokenVisuals('red'),
 };
 
 const OTHER_NEUTRAL: CategoryVisuals = {
