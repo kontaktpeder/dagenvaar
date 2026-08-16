@@ -11,13 +11,13 @@ export type MonthTheme = {
  * Cream stays a soft summer / neutral wash; never a loud category.
  */
 export const PASTEL = {
-  mustard: "#E6C56A",
-  periwinkle: "#A7B3D9",
-  cream: "#EFE4D6",
-  teal: "#8AAFB2",
-  coral: "#E6988A",
-  sage: "#B9C9A9",
-  blush: "#E9C5C9",
+  mustard: "#F0C060",
+  periwinkle: "#A8B8E8",
+  cream: "#F0D0C0",
+  teal: "#88C0D0",
+  coral: "#F89888",
+  sage: "#D0E8C0",
+  blush: "#F8C8C8",
   /** Warm paper — cream nudged into white */
   paper: "#FBF8F4",
   ink: "#3A2A38",
