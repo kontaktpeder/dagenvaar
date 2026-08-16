@@ -24,6 +24,15 @@ export function getAuthRedirectUrl(): string {
   return `${AUTH_WEB_ORIGIN}/auth/callback`;
 }
 
+/**
+ * Password-reset emails must keep a durable recovery marker.
+ * Native PKCE strips Supabase's `type=recovery`, so without this query
+ * the app cannot tell a reset deep link from a signup confirm.
+ */
+export function getPasswordResetRedirectUrl(): string {
+  return `${getAuthRedirectUrl()}?intent=recovery`;
+}
+
 export function isLocalOrigin(origin: string): boolean {
   try {
     const { hostname } = new URL(origin);

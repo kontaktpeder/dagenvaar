@@ -176,6 +176,20 @@ describe('handleAuthCallbackUrl recovery state', () => {
     expect(window.localStorage.getItem('pastelly:pending-recovery-intent')).toBeNull();
   });
 
+  it('marks recovery when intent=recovery is on a native link (no pending intent, no type)', async () => {
+    exchangeMock.mockResolvedValue({ error: null });
+    const result = await handleAuthCallbackUrl(
+      'pastelly://auth/callback?code=laterecovery&intent=recovery',
+    );
+    expect(result.ok).toBe(true);
+    expect((result as { kind: string }).kind).toBe('recovery');
+    const raw = window.localStorage.getItem('pastelly:recovery-state');
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.isRecoveryFlow).toBe(true);
+    expect(parsed.recoverySessionReady).toBe(true);
+  });
+
   it('native pastelly:// code exchange WITHOUT pending intent is NOT recovery (signup deep link)', async () => {
     exchangeMock.mockResolvedValue({ error: null });
     const result = await handleAuthCallbackUrl('pastelly://auth/callback?code=nativenoint');

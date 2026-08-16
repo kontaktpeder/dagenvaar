@@ -5,7 +5,7 @@ vi.mock('./platform', () => ({
 }));
 
 import { isNativePlatform } from './platform';
-import { AUTH_WEB_ORIGIN, getAuthRedirectUrl, isLocalOrigin } from './authRedirect';
+import { AUTH_WEB_ORIGIN, getAuthRedirectUrl, getPasswordResetRedirectUrl, isLocalOrigin } from './authRedirect';
 
 describe('isLocalOrigin', () => {
   it('accepts localhost variants', () => {
@@ -40,5 +40,22 @@ describe('getAuthRedirectUrl', () => {
     // jsdom default location is typically http://localhost:3000/
     expect(isLocalOrigin(window.location.origin)).toBe(true);
     expect(getAuthRedirectUrl()).toBe(`${window.location.origin}/auth/callback`);
+  });
+});
+
+describe('getPasswordResetRedirectUrl', () => {
+  afterEach(() => {
+    vi.mocked(isNativePlatform).mockReturnValue(false);
+    vi.unstubAllEnvs();
+  });
+
+  it('appends intent=recovery on native', () => {
+    vi.mocked(isNativePlatform).mockReturnValue(true);
+    expect(getPasswordResetRedirectUrl()).toBe('pastelly://auth/callback?intent=recovery');
+  });
+
+  it('appends intent=recovery on web', () => {
+    vi.stubEnv('DEV', false);
+    expect(getPasswordResetRedirectUrl()).toBe(`${AUTH_WEB_ORIGIN}/auth/callback?intent=recovery`);
   });
 });

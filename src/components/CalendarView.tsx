@@ -864,7 +864,7 @@ const MonthPanel = ({
 
   return (
     <div
-      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-2 sm:px-4 ${
+      className={`flex flex-col h-full min-h-0 shrink-0 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 ${
         interactive ? '' : 'pointer-events-none'
       }`}
       style={{ width: width || '33.333%' }}
@@ -1216,7 +1216,7 @@ const YearView = ({ year, onSelectMonth, onBack, onChangeYear }: { year: number;
         {year}
       </ViewHeader>
 
-      <div className="grid grid-cols-3 gap-4 px-5 pt-4 flex-1 content-start overflow-y-auto scroll-touch overscroll-contain">
+      <div className="grid grid-cols-3 gap-4 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex-1 content-start overflow-y-auto scroll-touch overscroll-contain">
         {months.map((m) => {
           const theme = getMonthTheme(new Date(year, m, 1));
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === m;

@@ -212,6 +212,10 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
   const hash = getHashParams(parsed);
   const explicitType = query.get('type') ?? hash.get('type') ?? null;
   const isRecoveryFlag = explicitType === 'recovery';
+  // Survives native PKCE (unlike type=recovery). Set on reset emails via
+  // getPasswordResetRedirectUrl so a late tap still opens "new password".
+  const isRecoveryIntent =
+    query.get('intent') === 'recovery' || hash.get('intent') === 'recovery';
   // Explicit non-recovery URL types (signup, magiclink, invite, email_change).
   // If Supabase tells us the link is anything other than recovery, honor it
   // and drop any stale pendingRecoveryIntent — otherwise a leftover intent
@@ -221,16 +225,19 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackRe
     clearPendingRecoveryIntent();
   }
 
-  // Recovery only when: URL explicitly marked recovery, or a native deep link
-  // arrives while a recovery intent is pending (native PKCE strips
-  // `type=recovery`). Web links always carry `type`, so a pending intent must
-  // never turn a web signup confirm into a password reset. We also do NOT
-  // treat every native `pastelly://` link as recovery — signup deep links
-  // arrive on the same scheme and must route normally.
+  // Recovery when: URL marked recovery (type or our intent=), or a native
+  // deep link arrives while a recovery intent is pending (fallback for
+  // reset emails sent before intent=recovery was added; PKCE strips type).
+  // Web links always carry `type`, so a pending intent must never turn a
+  // web signup confirm into a password reset. We also do NOT treat every
+  // native `pastelly://` link as recovery — signup deep links arrive on
+  // the same scheme and must route normally.
   const isNativeCallback = parsed.protocol === NATIVE_SCHEME;
   const pendingIntent = hasPendingRecoveryIntent();
   const treatAsRecovery =
-    isRecoveryFlag || (isNativeCallback && pendingIntent && !isExplicitNonRecovery);
+    isRecoveryFlag ||
+    isRecoveryIntent ||
+    (isNativeCallback && pendingIntent && !isExplicitNonRecovery);
   if (treatAsRecovery) {
     startRecoveryFlow();
   }

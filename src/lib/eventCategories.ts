@@ -124,7 +124,7 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     iconColor: 'text-purple-500',
   },
   personal: {
-    label: 'Personal',
+    label: 'Personlig',
     Icon: User,
     chipBg: 'bg-orange-100',
     chipText: 'text-foreground',
@@ -171,7 +171,7 @@ export const HOME_CATEGORY_OPTIONS: EventCategory[] = [
   'other',
 ];
 
-/** Aligns with WORK core work_types (+ Personal, Reise). */
+/** Aligns with WORK core work_types (+ Personlig, Reise). */
 export const WORK_CATEGORY_OPTIONS: EventCategory[] = [
   'meeting',
   'production',

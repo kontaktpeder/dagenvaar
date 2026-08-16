@@ -10,6 +10,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/native/authRedirect', () => ({
   getAuthRedirectUrl: () => 'http://localhost/auth/callback',
+  getPasswordResetRedirectUrl: () => 'http://localhost/auth/callback?intent=recovery',
 }));
 
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,14 @@ describe('requestPasswordReset', () => {
     mockReset.mockResolvedValue({ data: {}, error: null });
     await requestPasswordReset('a@b.no');
     expect(window.localStorage.getItem('pastelly:pending-recovery-intent')).toBeTruthy();
+  });
+
+  it('sends reset email with a durable recovery redirect', async () => {
+    mockReset.mockResolvedValue({ data: {}, error: null });
+    await requestPasswordReset('a@b.no');
+    expect(mockReset).toHaveBeenCalledWith('a@b.no', {
+      redirectTo: 'http://localhost/auth/callback?intent=recovery',
+    });
   });
 
   it('does NOT set pendingRecoveryIntent on error', async () => {

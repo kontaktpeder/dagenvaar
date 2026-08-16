@@ -42,7 +42,7 @@ export const nb = {
   'cat.production': 'Produksjon',
   'cat.development': 'Utvikling',
   'cat.admin': 'Administrasjon',
-  'cat.personal': 'Personal',
+  'cat.personal': 'Personlig',
   'cat.client': 'Kunde',
   'cat.deadline': 'Frist',
   'cat.focus': 'Fokus',

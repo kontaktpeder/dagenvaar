@@ -70,7 +70,8 @@ export function getMonthTheme(date: Date): MonthTheme {
   const base = MONTH_COLORS[date.getMonth()];
   const light = mix(base, "#FFFFFF", 0.42);
   const dark = mix(base, "#3A2A38", 0.42);
-  const textOnStrong = "#FFFFFF";
+  // Pastel fills — white-on-base is unreadable. Use shaded ink on the same hue.
+  const textOnStrong = shadeInk(base);
   const gradient = base;
   return { base, light, dark, textOnStrong, gradient };
 }

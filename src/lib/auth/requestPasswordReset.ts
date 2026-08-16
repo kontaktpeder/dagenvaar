@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthRedirectUrl } from '@/lib/native/authRedirect';
+import { getPasswordResetRedirectUrl } from '@/lib/native/authRedirect';
 import { normalizeAuthError, type NormalizedAuthError } from './normalizeAuthError';
 import { setPendingRecoveryIntent } from './recoveryState';
 
@@ -16,7 +16,7 @@ export async function requestPasswordReset(
   email: string
 ): Promise<RequestPasswordResetResult> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: getAuthRedirectUrl(),
+    redirectTo: getPasswordResetRedirectUrl(),
   });
 
   if (error) {

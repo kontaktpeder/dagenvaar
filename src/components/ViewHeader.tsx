@@ -15,9 +15,9 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
     const isCalendar = variant === 'calendar';
 
     const bg = isCalendar ? '' : 'bg-list-accent';
-    const textColor = isCalendar ? 'text-white' : 'text-foreground';
-    const arrowColor = isCalendar ? 'stroke-white' : 'stroke-current';
-    const hoverBg = isCalendar ? 'hover:bg-white/15' : 'hover:bg-white/40';
+    const textColor = isCalendar ? 'text-current' : 'text-foreground';
+    const arrowColor = 'stroke-current';
+    const hoverBg = isCalendar ? 'hover:bg-black/10' : 'hover:bg-white/40';
 
     return (
       <div
@@ -36,7 +36,7 @@ const ViewHeader = forwardRef<HTMLDivElement, ViewHeaderProps>(
               {children}
             </h2>
             {subtitle && (
-              <p className={`text-sm mt-0.5 ${isCalendar ? 'text-white/70' : 'text-muted-foreground'}`}>
+              <p className={`text-sm mt-0.5 ${isCalendar ? 'text-current/70' : 'text-muted-foreground'}`}>
                 {subtitle}
               </p>
             )}
