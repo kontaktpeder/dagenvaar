@@ -36,8 +36,9 @@ export const nb = {
   'cat.celebration': 'Fest',
   'cat.important': 'Viktig',
   'cat.travel': 'Reise',
+  'cat.school': 'Skole',
   'cat.other': 'Annet',
-  // categories — work
+  // categories — work (+ shared møte)
   'cat.meeting': 'Møte',
   'cat.production': 'Produksjon',
   'cat.development': 'Utvikling',

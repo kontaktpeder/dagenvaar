@@ -34,6 +34,7 @@ export const en: Record<MessageKey, string> = {
   'cat.celebration': 'Celebration',
   'cat.important': 'Important',
   'cat.travel': 'Travel',
+  'cat.school': 'School',
   'cat.other': 'Other',
   'cat.meeting': 'Meeting',
   'cat.production': 'Production',

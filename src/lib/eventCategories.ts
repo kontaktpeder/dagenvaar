@@ -12,6 +12,7 @@ import {
   Target,
   ClipboardList,
   User,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 import type { CalendarKind } from '@/lib/calendarKinds';
@@ -24,6 +25,8 @@ export type HomeEventCategory =
   | 'celebration'
   | 'important'
   | 'travel'
+  | 'school'
+  | 'meeting'
   | 'other';
 
 /** WORK core–aligned categories for jobbkalender. */
@@ -95,9 +98,16 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
     chipText: 'text-foreground',
     iconColor: 'text-teal-500',
   },
+  school: {
+    label: 'Skole',
+    Icon: BookOpen,
+    chipBg: 'bg-green-100',
+    chipText: 'text-foreground',
+    iconColor: 'text-green-600',
+  },
   meeting: {
     label: 'Møte',
-    Icon: UsersRound,
+    Icon: Handshake,
     chipBg: 'bg-amber-100',
     chipText: 'text-foreground',
     iconColor: 'text-amber-500',
@@ -133,7 +143,7 @@ export const EVENT_CATEGORY_META: Record<EventCategory, CategoryMeta> = {
   // Legacy — still render old events
   client: {
     label: 'Kunde',
-    Icon: Handshake,
+    Icon: UsersRound,
     chipBg: 'bg-teal-100',
     chipText: 'text-foreground',
     iconColor: 'text-teal-500',
@@ -168,6 +178,8 @@ export const HOME_CATEGORY_OPTIONS: EventCategory[] = [
   'celebration',
   'important',
   'travel',
+  'school',
+  'meeting',
   'other',
 ];
 
@@ -208,15 +220,16 @@ export const CATEGORY_SORT_ORDER: Record<string, number> = {
   deadline: 1,
   work: 2,
   meeting: 3,
-  production: 4,
-  development: 5,
-  admin: 6,
-  personal: 7,
-  client: 8,
-  focus: 9,
-  couple: 10,
-  celebration: 11,
-  social: 12,
-  travel: 13,
-  other: 14,
+  school: 4,
+  production: 5,
+  development: 6,
+  admin: 7,
+  personal: 8,
+  client: 9,
+  focus: 10,
+  couple: 11,
+  celebration: 12,
+  social: 13,
+  travel: 14,
+  other: 15,
 };

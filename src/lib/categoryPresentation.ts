@@ -17,7 +17,8 @@ export const DEFAULT_CATEGORY_COLOR_MAP: Record<MainCategory, CategoryColorToken
   celebration: 'amber',
   important: 'orange',
   travel: 'teal',
-  // WORK core hues
+  school: 'green',
+  // WORK core hues (+ shared meeting on home)
   meeting: 'amber',
   production: 'green',
   development: 'blue',

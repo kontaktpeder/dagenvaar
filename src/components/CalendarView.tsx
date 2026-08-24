@@ -70,14 +70,15 @@ const CATEGORY_ORDER: Record<string, number> = {
   deadline: 1,
   work: 2,
   meeting: 3,
-  client: 4,
-  focus: 5,
-  admin: 6,
-  couple: 7,
-  celebration: 8,
-  social: 9,
-  travel: 10,
-  other: 11,
+  school: 4,
+  client: 5,
+  focus: 6,
+  admin: 7,
+  couple: 8,
+  celebration: 9,
+  social: 10,
+  travel: 11,
+  other: 12,
 };
 
 /** Commit when dragged past this fraction of width, or with enough velocity */
